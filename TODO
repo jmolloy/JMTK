@@ -1,0 +1,3 @@
+  * Compile FileCheck against llvm-dev (/usr/lib)
+  * Add ability to limit modules to link in.
+  * Clean up CMakeLists.txt

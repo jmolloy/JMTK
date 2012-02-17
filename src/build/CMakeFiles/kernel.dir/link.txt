@@ -1,0 +1,1 @@
+/usr/bin/gcc  -g   -T/home/james/Code/new-tutorials/src/x86/link.ld -nostdlibinc -nostdlib -m32 -Xlinker --build-id=none CMakeFiles/kernel.dir/hal.c.o CMakeFiles/kernel.dir/main.c.o CMakeFiles/kernel.dir/string.c.o CMakeFiles/kernel.dir/console.c.o CMakeFiles/kernel.dir/x86/bringup-2.c.o x86/bringup-1.s.o  -o kernel -rdynamic 

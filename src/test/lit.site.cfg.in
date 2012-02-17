@@ -1,0 +1,39 @@
+# -*- Python -*-
+
+# Configuration file for the 'lit' test runner.
+import os, sys, re, subprocess, glob
+
+config.target_triple = "@TARGET@"
+
+runcmd = 'python %s --preformatted-image %s' % (
+    os.path.join('@CMAKE_SOURCE_DIR@', '..', 'scripts', 'run.py'),
+    os.path.join('@CMAKE_SOURCE_DIR@', 'floppy.img.zip')
+)
+
+srcs = set("@SOURCES@".split(';'))
+objs = []
+for s in srcs:
+    if s[0] == '/':
+        # Absolute path, leave well alone.
+        objs.append(s)
+    else:
+        objs.append(os.path.abspath("CMakeFiles/@CMAKE_TARGET@.dir/%s.o" % s))
+
+if "@CMAKE_BUILD_TYPE@" == "Debug":
+    flags = "@CMAKE_C_FLAGS_DEBUG@"
+if "@CMAKE_BUILD_TYPE@" == "Release":
+    flags = "@CMAKE_C_FLAGS_RELEASE@"
+if "@CMAKE_BUILD_TYPE@" == "MinSizeRel":
+    flags = "@CMAKE_C_FLAGS_MINSIZEREL@"
+if "@CMAKE_BUILD_TYPE@" == "RelWithDebInfo":
+    flags = "@CMAKE_C_FLAGS_RELWITHDEBINFO@"
+
+defs = "@DEFINITIONS@".split(';')
+
+cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ %s" % (
+    flags, ' '.join(defs), ' '.join(objs))
+
+config.substitutions.append( ('%run', runcmd) )
+config.substitutions.append( ('%compile', cmd) )
+config.substitutions.append( ('%FileCheck', os.path.join(config.test_source_root,
+                                                        'FileCheck')) )

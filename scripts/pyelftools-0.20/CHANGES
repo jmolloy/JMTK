@@ -1,0 +1,12 @@
+Changelog
+=========
+
++ Version 0.20 (27.01.2012)
+
+  - Python 3 support
+  - Fixed some problems with running tests
+  - Issue #2: made all examples run (and test/run_examples_test.py pass)
+    on Windows.
+
++ Version 0.10 - Initial public release (06.01.2012)
+

@@ -1,0 +1,59 @@
+"skeleton" -> "console"
+
+"bringup stage 1" -> "screen printing"
+"bringup stage 1" -> "keyboard"
+"bringup stage 1" -> "serial printing"
+"bringup stage 1" -> "serial input"
+
+"screen printing" -> "console"
+
+"keyboard" -> "console"
+
+"serial printing" -> "console"
+
+"serial input" -> "console"
+
+"bringup stage 2" -> "interrupt handling"
+
+"interrupt handling" -> "keyboard"
+
+"interrupt handling" -> "real time clock"
+
+"interrupt handling" -> "interval timer"
+
+"interrupt handling" -> "serial input"
+
+"console" -> "bringup stage 2"
+
+"bringup stage 2" -> "physical memory management"
+
+
+"physical memory management" -> "virtual memory management"
+
+"virtual memory management" -> "kernel heap"
+
+"kernel heap" -> "virtual file system"
+
+"IDE driver" -> "Simple tarball filesystem"
+
+"IDE driver" -> "FAT filesystem"
+
+"IDE driver" -> "EXT2 filesystem"
+
+"Simple tarball filesystem" -> "virtual file system"
+
+"FAT filessytem" -> "virtual file system"
+
+"EXT2 filesystem" -> "virtual file system"
+
+"kernel heap" -> "cooperative threading"
+
+"interval timer" -> "preemptive threading"
+"cooperative threading" -> "preemptive threading"
+
+"cooperative threading" -> "multiple address spaces"
+
+"kernel heap" -> "ELF loading"
+
+"multiple address spaces" -> "loading programs"
+"ELF loading" -> "loading programs"
