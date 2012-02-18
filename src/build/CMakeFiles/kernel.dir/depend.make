@@ -23,3 +23,16 @@ CMakeFiles/kernel.dir/x86/bringup-2.c.o: ../include/types.h
 CMakeFiles/kernel.dir/x86/bringup-2.c.o: ../include/x86/multiboot.h
 CMakeFiles/kernel.dir/x86/bringup-2.c.o: ../x86/bringup-2.c
 
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../include/hal.h
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../include/string.h
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../include/types.h
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../include/x86/io.h
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../x86/keyboard.c
+CMakeFiles/kernel.dir/x86/keyboard.c.o: scantable.inc
+
+CMakeFiles/kernel.dir/x86/screen.c.o: ../include/hal.h
+CMakeFiles/kernel.dir/x86/screen.c.o: ../include/string.h
+CMakeFiles/kernel.dir/x86/screen.c.o: ../include/types.h
+CMakeFiles/kernel.dir/x86/screen.c.o: ../include/x86/io.h
+CMakeFiles/kernel.dir/x86/screen.c.o: ../x86/screen.c
+

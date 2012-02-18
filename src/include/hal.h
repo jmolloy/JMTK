@@ -42,7 +42,7 @@ typedef struct console {
   /* Read from a console - if no data is available, block until some is.
      Else return as much data as is available, up to 'len'. Return the
      number of bytes read, or -1 on error. */
-  int (*read)(struct console *obj, const char *buf, int len);
+  int (*read)(struct console *obj, char *buf, int len);
   /* Write to a console - return the number of bytes written, or -1 on
      failure. */
   int (*write)(struct console *obj, const char *buf, int len);
@@ -68,7 +68,7 @@ void write_console(const char *buf, int len);
 /* Read from the default console into a buffer. If there is no data 
    available, this call will block. Returns the number of bytes actually
    read, or -1 on error. */
-int read_console(const char *buf, int len);
+int read_console(char *buf, int len);
 
 /*******************************************************************************
  * Interrupt handling
@@ -76,18 +76,18 @@ int read_console(const char *buf, int len);
 
 /* Callback type for an interrupt handler. Takes a pointer to the target
    specific struct 'regs' containing the register contents when the interrupt
-   was taken. Return nonzero if the changes you made to 'r' should be 
+   was taken. Return nonzero if any changes you made to 'r' should be 
    reflected when the handler returns. */
 struct regs;
-typedef int (*interrupt_handler_t)(struct regs *r);
+typedef int (*interrupt_handler_t)(struct regs *r, void *p);
 
 /* Register a new interrupt handler on the given target specific interrupt
    identifer 'num'. There can be multiple handlers per interrupt identifier.
    Returns -1 on failure. */
-int register_interrupt_handler(int num, interrupt_handler_t handler);
+int register_interrupt_handler(int num, interrupt_handler_t handler, void *p);
 /* Unregisters the given interrupt handler from the given intterupt identifer.
    Returns -1 on failure. */
-int unregister_interrupt_handler(int num, interrupt_handler_t handler);
+int unregister_interrupt_handler(int num, interrupt_handler_t handler, void *p);
 
 /*******************************************************************************
  * Debugging

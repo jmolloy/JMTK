@@ -3,12 +3,16 @@ OUTPUT_ARCH("i386")
 ENTRY(_start)
 SECTIONS
 {
-  .mboot 0x100000 :
+  .init 0x100000 :
+  {
+    *(.init)
+  }
+
+  . += 0xC0000000;
+
+  .text ALIGN(4096) : AT(ADDR(.text) - 0xC0000000)
   {
     *(.mboot)
-  }
-  .text :
-  {
     *(.text.unlikely .text.*_unlikely)
     *(.text.exit .text.exit.*)
     *(.text.startup .text.startup.*)
@@ -18,8 +22,10 @@ SECTIONS
     *(.gnu.warning)
   }
 
-  .rodata : { *(.rodata .rodata.* .gnu.linkonce.r.*) }
-  .data :
+  .rodata ALIGN(4096) : AT(ADDR(.rodata) - 0xC0000000) {
+    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  }
+  .data ALIGN(4096) : AT(ADDR(.data) - 0xC0000000)
   {
     PROVIDE (__startup_begin = .);
     *(.startup)
@@ -32,7 +38,7 @@ SECTIONS
     SORT(CONSTRUCTORS)
   }
 
-  .bss :
+  .bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000)
   {
    *(.dynbss)
    *(.bss .bss.* .gnu.linkonce.b.*)

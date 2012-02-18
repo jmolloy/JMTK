@@ -29,9 +29,10 @@ if "@CMAKE_BUILD_TYPE@" == "RelWithDebInfo":
     flags = "@CMAKE_C_FLAGS_RELWITHDEBINFO@"
 
 defs = "@DEFINITIONS@".split(';')
+incs = ["-I"+i for i in "@INCLUDES@".split(';')]
 
 cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ %s" % (
-    flags, ' '.join(defs), ' '.join(objs))
+    flags, ' '.join(defs+incs), ' '.join(objs))
 
 config.substitutions.append( ('%run', runcmd) )
 config.substitutions.append( ('%compile', cmd) )

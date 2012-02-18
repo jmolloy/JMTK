@@ -51,6 +51,7 @@ include CMakeFiles/kernel.dir/flags.make
 
 CMakeFiles/kernel.dir/hal.c.o: CMakeFiles/kernel.dir/flags.make
 CMakeFiles/kernel.dir/hal.c.o: ../hal.c
+CMakeFiles/kernel.dir/hal.c.o: scantable.inc
 	$(CMAKE_COMMAND) -E cmake_progress_report /home/james/Code/new-tutorials/src/build/CMakeFiles $(CMAKE_PROGRESS_1)
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/kernel.dir/hal.c.o"
 	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/kernel.dir/hal.c.o   -c /home/james/Code/new-tutorials/src/hal.c
@@ -169,9 +170,62 @@ CMakeFiles/kernel.dir/x86/bringup-2.c.o.provides: CMakeFiles/kernel.dir/x86/brin
 CMakeFiles/kernel.dir/x86/bringup-2.c.o.provides.build: CMakeFiles/kernel.dir/x86/bringup-2.c.o
 .PHONY : CMakeFiles/kernel.dir/x86/bringup-2.c.o.provides.build
 
-x86/bringup-1.s.o: ../x86/bringup-1.s
+CMakeFiles/kernel.dir/x86/screen.c.o: CMakeFiles/kernel.dir/flags.make
+CMakeFiles/kernel.dir/x86/screen.c.o: ../x86/screen.c
 	$(CMAKE_COMMAND) -E cmake_progress_report /home/james/Code/new-tutorials/src/build/CMakeFiles $(CMAKE_PROGRESS_6)
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold "Assembling /home/james/Code/new-tutorials/src/build/x86/bringup-1.s.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/kernel.dir/x86/screen.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/kernel.dir/x86/screen.c.o   -c /home/james/Code/new-tutorials/src/x86/screen.c
+
+CMakeFiles/kernel.dir/x86/screen.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/kernel.dir/x86/screen.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/james/Code/new-tutorials/src/x86/screen.c > CMakeFiles/kernel.dir/x86/screen.c.i
+
+CMakeFiles/kernel.dir/x86/screen.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/kernel.dir/x86/screen.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/james/Code/new-tutorials/src/x86/screen.c -o CMakeFiles/kernel.dir/x86/screen.c.s
+
+CMakeFiles/kernel.dir/x86/screen.c.o.requires:
+.PHONY : CMakeFiles/kernel.dir/x86/screen.c.o.requires
+
+CMakeFiles/kernel.dir/x86/screen.c.o.provides: CMakeFiles/kernel.dir/x86/screen.c.o.requires
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/screen.c.o.provides.build
+.PHONY : CMakeFiles/kernel.dir/x86/screen.c.o.provides
+
+CMakeFiles/kernel.dir/x86/screen.c.o.provides.build: CMakeFiles/kernel.dir/x86/screen.c.o
+.PHONY : CMakeFiles/kernel.dir/x86/screen.c.o.provides.build
+
+CMakeFiles/kernel.dir/x86/keyboard.c.o: CMakeFiles/kernel.dir/flags.make
+CMakeFiles/kernel.dir/x86/keyboard.c.o: ../x86/keyboard.c
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/james/Code/new-tutorials/src/build/CMakeFiles $(CMAKE_PROGRESS_7)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Building C object CMakeFiles/kernel.dir/x86/keyboard.c.o"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -o CMakeFiles/kernel.dir/x86/keyboard.c.o   -c /home/james/Code/new-tutorials/src/x86/keyboard.c
+
+CMakeFiles/kernel.dir/x86/keyboard.c.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing C source to CMakeFiles/kernel.dir/x86/keyboard.c.i"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -E /home/james/Code/new-tutorials/src/x86/keyboard.c > CMakeFiles/kernel.dir/x86/keyboard.c.i
+
+CMakeFiles/kernel.dir/x86/keyboard.c.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling C source to assembly CMakeFiles/kernel.dir/x86/keyboard.c.s"
+	/usr/bin/gcc  $(C_DEFINES) $(C_FLAGS) -S /home/james/Code/new-tutorials/src/x86/keyboard.c -o CMakeFiles/kernel.dir/x86/keyboard.c.s
+
+CMakeFiles/kernel.dir/x86/keyboard.c.o.requires:
+.PHONY : CMakeFiles/kernel.dir/x86/keyboard.c.o.requires
+
+CMakeFiles/kernel.dir/x86/keyboard.c.o.provides: CMakeFiles/kernel.dir/x86/keyboard.c.o.requires
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/keyboard.c.o.provides.build
+.PHONY : CMakeFiles/kernel.dir/x86/keyboard.c.o.provides
+
+CMakeFiles/kernel.dir/x86/keyboard.c.o.provides.build: CMakeFiles/kernel.dir/x86/keyboard.c.o
+.PHONY : CMakeFiles/kernel.dir/x86/keyboard.c.o.provides.build
+
+scantable.inc: ../x86/en_US.scantable
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/james/Code/new-tutorials/src/build/CMakeFiles $(CMAKE_PROGRESS_8)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold "Generating keyboard scancode table from x86/en_US.scantable"
+	cd /home/james/Code/new-tutorials/src && /usr/bin/python2.7 /home/james/Code/new-tutorials/src/../scripts/scantable.py /home/james/Code/new-tutorials/src/x86/en_US.scantable /home/james/Code/new-tutorials/src/build/scantable.inc
+
+x86/bringup-1.s.o: ../x86/bringup-1.s
+	$(CMAKE_COMMAND) -E cmake_progress_report /home/james/Code/new-tutorials/src/build/CMakeFiles $(CMAKE_PROGRESS_9)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --blue --bold "Assembling x86/bringup-1.s.o"
 	mkdir -p `dirname /home/james/Code/new-tutorials/src/build/x86/bringup-1.s`
 	/usr/bin/nasm -felf -o /home/james/Code/new-tutorials/src/build/x86/bringup-1.s.o /home/james/Code/new-tutorials/src/x86/bringup-1.s
 
@@ -181,7 +235,9 @@ kernel_OBJECTS = \
 "CMakeFiles/kernel.dir/main.c.o" \
 "CMakeFiles/kernel.dir/string.c.o" \
 "CMakeFiles/kernel.dir/console.c.o" \
-"CMakeFiles/kernel.dir/x86/bringup-2.c.o"
+"CMakeFiles/kernel.dir/x86/bringup-2.c.o" \
+"CMakeFiles/kernel.dir/x86/screen.c.o" \
+"CMakeFiles/kernel.dir/x86/keyboard.c.o"
 
 # External object files for target kernel
 kernel_EXTERNAL_OBJECTS = \
@@ -192,6 +248,8 @@ kernel: CMakeFiles/kernel.dir/main.c.o
 kernel: CMakeFiles/kernel.dir/string.c.o
 kernel: CMakeFiles/kernel.dir/console.c.o
 kernel: CMakeFiles/kernel.dir/x86/bringup-2.c.o
+kernel: CMakeFiles/kernel.dir/x86/screen.c.o
+kernel: CMakeFiles/kernel.dir/x86/keyboard.c.o
 kernel: CMakeFiles/kernel.dir/build.make
 kernel: x86/bringup-1.s.o
 kernel: CMakeFiles/kernel.dir/link.txt
@@ -207,12 +265,15 @@ CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/main.c.o.requires
 CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/string.c.o.requires
 CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/console.c.o.requires
 CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/x86/bringup-2.c.o.requires
+CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/x86/screen.c.o.requires
+CMakeFiles/kernel.dir/requires: CMakeFiles/kernel.dir/x86/keyboard.c.o.requires
 .PHONY : CMakeFiles/kernel.dir/requires
 
 CMakeFiles/kernel.dir/clean:
 	$(CMAKE_COMMAND) -P CMakeFiles/kernel.dir/cmake_clean.cmake
 .PHONY : CMakeFiles/kernel.dir/clean
 
+CMakeFiles/kernel.dir/depend: scantable.inc
 CMakeFiles/kernel.dir/depend: x86/bringup-1.s.o
 	cd /home/james/Code/new-tutorials/src/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/james/Code/new-tutorials/src /home/james/Code/new-tutorials/src /home/james/Code/new-tutorials/src/build /home/james/Code/new-tutorials/src/build /home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/kernel.dir/depend

@@ -6,3 +6,33 @@
 
 #IncludeRegexTransform: 
 
+../include/hal.h
+types.h
+../include/types.h
+
+../include/string.h
+types.h
+../include/types.h
+
+../include/types.h
+stdint.h
+-
+
+../include/x86/io.h
+types.h
+../include/x86/types.h
+
+/home/james/Code/new-tutorials/src/x86/keyboard.c
+hal.h
+/home/james/Code/new-tutorials/src/x86/hal.h
+string.h
+/home/james/Code/new-tutorials/src/x86/string.h
+types.h
+/home/james/Code/new-tutorials/src/x86/types.h
+x86/io.h
+/home/james/Code/new-tutorials/src/x86/x86/io.h
+scantable.inc
+/home/james/Code/new-tutorials/src/x86/scantable.inc
+
+scantable.inc
+

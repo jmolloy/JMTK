@@ -19,17 +19,21 @@ void unregister_console(console_t *c) {
 void write_console(const char *buf, int len) weak;
 void write_console(const char *buf, int len) {
 }
-int read_console(const char *buf, int len) weak;
-int read_console(const char *buf, int len) {
+int read_console(char *buf, int len) weak;
+int read_console(char *buf, int len) {
   return -1;
 }
 
-int register_interrupt_handler(int num, interrupt_handler_t handler) weak;
-int register_interrupt_handler(int num, interrupt_handler_t handler) {
+int register_interrupt_handler(int num, interrupt_handler_t handler,
+                               void *p) weak;
+int register_interrupt_handler(int num, interrupt_handler_t handler,
+                               void *p) {
   return -1;
 }
-int unregister_interrupt_handler(int num, interrupt_handler_t handler) weak;
-int unregister_interrupt_handler(int num, interrupt_handler_t handler) {
+int unregister_interrupt_handler(int num, interrupt_handler_t handler,
+                                 void *p) weak;
+int unregister_interrupt_handler(int num, interrupt_handler_t handler,
+                                 void *p) {
   return -1;
 }
 

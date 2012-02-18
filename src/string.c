@@ -13,6 +13,11 @@ void memset(uint8_t *dest, uint8_t val, uint32_t len)
   for ( ; len != 0; len--) *dest++ = val;
 }
 
+void memsetw(uint16_t *dest, uint16_t val, uint32_t len)
+{
+  for ( ; len != 0; len--) *dest++ = val;
+}
+
 // Compare two strings. Should return -1 if
 // str1 < str2, 0 if they are equal or 1 otherwise.
 int strcmp(const char *str1, const char *str2)

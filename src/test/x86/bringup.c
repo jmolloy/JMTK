@@ -1,4 +1,4 @@
-// RUN: %compile %s -o %t && %run --trace --syms %t 2>&1 | %FileCheck %s
+// RUN: %compile %s -o %t && %run --trace --syms --symsub 0xC0000000 %t 2>&1 | %FileCheck %s
 // XFAIL: Hosted
 // XFAIL: X64
 
@@ -6,9 +6,9 @@
 # error This test must be run on an x86 bare kernel!
 #endif
 
-// CHECK: _start:
+// CHECK: higherhalf:
 // CHECK: bringup:
 // CHECK: earlyalloc:
 // CHECK: tokenize:
 // CHECK: main:
-// CHECK: _start.stop:
+// CHECK: hlt

@@ -257,6 +257,54 @@ x86/bringup-2.c.s:
 	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/bringup-2.c.s
 .PHONY : x86/bringup-2.c.s
 
+x86/keyboard.o: x86/keyboard.c.o
+.PHONY : x86/keyboard.o
+
+# target to build an object file
+x86/keyboard.c.o:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/keyboard.c.o
+.PHONY : x86/keyboard.c.o
+
+x86/keyboard.i: x86/keyboard.c.i
+.PHONY : x86/keyboard.i
+
+# target to preprocess a source file
+x86/keyboard.c.i:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/keyboard.c.i
+.PHONY : x86/keyboard.c.i
+
+x86/keyboard.s: x86/keyboard.c.s
+.PHONY : x86/keyboard.s
+
+# target to generate assembly for a file
+x86/keyboard.c.s:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/keyboard.c.s
+.PHONY : x86/keyboard.c.s
+
+x86/screen.o: x86/screen.c.o
+.PHONY : x86/screen.o
+
+# target to build an object file
+x86/screen.c.o:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/screen.c.o
+.PHONY : x86/screen.c.o
+
+x86/screen.i: x86/screen.c.i
+.PHONY : x86/screen.i
+
+# target to preprocess a source file
+x86/screen.c.i:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/screen.c.i
+.PHONY : x86/screen.c.i
+
+x86/screen.s: x86/screen.c.s
+.PHONY : x86/screen.s
+
+# target to generate assembly for a file
+x86/screen.c.s:
+	$(MAKE) -f CMakeFiles/kernel.dir/build.make CMakeFiles/kernel.dir/x86/screen.c.s
+.PHONY : x86/screen.c.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -283,6 +331,12 @@ help:
 	@echo "... x86/bringup-2.o"
 	@echo "... x86/bringup-2.i"
 	@echo "... x86/bringup-2.s"
+	@echo "... x86/keyboard.o"
+	@echo "... x86/keyboard.i"
+	@echo "... x86/keyboard.s"
+	@echo "... x86/screen.o"
+	@echo "... x86/screen.i"
+	@echo "... x86/screen.s"
 .PHONY : help
 
 

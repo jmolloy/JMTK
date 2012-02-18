@@ -51,7 +51,8 @@ int run_startup_shutdown_functions(init_fini_fn_t *begin, init_fini_fn_t *end) {
       printf("Running %s...\n", i->name);
 #endif
       run_fns[num_run_fns++] = i->name;
-      ok |= i->fn();
+      if (i->fn)
+        ok |= i->fn();
       made_progress = 1;
     }
   }

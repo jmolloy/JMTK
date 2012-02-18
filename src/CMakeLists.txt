@@ -8,7 +8,7 @@ macro(assemble OUTPUT_LIST FILENAME INPUT_LIST)
       COMMAND ${NASM} ${NASM_ARGS} -o ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}.o
       ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${FILENAME}
-      COMMENT "Assembling ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}.o")
+      COMMENT "Assembling ${FILENAME}.o")
     list(APPEND ${OUTPUT_LIST} ${INPUT_LIST}
       ${CMAKE_CURRENT_BINARY_DIR}/${FILENAME}.o)
   else(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
@@ -34,7 +34,7 @@ endif()
 
 list(APPEND DEFINITIONS "-Wall" "-Wextra" "-Wno-unused-parameter" "-std=c99" "-nostdlibinc" "-fno-builtin")
 
-include_directories(include)
+set(INCLUDES ${CMAKE_SOURCE_DIR}/include ${CMAKE_BINARY_DIR})
 set(SOURCES
   hal.c
   main.c
@@ -44,9 +44,16 @@ set(SOURCES
 if (${TARGET} STREQUAL "X86")
   assemble(SOURCES x86/bringup-1.s ${SOURCES})
   set(SOURCES ${SOURCES}
-    x86/bringup-2.c)
+    x86/bringup-2.c
+    x86/screen.c
+    x86/keyboard.c)
 endif()
 
+include(FindPythonInterp)
+add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py" "${CMAKE_SOURCE_DIR}/test" "-sv" DEPENDS kernel)
+
+
+include_directories(${INCLUDES})
 add_definitions(${DEFINITIONS})
 add_executable(kernel ${SOURCES})
 
@@ -59,5 +66,14 @@ set(CMAKE_TARGET kernel)
 configure_file("${CMAKE_SOURCE_DIR}/test/lit.site.cfg.in"
   "${CMAKE_BINARY_DIR}/test/lit.site.cfg"  @ONLY)
 
-include(FindPythonInterp)
-add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py" "${CMAKE_SOURCE_DIR}/test" "-sv" DEPENDS kernel)
+if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
+  set(SCANTABLE "x86/en_US.scantable" CACHE STRING "Scantable location")
+  add_custom_command(
+    OUTPUT "${CMAKE_BINARY_DIR}/scantable.inc"
+    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/../scripts/scantable.py"
+    "${CMAKE_SOURCE_DIR}/${SCANTABLE}" "${CMAKE_BINARY_DIR}/scantable.inc"
+    DEPENDS "${CMAKE_SOURCE_DIR}/${SCANTABLE}"
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Generating keyboard scancode table from ${SCANTABLE}")
+  set_source_files_properties(hal.c OBJECT_DEPENDS "${CMAKE_BINARY_DIR}/scantable.inc")
+endif()

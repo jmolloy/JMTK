@@ -40,6 +40,8 @@
 
 "IDE driver" -> "EXT2 filesystem"
 
+"cooperative threading" -> "IDE driver"
+
 "Simple tarball filesystem" -> "virtual file system"
 
 "FAT filessytem" -> "virtual file system"

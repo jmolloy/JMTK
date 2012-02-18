@@ -1,0 +1,116 @@
+# Scancode table for US 101 key keyboards.
+
+01      '\x1b'          # Escape
+02      '1' shift('!')
+03      '2' shift('@')
+04      '3' shift('#')
+05      '4' shift('$')
+06      '5' shift('%')
+07      '6' shift('^')
+08      '7' shift('&')
+09      '8' shift('*')
+0a      '9' shift('(')
+0b      '0' shift(')')
+0c      '-' shift('_')
+0d      '=' shift('+')
+0e      '\x08'          # Backspace
+
+0f      '\t'
+10      'q' shift('Q') caps('Q')
+11      'w' shift('W') caps('W')
+12      'e' shift('E') caps('E')
+13      'r' shift('R') caps('R')
+14      't' shift('T') caps('T')
+15      'y' shift('Y') caps('Y')
+16      'u' shift('U') caps('U')
+17      'i' shift('I') caps('I')
+18      'o' shift('O') caps('O')
+19      'p' shift('P') caps('P')
+1a      '[' shift('{')
+1b      ']' shift('}')
+1c      '\r'            # Enter
+
+1d      CTRL LEFT
+
+1e      'a' shift('A') caps('A')
+1f      's' shift('S') caps('S')
+20      'd' shift('D') caps('D')
+21      'f' shift('F') caps('F')
+22      'g' shift('G') caps('G')
+23      'h' shift('H') caps('H')
+24      'j' shift('J') caps('J')
+25      'k' shift('K') caps('K')
+26      'l' shift('L') caps('L')
+27      ';' shift(':')
+28      "'" shift('"')
+
+29      '`' shift('~')
+
+2a      SHIFT LEFT
+2b      '\\' shift('|')
+
+2c      'z' shift('Z') caps('Z')
+2d      'x' shift('X') caps('Z')
+2e      'c' shift('C') caps('Z')
+2f      'v' shift('V') caps('Z')
+30      'b' shift('B') caps('Z')
+31      'n' shift('N') caps('Z')
+32      'm' shift('M') caps('Z')
+33      ',' shift('<')
+34      '.' shift('>')
+35      '/' shift('?')
+36      SHIFT RIGHT
+
+37      '*'
+38      ALT LEFT
+39      ' '
+
+3a      CAPSLOCK
+3b      '\033[11~' shift('\033[11;2~')  # F1
+3c      '\033[12~' shift('\033[12;2~')  # F2
+3d      '\033[13~' shift('\033[13;2~')  # F3
+3e      '\033[14~' shift('\033[14;2~')  # F4
+3f      '\033[15~' shift('\033[15;2~')  # F5
+40      '\033[17~' shift('\033[17;2~')  # F6
+41      '\033[18~' shift('\033[18;2~')  # F7
+42      '\033[19~' shift('\033[19;2~')  # F8
+43      '\033[20~' shift('\033[20;2~')  # F9
+44      '\033[21~' shift('\033[21;2~')  # F10
+
+45      NUMLOCK
+46      SCROLLLOCK
+47      '\033H' numlock('7')    # xterm HOME
+48      '\033A' numlock('8')    # xterm UP
+49      numlock('9')
+4a      '-'
+4b      '\033D' numlock('4')    # xterm LEFT
+4c      numlock('5')
+4d      '\033C' numlock('6')    # xterm RIGHT
+4e      '+'
+4f      '\033F' numlock('1')    # xterm END
+50      '\033B' numlock('2')    # xterm DOWN
+51      numlock('3')
+52      numlock('0')
+53      '\x7f' numlock('.')
+
+57      '\033[23~' shift('\033[23;2~')  # F11
+58      '\033[24~' shift('\033[24;2~')  # F12
+
+esc(1c) '\r'                    # keypad enter
+esc(1d) CTRL RIGHT
+esc(35) '/'
+esc(38) ALT RIGHT
+
+esc(47) '\033H' numlock('7')    # xterm HOME
+esc(48) '\033A' numlock('8')    # xterm UP
+esc(49) numlock('9')
+esc(4a) '-'
+esc(4b) '\033D' numlock('4')    # xterm LEFT
+esc(4c) numlock('5')
+esc(4d) '\033C' numlock('6')    # xterm RIGHT
+esc(4e) '+'
+esc(4f) '\033F' numlock('1')    # xterm END
+esc(50) '\033B' numlock('2')    # xterm DOWN
+esc(51) numlock('3')
+esc(52) numlock('0')
+esc(53) '\x7f' numlock('.')

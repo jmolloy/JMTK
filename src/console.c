@@ -63,7 +63,7 @@ void write_console(const char *buf, int len) {
   }
 }
 
-int read_console(const char *buf, int len) {
+int read_console(char *buf, int len) {
   if (read)
     return read->read(read, buf, len);
   else
@@ -82,7 +82,13 @@ static int shutdown_console() {
   return 0;
 }
 
-static init_fini_fn_t x run_on_shutdown = {
+static init_fini_fn_t x run_on_startup = {
+  .name = "console",
+  .prerequisites = NULL,
+  .fn = NULL
+};
+
+static init_fini_fn_t y run_on_shutdown = {
   .name = "console",
   .prerequisites = NULL,
   .fn = &shutdown_console

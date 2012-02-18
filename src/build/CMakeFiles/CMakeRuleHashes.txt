@@ -1,4 +1,5 @@
 # Hashes of file build rules.
 23d0e877d1ffd45ddc99119aadb0b90c CMakeFiles/check
 4dcb05457cdec565a48946d3d17e1a87 CMakeFiles/floppy.img
+42ecebb4f41a9b304ea97713aa67d3a0 scantable.inc
 63627036359bb9793bd59440bb69b4eb x86/bringup-1.s.o

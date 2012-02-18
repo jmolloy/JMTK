@@ -23,3 +23,16 @@ CMakeFiles/kernel.dir/x86/bringup-2.c.o
  ../include/types.h
  ../include/x86/multiboot.h
  /home/james/Code/new-tutorials/src/x86/bringup-2.c
+CMakeFiles/kernel.dir/x86/keyboard.c.o
+ ../include/hal.h
+ ../include/string.h
+ ../include/types.h
+ ../include/x86/io.h
+ /home/james/Code/new-tutorials/src/x86/keyboard.c
+ scantable.inc
+CMakeFiles/kernel.dir/x86/screen.c.o
+ ../include/hal.h
+ ../include/string.h
+ ../include/types.h
+ ../include/x86/io.h
+ /home/james/Code/new-tutorials/src/x86/screen.c

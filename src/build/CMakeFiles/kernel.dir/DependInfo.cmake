@@ -9,6 +9,8 @@ SET(CMAKE_DEPENDS_CHECK_C
   "/home/james/Code/new-tutorials/src/main.c" "/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/main.c.o"
   "/home/james/Code/new-tutorials/src/string.c" "/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/string.c.o"
   "/home/james/Code/new-tutorials/src/x86/bringup-2.c" "/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/x86/bringup-2.c.o"
+  "/home/james/Code/new-tutorials/src/x86/keyboard.c" "/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/x86/keyboard.c.o"
+  "/home/james/Code/new-tutorials/src/x86/screen.c" "/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir/x86/screen.c.o"
   )
 SET(CMAKE_C_COMPILER_ID "GNU")
 

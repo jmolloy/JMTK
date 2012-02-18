@@ -167,6 +167,9 @@ PYTHON_EXECUTABLE:FILEPATH=/usr/bin/python2.7
 //Path to a program.
 PYVERSIONS_EXE:FILEPATH=/usr/bin/pyversions
 
+//Scantable location
+SCANTABLE:STRING=x86/en_US.scantable
+
 //Build target type - Hosted, X86, X64 or ARM
 TARGET:STRING=X86
 

@@ -1,4 +1,5 @@
-// RUN: %compile %s -o %t && %t | %FileCheck %s
+// RUN: %compile %s -DTEST1 -o %t && %t | %FileCheck %s
+// RUN: %compile %s -DTEST2 -o %t && %t | %FileCheck %s --check-prefix=T2
 // XFAIL: X86
 // XFAIL: X64
 // XFAIL: ARM
@@ -10,6 +11,7 @@
 #include "string.h"
 #include <stdio.h>
 
+#ifdef TEST1
 int written = 0;
 int _read = 0;
 int opened = 0;
@@ -69,3 +71,42 @@ static init_fini_fn_t run_on_shutdown y = {
   .prerequisites = p,
   .fn = &test_end
 };
+#endif
+
+#ifdef TEST2
+console_t c2 = {
+  .open = NULL,
+  .close = NULL,
+  .read = NULL,
+  .write = NULL,
+  .flush = NULL,
+  .data = NULL
+};
+
+static int test() {
+  // CHECK-T2: reg c1: 0
+  printf("reg c: %d\n", register_console(&c, 0));
+  return 0;
+}
+static int test_end() {
+  unregister_console(&c);
+  
+  // CHECK-T2: ok?
+  printf("ok?\n");
+  return 0;
+}
+
+static const char *p[] = {"console", NULL};
+
+static init_fini_fn_t run_on_startup x = {
+  .name = "console-test",
+  .prerequisites = NULL,
+  .fn = &test
+};
+static init_fini_fn_t run_on_shutdown y = {
+  .name = "console-test-end",
+  .prerequisites = p,
+  .fn = &test_end
+};
+
+#endif

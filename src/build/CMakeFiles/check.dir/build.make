@@ -42,7 +42,7 @@ CMAKE_BINARY_DIR = /home/james/Code/new-tutorials/src/build
 
 # Utility rule file for check.
 
-CMakeFiles/check:
+CMakeFiles/check: kernel
 	/usr/bin/python2.7 /home/james/Code/new-tutorials/src/test/lit/lit.py /home/james/Code/new-tutorials/src/test -sv
 
 check: CMakeFiles/check
