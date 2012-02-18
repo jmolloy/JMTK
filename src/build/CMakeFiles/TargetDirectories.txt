@@ -1,3 +1,0 @@
-/home/james/Code/new-tutorials/src/build/CMakeFiles/check.dir
-/home/james/Code/new-tutorials/src/build/CMakeFiles/floppy.img.dir
-/home/james/Code/new-tutorials/src/build/CMakeFiles/kernel.dir
