@@ -10,15 +10,6 @@ runcmd = 'python %s --preformatted-image %s' % (
     os.path.join('@CMAKE_SOURCE_DIR@', 'src', 'floppy.img.zip')
 )
 
-srcs = set("@SOURCES@".split(';'))
-objs = []
-for s in srcs:
-    if s[0] == '/':
-        # Absolute path, leave well alone.
-        objs.append(s)
-    else:
-        objs.append(os.path.abspath("CMakeFiles/@CMAKE_TARGET@.dir/%s.o" % s))
-
 if "@CMAKE_BUILD_TYPE@" == "Debug":
     flags = "@CMAKE_C_FLAGS_DEBUG@"
 if "@CMAKE_BUILD_TYPE@" == "Release":
@@ -33,8 +24,8 @@ else:
 defs = "@DEFINITIONS@".split(';')
 incs = ["-I"+i for i in "@INCLUDES@".split(';')]
 
-cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ %s" % (
-    flags, ' '.join(defs+incs), ' '.join(objs))
+cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ @CMAKE_BINARY_DIR@/liblibkernel.a" % (
+    flags, ' '.join(defs+incs))
 
 config.substitutions.append( ('%run', runcmd) )
 config.substitutions.append( ('%compile', cmd) )

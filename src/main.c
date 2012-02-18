@@ -18,6 +18,14 @@ static int fn_has_been_run(const char *c) {
   return 0;
 }
 
+static int has_fn(const char *c, init_fini_fn_t *begin, init_fini_fn_t *end) {
+  for (init_fini_fn_t *i = begin; i < end; ++i) {
+    if (!strcmp(i->name, c))
+      return 1;
+  }
+  return 0;
+}
+
 int run_startup_shutdown_functions(init_fini_fn_t *begin, init_fini_fn_t *end) {
   int ok = 0;
   int cant_go = 0;
@@ -35,7 +43,7 @@ int run_startup_shutdown_functions(init_fini_fn_t *begin, init_fini_fn_t *end) {
       cant_go = 0;
       if (i->prerequisites) {
         for (const char **prereq = i->prerequisites; *prereq != NULL; ++prereq) {
-          if (!fn_has_been_run(*prereq)) {
+          if (!fn_has_been_run(*prereq) && has_fn(*prereq, begin, end)) {
 #if defined(HOSTED)
             printf("%s requires %s\n", i->name, *prereq);
 #endif

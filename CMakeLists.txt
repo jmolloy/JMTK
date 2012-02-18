@@ -19,6 +19,8 @@ endmacro(assemble)
 
 set(TARGET "Hosted" CACHE STRING "Build target type - Hosted, X86, X64 or ARM")
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Xlinker --whole-archive ")
+
 if(${TARGET} STREQUAL "Hosted")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/hosted/link.ld -nostdlibinc")
   list(APPEND DEFINITIONS "-DHOSTED")
@@ -55,17 +57,23 @@ add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit
 
 include_directories(${INCLUDES})
 add_definitions(${DEFINITIONS})
-add_executable(kernel ${SOURCES})
+add_library(libkernel ${SOURCES})
 
+
+add_executable(kernel src/dummy.c)
+target_link_libraries(kernel libkernel)
 set(CMAKE_TARGET kernel)
 configure_file("${CMAKE_SOURCE_DIR}/test/lit.site.cfg.in"
   "${CMAKE_BINARY_DIR}/test/lit.site.cfg"  @ONLY)
 
 if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
+  macro(make_image name elf out depend)
+    add_custom_target(${name} ALL
+      "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/image.py"
+      "${CMAKE_SOURCE_DIR}/src" ${elf} ${out} DEPENDS ${depend})
+  endmacro(make_image)
 
-  add_custom_target(floppy.img ALL "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/image.py"
-    "${CMAKE_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}/kernel" "${CMAKE_BINARY_DIR}/floppy.img"
-    DEPENDS kernel)
+  make_image(kernel.img ${CMAKE_BINARY_DIR}/kernel ${CMAKE_BINARY_DIR}/kernel.img kernel)
   
   set(SCANTABLE "src/x86/en_US.scantable" CACHE STRING "Scantable location")
   add_custom_command(
@@ -76,4 +84,17 @@ if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Generating keyboard scancode table from ${SCANTABLE}")
   set_source_files_properties(src/x86/keyboard.c OBJECT_DEPENDS "${CMAKE_BINARY_DIR}/scantable.inc")
+
+  add_executable(screen examples/screen.c)
+  target_link_libraries(screen libkernel)
+  make_image(screen.img ${CMAKE_BINARY_DIR}/examples/screen ${CMAKE_BINARY_DIR}/examples/screen.img screen)
+
+  add_executable(keyboard examples/keyboard.c)
+  target_link_libraries(keyboard libkernel)
+  make_image(keyboard.img ${CMAKE_BINARY_DIR}/examples/keyboard ${CMAKE_BINARY_DIR}/examples/keyboard.img keyboard)
+
+  set_target_properties(keyboard screen
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
+
 endif()
+

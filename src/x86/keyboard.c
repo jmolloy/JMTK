@@ -185,8 +185,7 @@ static int register_keyboard() {
                                  (void*)&kb_state) != -1)
     kb_console.read = &read_nonblock;
 
-  int a = register_console(&kb_console, 1);
-  if (a == 0) write_console("OK\n", 3); else write_console("NO\n", 3);
+  register_console(&kb_console, 1);
 
   /* Clear out whatever byte may be loitering in the KB buffer for
      initialisation */
@@ -196,7 +195,7 @@ static int register_keyboard() {
   return 0;
 }
 
-const char *prereqs[] = {"console", "x86/screen", NULL};
+const char *prereqs[] = {"console", "x86/screen", "x86/serial", NULL};
 static init_fini_fn_t x run_on_startup = {
   .name = "x86/keyboard",
   .prerequisites = prereqs,

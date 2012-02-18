@@ -112,7 +112,7 @@ console_t c = {
 static int register_screen() {
   cls();
   register_console(&c, 0);
-  write_console("hello, world!\n", strlen("hello, world!\n"));
+
   return 0;
 }
 

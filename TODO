@@ -1,6 +1,5 @@
   * Compile FileCheck against llvm-dev (/usr/lib)
   * Add ability to limit modules to link in.
   * Clean up CMakeLists.txt
-  * Move build into top level and test out of src, and CMakeLists.txt out of src.
   * Add examples for each tutorial
   * Add vt220 colours to screen.c
