@@ -84,12 +84,12 @@ console_t c2 = {
 };
 
 static int test() {
-  // CHECK-T2: reg c1: 0
-  printf("reg c: %d\n", register_console(&c, 0));
+  // CHECK-T2: reg c: 0
+  printf("reg c: %d\n", register_console(&c2, 0));
   return 0;
 }
 static int test_end() {
-  unregister_console(&c);
+  unregister_console(&c2);
   
   // CHECK-T2: ok?
   printf("ok?\n");
