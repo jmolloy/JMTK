@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
   state.begin = (init_fini_fn_t*)&__startup_begin;
   state.end = (init_fini_fn_t*)&__startup_end;
   state.only = only;
-  state.text = "Starting";
+  state.text = "Started";
 
   /* Start by running the startup functions. */
   int success = run_startup_shutdown_functions(&state);
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
   state.begin = (init_fini_fn_t*)&__shutdown_begin;
   state.end = (init_fini_fn_t*)&__shutdown_end;
   state.only = only;
-  state.text = "Stopping";
+  state.text = "Stopped";
 
   success = run_startup_shutdown_functions(&state);
 #if defined(HOSTED)
