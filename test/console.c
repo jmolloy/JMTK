@@ -54,7 +54,7 @@ static int test() {
   return 0;
 }
 static int test_end() {
-  // CHECK: opened 2 closed 2 read 1 written 2 flushed 2
+  // CHECK: opened 2 closed 2 read 1 written {{.*}} flushed 2
   printf("opened %d closed %d read %d written %d flushed %d\n",
          opened, closed, _read, written, flushed);
   return 0;
