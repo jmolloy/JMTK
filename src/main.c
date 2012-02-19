@@ -5,6 +5,7 @@
 # include <stdio.h>
 #endif
 
+#include "stdio.h"
 extern int __startup_begin, __startup_end;
 extern int __shutdown_begin, __shutdown_end;
 

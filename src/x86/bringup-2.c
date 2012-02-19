@@ -43,24 +43,28 @@ void bringup(multiboot_t *_mboot) {
   memcpy((uint8_t*)&mboot, (uint8_t*)_mboot, sizeof(multiboot_t));
 
   if (mboot.flags & MBOOT_CMDLINE) {
+    _mboot->cmdline += 0xC0000000;
     int len = strlen((char*)_mboot->cmdline) + 1;
     mboot.cmdline = earlyalloc(len);
     memcpy((uint8_t*)&mboot.cmdline, (uint8_t*)&_mboot->cmdline, len);
   }
 
   if (mboot.flags & MBOOT_MODULES) {
+    _mboot->mods_addr += 0xC0000000;
     int len = mboot.mods_count * sizeof(multiboot_module_entry_t);
     mboot.mods_addr = earlyalloc(len);
     memcpy((uint8_t*)&mboot.mods_addr, (uint8_t*)&_mboot->mods_addr, len);
   }
 
   if (mboot.flags & MBOOT_ELF_SYMS) {
+    _mboot->addr += 0xC0000000;
     int len = mboot.num * mboot.size;
     mboot.addr = earlyalloc(len);
     memcpy((uint8_t*)&mboot.addr, (uint8_t*)&_mboot->addr, len);
   }
 
   if (mboot.flags & MBOOT_MMAP) {
+    _mboot->mmap_addr += 0xC0000000;
     mboot.mmap_addr = earlyalloc(mboot.mmap_length);
     memcpy((uint8_t*)&mboot.mmap_addr,
            (uint8_t*)&_mboot->mmap_addr, mboot.mmap_length);

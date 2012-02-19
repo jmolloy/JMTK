@@ -5,10 +5,14 @@ import os, sys, re, subprocess, glob
 
 config.target_triple = "@TARGET@"
 
-runcmd = 'python %s --preformatted-image %s' % (
-    os.path.join('@CMAKE_SOURCE_DIR@', 'scripts', 'run.py'),
-    os.path.join('@CMAKE_SOURCE_DIR@', 'src', 'floppy.img.zip')
-)
+if config.target_triple == "Hosted":
+    runcmd = ''
+
+else:
+    runcmd = 'python %s --preformatted-image %s' % (
+        os.path.join('@CMAKE_SOURCE_DIR@', 'scripts', 'run.py'),
+        os.path.join('@CMAKE_SOURCE_DIR@', 'src', 'floppy.img.zip')
+        )
 
 if "@CMAKE_BUILD_TYPE@" == "Debug":
     flags = "@CMAKE_C_FLAGS_DEBUG@"

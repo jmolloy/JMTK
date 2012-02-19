@@ -61,12 +61,14 @@ class Qemu:
 
 class Runner:
     def __init__(self, image, trace=False, syms=False, symsub=0, timeout=None,
-                 preformatted_image=os.path.join('..','floppy.img.zip')):
+                 preformatted_image=os.path.join('..','floppy.img.zip'),
+                 argv=None):
         self.image = image
         self.trace = trace
         self.syms = syms
         self.symsub = symsub
         self.timeout = timeout
+        self.argv = argv
 
         assert os.path.exists(self.image)
         
@@ -95,7 +97,7 @@ class Runner:
         fd, self.tmpimage = tempfile.mkstemp()
         os.close(fd)
         self.floppy_image = Image(self.tmpimage, preformatted_image)
-        self.floppy_image.create_grub_conf()
+        self.floppy_image.create_grub_conf(args=self.argv)
         self.floppy_image.copy(self.image, '/kernel')
 
     def run(self):
@@ -140,7 +142,13 @@ if __name__ == "__main__":
     if not args:
         p.print_help()
         sys.exit(1)
+
+    try:
+        argv = args[1:]
+    except:
+        argv = None
+
     r = Runner(args[0], trace=opts.trace, syms=opts.syms, symsub=opts.symsub,
-               timeout=opts.timeout, preformatted_image=opts.image)
+               timeout=opts.timeout, preformatted_image=opts.image, argv=argv)
     for l in r.run():
         print l

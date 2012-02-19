@@ -7,9 +7,8 @@
 # error This test must be run on a hosted kernel!
 #endif
 
-#include "printf.h"
+#include "stdio.h"
 #include "hal.h"
-#include <stdio.h>
 
 static int test() {
   char buf[64];

@@ -43,9 +43,16 @@ set(SOURCES
   src/hal.c
   src/main.c
   src/string.c
-  src/printf.c
+  src/snprintf.c
+  src/stdio.c
   src/stdlib.c
 )
+if (${TARGET} STREQUAL "Hosted")
+  set(SOURCES ${SOURCES}
+    src/hosted/console.c
+  )
+endif()
+
 if (${TARGET} STREQUAL "X86")
   assemble(SOURCES src/x86/bringup-1.s ${SOURCES})
   set(SOURCES ${SOURCES}
@@ -61,8 +68,8 @@ add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit
 
 include_directories(${INCLUDES})
 add_definitions(${DEFINITIONS})
-add_library(libkernel ${SOURCES})
 
+add_library(libkernel ${SOURCES})
 
 add_executable(kernel src/dummy.c)
 target_link_libraries(kernel libkernel)

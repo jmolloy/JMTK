@@ -1,4 +1,4 @@
-#include "printf.h"
+#include "stdio.h"
 
 #include <stdarg.h>
 #include "string.h"
@@ -458,7 +458,7 @@ static int find_required_args(const char **pformat, int prev_ty) {
 }
 
 
-int ksnprintf(char *str, unsigned size, const char *format, ...) {
+int kvsnprintf(char *str, size_t size, const char *format, va_list ap) {
   int n = 0;
   arg_t args[MAX_ARG_NUM];
 
@@ -466,8 +466,6 @@ int ksnprintf(char *str, unsigned size, const char *format, ...) {
   const char *fmt_copy_2;
   int nargs = 0, ty;
 
-  va_list ap;
-  va_start(ap, format);
   while ( (ty=find_required_args(&fmt_copy, ty)) != TY_END) {
 #ifdef PRINTF_DEBUG
     printf ("printf: find_required_args() -> %d\n", ty);
@@ -495,7 +493,6 @@ int ksnprintf(char *str, unsigned size, const char *format, ...) {
     default: break;
     }
   }
-  va_end(ap);
 
   int thisarg = 0;
   
