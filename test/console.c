@@ -1,5 +1,5 @@
-// RUN: %compile %s -DTEST1 -o %t && %t | %FileCheck %s
-// RUN: %compile %s -DTEST2 -o %t && %t | %FileCheck %s --check-prefix=T2
+// RUN: %compile %s -DTEST1 -o %t && %t only-run console-test | %FileCheck %s
+// RUN: %compile %s -DTEST2 -o %t && %t only-run console-test | %FileCheck %s --check-prefix=T2
 // XFAIL: X86
 // XFAIL: X64
 // XFAIL: ARM
@@ -19,8 +19,8 @@ int closed = 0;
 int flushed = 0;
 int open(console_t *obj) {opened++; return 0;}
 int close(console_t *obj) {closed++; return 0;}
-int read(console_t *obj, const char *buf, int len) {_read++; return 1;}
-int read2(console_t *obj, const char *buf, int len) {return 1;}
+int read(console_t *obj, char *buf, int len) {_read++; return 1;}
+int read2(console_t *obj, char *buf, int len) {return 1;}
 int write(console_t *obj, const char *buf, int len) {written++; return 0;}
 void flush(console_t *obj) {flushed++;}
 
@@ -48,7 +48,8 @@ static int test() {
   printf("reg c2: %d\n", register_console(&c2));
   write_console(NULL, 0);
   // CHECK: read ret: 1
-  printf("read ret: %d\n", read_console(NULL, 0));
+  char tmp;
+  printf("read ret: %d\n", read_console(&tmp, 1));
   unregister_console(&c1);
   return 0;
 }
@@ -63,11 +64,11 @@ static const char *p[] = {"console", NULL};
 
 static init_fini_fn_t run_on_startup x = {
   .name = "console-test",
-  .prerequisites = NULL,
+  .prerequisites = p,
   .fn = &test
 };
 static init_fini_fn_t run_on_shutdown y = {
-  .name = "console-test-end",
+  .name = "console-test",
   .prerequisites = p,
   .fn = &test_end
 };
@@ -100,11 +101,11 @@ static const char *p[] = {"console", NULL};
 
 static init_fini_fn_t run_on_startup x = {
   .name = "console-test",
-  .prerequisites = NULL,
+  .prerequisites = p,
   .fn = &test
 };
 static init_fini_fn_t run_on_shutdown y = {
-  .name = "console-test-end",
+  .name = "console-test",
   .prerequisites = p,
   .fn = &test_end
 };

@@ -1,43 +1,65 @@
 #include "printf.h"
 
 #include <stdarg.h>
-#include <stdio.h>
 #include "string.h"
 #include "stdlib.h"
 #include "types.h"
 
 #undef PRINTF_DEBUG
 
+#ifdef PRINTF_DEBUG
+# if !defined(HOSTED)
+#  error Printf can only be debugged on a hosted build!
+# endif
+# include <stdio.h>
+#endif
+
+/* The maximum number of arguments able to be passed to snprintf. */
 #define MAX_ARG_NUM 32
+/* The size of the internal buffer for converting from integers. */
 #define BUFSZ 32
 
-#define TY_END 0
-#define TY_UNDO 1
-#define TY_INT 2
-#define TY_DOUBLE 3
-#define TY_INDIRECT 4
-#define TY_PTR 5
+/* Possible return values from 'find_required_args', which informs
+   snprintf how many arguments to pull from the va_list and what
+   their types are. */
+#define TY_END      0 /* There are no more arguments to process. */
+#define TY_UNDO     1 /* The previous TY_INDIRECT argument has an
+                         absolute argument reference so was reported
+                         erroneously. Remove it. */
+#define TY_INT      2 /* Type 'int' */
+#define TY_DOUBLE   3 /* Type 'double' */
+#define TY_INDIRECT 4 /* Type 'int', an indirect reference ('*' in the
+                         format string), can be undone with TY_UNDO */
+#define TY_PTR      5 /* Type 'void*' */
 
+/* An argument type. Just a union of all known argument types.
+   It is expected that the type be known by the format specifier
+   so no tagging is done. */
 typedef union arg {
   double d;
   int i;
   void *p;
 } arg_t;
 
+/* State structure, for convert() and friends. */
 typedef struct pf_state {
-  uint8_t alternate_form; /* '#' flag set? */
-  uint8_t zero_pad;
-  uint8_t left_justify;
-  uint8_t pos_sign_prefix_space, pos_sign_prefix_plus;
-  int32_t precision;
-  int32_t min_field_width;
-  uint8_t transliterate_hex;
+  uint8_t alternate_form;       /* '#' flag set? */
+  uint8_t zero_pad;             /* '0' set? */
+  uint8_t left_justify;         /* '-' set? */
+  uint8_t pos_sign_prefix_space;/* ' ' set? */
+  uint8_t pos_sign_prefix_plus; /* '+' set? */
+  int32_t precision;            /* Precision value defaults to '1' */
+  int32_t min_field_width;      /* Minimum field width, defaults to '0' */
+  uint8_t transliterate_hex;    /* Write hex as 'A-F' instead of 'a-f'. */
 } pf_state_t;
 
 static int isdigit(char c) {
   return c >= '0' && c <= '9';
 }
 
+/* Concatenates a character onto a string.
+   - The string may be full, in which case it does nothing.
+   - If it concatenates then it will increment *n. */
 static char *cat_char(char *str, int size, int *n, char c) {
   if (*n < size) {
     *str++ = c;
@@ -46,9 +68,19 @@ static char *cat_char(char *str, int size, int *n, char c) {
   return str;
 }
 
-static void convert_uint(char *buf, int bufsz, uint64_t i, int radix, pf_state_t state, int issigned) {
+/* convert_int - given a buffer (buf,bufsz) and a 64-bit unsigned integer 'i',
+   perform a conversion to string.
+
+   Radix obviously specifies the radix of the transformation. '0' is not supported
+   unlike strtol().
+
+   If 'issigned' is set, 'i' is reinterpreted as a 64-bit signed integer.
+
+   This function cares about the precision setting in 'state'. */
+static void convert_int(char *buf, int bufsz, uint64_t i, int radix,
+                        pf_state_t state, int issigned) {
 #ifdef PRINTF_DEBUG
-  printf("printf: convert_uint(buf=%p, bufsz=%d, i=%llu, state)\n",
+  printf("printf: convert_int(buf=%p, bufsz=%d, i=%llu, state)\n",
          buf, bufsz, i);
 #endif
   static char chars[] = {'0','1','2','3','4','5','6','7','8','9','a',
@@ -84,10 +116,19 @@ static void convert_uint(char *buf, int bufsz, uint64_t i, int radix, pf_state_t
   buf[i] = '\0';
 }
 
-static void pad_str(char *buf, int bufsz, int *offs, const char *srcbuf, int srcbufsz, int issigned, pf_state_t state, const char *prefix) {
+/* pad_str - Given a null-terminated string in srcbuf, write it to (buf[*offs],bufsz)
+   based on the padding requirements in 'state', and increment *offs with the number
+   of characters written.
+
+   - issigned should be set if the input string could have a minus sign that may need
+     to be dealt with specially during zero-padding.
+   - prefix, if non-NULL, specifies a prefix to be put onto the front of the string.
+     An example of this is "0x" for hex strings. */
+static void pad_str(char *buf, int bufsz, int *offs, const char *srcbuf, 
+                    int issigned, pf_state_t state, const char *prefix) {
 #ifdef PRINTF_DEBUG
-  printf("printf: pad_str(buf=%p, bufsz=%d, offs=%d, srcbuf=\"%s\", srcbufsz=%d, issigned=%d, {min_w: %d, left_justify: %d})\n",
-         buf, bufsz, *offs, srcbuf, srcbufsz, issigned, state.min_field_width,
+  printf("printf: pad_str(buf=%p, bufsz=%d, offs=%d, srcbuf=\"%s\", issigned=%d, {min_w: %d, left_justify: %d})\n",
+         buf, bufsz, *offs, srcbuf, issigned, state.min_field_width,
          state.left_justify);
 #endif
   int isnegative = issigned && srcbuf[0] == '-';
@@ -104,7 +145,7 @@ static void pad_str(char *buf, int bufsz, int *offs, const char *srcbuf, int src
     while (prefix && *prefix)
       buf = cat_char(buf, bufsz, offs, *prefix++);
 
-    for (int i = 0; srcbufsz ? (i < srcbufsz) : (srcbuf[i] != '\0'); ++i)
+    for (int i = 0; srcbuf[i] != '\0'; ++i)
       buf = cat_char(buf, bufsz, offs, srcbuf[i]);
 
     return;
@@ -128,7 +169,7 @@ static void pad_str(char *buf, int bufsz, int *offs, const char *srcbuf, int src
       --state.min_field_width;
     }
 
-    for (i = 0; srcbufsz ? (i < srcbufsz) : (srcbuf[i] != '\0'); ++i)
+    for (i = 0; srcbuf[i] != '\0'; ++i)
       buf = cat_char(buf, bufsz, offs, srcbuf[i]);
 
     for (; i < state.min_field_width; ++i)
@@ -193,7 +234,14 @@ static void pad_str(char *buf, int bufsz, int *offs, const char *srcbuf, int src
     buf = cat_char(buf, bufsz, offs, srcbuf[j]);
 }
 
-static int parse_direct_or_indirect_int(const char **pformat, arg_t *args, int *thisarg) {
+/* parse_direct_or_indirect_int - At **pformat is either '*' or a digit.
+   - If '*', it may be followed by a number 'n' then '$'. If so, return the
+     (n-1)'th argument to snprintf. If it is not, then return the next argument
+     to snprintf.
+   - If a digit, maximally munch all digits following, convert to an integer
+     then return. */
+static int parse_direct_or_indirect_int(const char **pformat, arg_t *args,
+                                        int *thisarg) {
   const char *format = *pformat;
   char buf[16];
   int i = 0; 
@@ -233,9 +281,16 @@ static int parse_direct_or_indirect_int(const char **pformat, arg_t *args, int *
   }    
 }
 
+/* convert - The main conversion function. *format points at a '%'.
+   - str contains the output string. The original buffer was 'size' large
+     (but *str is the current insert position inside the buffer).
+   - *n is the offset inside the output buffer of the current insert position,
+     or: (str - start_str).
+   - args is an array of arguments passed to snprintf.
+   - *thisarg is the next argument to process. */
 static const char *convert(char *str, unsigned size, const char *format, int *n, arg_t *args, int *thisarg) {
   pf_state_t s;
-  memset(&s, 0, sizeof(pf_state_t));
+  memset((uint8_t*)&s, 0, sizeof(pf_state_t));
   s.precision = 1;
   
   char buf[BUFSZ];
@@ -281,62 +336,62 @@ static const char *convert(char *str, unsigned size, const char *format, int *n,
     case 'd': case 'i':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_uint(buf, BUFSZ,
+      convert_int(buf, BUFSZ,
                    (uint64_t)((int64_t)args[(*thisarg)++].i),
                    10, s, 1);
-      pad_str(str, size, n, buf, 0, 1, s, NULL);
+      pad_str(str, size, n, buf, 1, s, NULL);
       return format+1;
     case 'o':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_uint(buf, BUFSZ, args[(*thisarg)++].i, 8, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, s.alternate_form ? "0" : NULL);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 8, s, 0);
+      pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0" : NULL);
       return format+1;
     case 'u':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_uint(buf, BUFSZ, (unsigned int)args[(*thisarg)++].i, 10, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, NULL);
+      convert_int(buf, BUFSZ, (unsigned int)args[(*thisarg)++].i, 10, s, 0);
+      pad_str(str, size, n, buf, 0, s, NULL);
       return format+1;
     case 'x':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_uint(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, s.alternate_form ? "0x" : NULL);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
+      pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0x" : NULL);
       return format+1;
     case 'X':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
       s.transliterate_hex = 1;
-      convert_uint(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, s.alternate_form ? "0X" : NULL);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
+      pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0X" : NULL);
       return format+1;
     case 'c':
       s.zero_pad = 0;
       buf[0] = (char)args[(*thisarg)++].i;
       buf[1] = '\0';
-      pad_str(str, size, n, buf, 1, 0, s, NULL);
+      pad_str(str, size, n, buf, 0, s, NULL);
       return format+1;
     case 's':
       s.zero_pad = 0;
-      pad_str(str, size, n, (char*)args[(*thisarg)++].p, 0, 0, s, NULL);
+      pad_str(str, size, n, (char*)args[(*thisarg)++].p, 0, s, NULL);
       return format+1;
     case 'p': /* Equivalent to %#x */
       s.zero_pad = 0;
-      convert_uint(buf, BUFSZ, (uint64_t)args[(*thisarg)++].p, 16, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, "0x");
+      convert_int(buf, BUFSZ, (uintptr_t)args[(*thisarg)++].p, 16, s, 0);
+      pad_str(str, size, n, buf, 0, s, "0x");
       return format+1;
     case 'n': /* Write out the number of arguments converted. */
       s.zero_pad = 0;
-      convert_uint(buf, BUFSZ, (uint64_t)*thisarg, 10, s, 0);
-      pad_str(str, size, n, buf, 0, 0, s, NULL);
+      convert_int(buf, BUFSZ, (uintptr_t)*thisarg, 10, s, 0);
+      pad_str(str, size, n, buf, 0, s, NULL);
       return format+1;
 
     case 'e': case 'E':
     case 'f': case 'F':
     case 'g': case 'G':
     case 'a': case 'A':
-      pad_str(str, size, n, "???", 3, 0, s, NULL);
+      pad_str(str, size, n, "???", 0, s, NULL);
       (*thisarg)++;
       return format+1;
 
@@ -347,14 +402,31 @@ static const char *convert(char *str, unsigned size, const char *format, int *n,
   return format;
 }
 
+/* find_required_args - Given a pointer into a format string **pformat,
+   return a description of the next argument type snprintf should load
+   from its variadic argument list.
+   - prev_ty is the previous value that find_required_args returned,
+     or undefined if it has never been called before.
+   - This function may return TY_END, meaning there are no more arguments
+     to load based on the format string.
+   - A TY_INDIRECT return value (signifying a possible indirect argument
+     load based on a '*' specifier) may be immediately followed by a
+     TY_UNDO, if that '*' specifier was then followed by '<int>$', which
+     instead specifies an absolute, random-access argument to load
+     instead of a new argument. */
 static int find_required_args(const char **pformat, int prev_ty) {
   const char *format = *pformat;
 
   while (*format) {
+    /* If we're not about to look at a conversion specifier carry on,
+       unless we were previously in an INDIRECT or UNDO state, in
+       which case we may have been called half way through a 
+       specifier already. */
     if (*format != '%' && prev_ty != TY_INDIRECT && prev_ty != TY_UNDO) {
       ++format;
       continue;
     }
+    /* Now we don't care about prev_ty any more. */
     prev_ty = TY_END;
 
     while (*++format) {
@@ -384,6 +456,7 @@ static int find_required_args(const char **pformat, int prev_ty) {
 
   return TY_END;
 }
+
 
 int ksnprintf(char *str, unsigned size, const char *format, ...) {
   int n = 0;

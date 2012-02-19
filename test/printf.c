@@ -1,4 +1,4 @@
-// RUN: %compile -g %s -o %t && %t | %FileCheck %s
+// RUN: %compile -g %s -o %t && %t only-run printf-test | %FileCheck %s
 // XFAIL: X86
 // XFAIL: X64
 // XFAIL: ARM

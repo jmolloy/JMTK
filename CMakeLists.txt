@@ -30,7 +30,7 @@ if(${TARGET} STREQUAL "X86")
   find_program(NASM NAMES nasm yasm)
   set(NASM_ARGS -felf)
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/x86/link.ld -nostdlibinc -nostdlib -m32 -Xlinker --build-id=none")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/x86/link.ld -nostdlibinc -nostdlib -m32 -Xlinker --build-id=none -lgcc")
   list(APPEND DEFINITIONS -DX86 -m32 -ffreestanding)
 endif()
 
@@ -44,6 +44,7 @@ set(SOURCES
   src/main.c
   src/string.c
   src/printf.c
+  src/stdlib.c
 )
 if (${TARGET} STREQUAL "X86")
   assemble(SOURCES src/x86/bringup-1.s ${SOURCES})

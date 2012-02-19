@@ -1,10 +1,7 @@
 #ifndef STDLIB_H
 #define STDLIB_H
 
-#if defined(HOSTED)
-# include_next <stdlib.h>
-#else
-
-#endif /* defined(HOSTED) */
+long int strtol(const char *nptr, char **endptr, int base);
+long unsigned int strtoul(const char *nptr, char **endptr, int base);
 
 #endif

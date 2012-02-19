@@ -1,5 +1,6 @@
   * Compile FileCheck against llvm-dev (/usr/lib)
-  * Add ability to limit modules to link in.
   * Clean up CMakeLists.txt
   * Add examples for each tutorial
   * Add vt220 colours to screen.c
+  * Printf - test precision smaller than string with no
+    null-terminator
