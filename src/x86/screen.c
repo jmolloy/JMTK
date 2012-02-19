@@ -111,7 +111,7 @@ console_t c = {
 };
 static int register_screen() {
   cls();
-  register_console(&c, 0);
+  register_console(&c);
 
   return 0;
 }

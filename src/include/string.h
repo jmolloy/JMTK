@@ -1,6 +1,10 @@
 #ifndef STRING_H
 #define STRING_H
 
+#if defined(HOSTED)
+# include_next <string.h>
+#else
+
 #include "types.h"
 
 int strlen(const char *s);
@@ -15,5 +19,7 @@ int strcmp(const char *str1, const char *str2);
 char *strcpy(char *dest, const char *src);
 
 char *strcat(char *dest, const char *src);
+
+#endif /* defined(HOSTED) */
 
 #endif

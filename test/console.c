@@ -19,8 +19,8 @@ int closed = 0;
 int flushed = 0;
 int open(console_t *obj) {opened++; return 0;}
 int close(console_t *obj) {closed++; return 0;}
-int read(console_t *obj, const char *buf, int len) {_read++; return 0;}
-int read2(console_t *obj, const char *buf, int len) {return 0;}
+int read(console_t *obj, const char *buf, int len) {_read++; return 1;}
+int read2(console_t *obj, const char *buf, int len) {return 1;}
 int write(console_t *obj, const char *buf, int len) {written++; return 0;}
 void flush(console_t *obj) {flushed++;}
 
@@ -43,11 +43,11 @@ console_t c2 = {
 
 static int test() {
   // CHECK: reg c1: 0
-  printf("reg c1: %d\n", register_console(&c1, 0));
+  printf("reg c1: %d\n", register_console(&c1));
   // CHECK: reg c2: 0
-  printf("reg c2: %d\n", register_console(&c2, 1));
+  printf("reg c2: %d\n", register_console(&c2));
   write_console(NULL, 0);
-  // CHECK: read ret: 0
+  // CHECK: read ret: 1
   printf("read ret: %d\n", read_console(NULL, 0));
   unregister_console(&c1);
   return 0;
@@ -85,7 +85,7 @@ console_t c2 = {
 
 static int test() {
   // CHECK-T2: reg c: 0
-  printf("reg c: %d\n", register_console(&c2, 0));
+  printf("reg c: %d\n", register_console(&c2));
   return 0;
 }
 static int test_end() {

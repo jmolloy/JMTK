@@ -1,9 +1,5 @@
-// RUN: %compile %s -o %t
-// XFAIL: Hosted
-// XFAIL: ARM
-
 #if !defined(X86)
-# error This test must be run on an x86 bare kernel!
+# error This example must be run on an x86 bare kernel!
 #endif
 
 #include "hal.h"

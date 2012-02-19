@@ -1,6 +1,8 @@
 #include "string.h"
 #include "types.h"
 
+#if !defined(HOSTED)
+
 // Copy len bytes from src to dest.
 void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
 {
@@ -68,3 +70,5 @@ int strlen(const char *src)
     i++;
   return i;
 }
+
+#endif /* !defined(HOSTED) */

@@ -1,11 +1,8 @@
 #include "hal.h"
 
-static console_t *read = NULL, *consoles = NULL;
+static console_t *consoles = NULL;
 
-int register_console(console_t *c, int default_for_reading) {
-  if (default_for_reading)
-    read = c;
-
+int register_console(console_t *c) {
   if (consoles)
     consoles->prev = c;
   c->next = consoles;
@@ -40,18 +37,6 @@ void unregister_console(console_t *c) {
     prev = this;
     this = this->next;
   }
-
-  if (read == c) {
-    this = consoles;
-    read = NULL;
-    while (this) {
-      if (this->read) {
-        read = this;
-        break;
-      }
-      this = this->next;
-    }
-  }
 }
 
 void write_console(const char *buf, int len) {
@@ -64,10 +49,18 @@ void write_console(const char *buf, int len) {
 }
 
 int read_console(char *buf, int len) {
-  if (read)
-    return read->read(read, buf, len);
-  else
-    return -1;
+  if (len == 0) return 0;
+
+  console_t *this = consoles;
+  while (this) {
+    if (this->read) {
+      int n = this->read(this, buf, len);
+      if (n > 0) return n;
+    }
+    this = this->next;
+    if (!this) this = consoles;
+  }
+  return -1;
 }
 
 static int shutdown_console() {

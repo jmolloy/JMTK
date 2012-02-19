@@ -39,7 +39,7 @@ typedef struct console {
   int (*open)(struct console *obj);
   /* Finish a console object. */
   int (*close)(struct console *obj);
-  /* Read from a console - if no data is available, block until some is.
+  /* Read from a console - if no data is available, return zero without blocking.
      Else return as much data as is available, up to 'len'. Return the
      number of bytes read, or -1 on error. */
   int (*read)(struct console *obj, char *buf, int len);
@@ -55,13 +55,9 @@ typedef struct console {
   void *data;
 } console_t;
 
-/* Register 'c' as a new console. Returns zero on success.
-   if default_for_reading is nonzero, set the console as the one to
-   call read() on. Only one console can be read from at a time. */
-int register_console(console_t *c, int default_for_reading);
-/* Unregister 'c' from the set of consoles. If c was the read default,
-   the first registered console with a non-NULL read() member is 
-   selected instead. */
+/* Register 'c' as a new console. Returns zero on success. */
+int register_console(console_t *c);
+/* Unregister 'c' from the set of consoles. */
 void unregister_console(console_t *c);
 /* Write to all consoles. */
 void write_console(const char *buf, int len);

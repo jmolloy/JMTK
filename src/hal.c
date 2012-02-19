@@ -8,8 +8,8 @@ void panic(const char *message) weak;
 void panic(const char *message) {
 }
 
-int register_console(console_t *c, int default_for_reading) weak;
-int register_console(console_t *c, int default_for_reading) {
+int register_console(console_t *c) weak;
+int register_console(console_t *c) {
   return -1;
 }
 void unregister_console(console_t *c) weak;

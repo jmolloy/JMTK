@@ -19,10 +19,10 @@ endmacro(assemble)
 
 set(TARGET "Hosted" CACHE STRING "Build target type - Hosted, X86, X64 or ARM")
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Xlinker --whole-archive ")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Xlinker --whole-archive ${CMAKE_BINARY_DIR}/liblibkernel.a -Xlinker --no-whole-archive ")
 
 if(${TARGET} STREQUAL "Hosted")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/hosted/link.ld -nostdlibinc")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/hosted/link.ld")
   list(APPEND DEFINITIONS "-DHOSTED")
 endif()
 
@@ -38,16 +38,19 @@ list(APPEND DEFINITIONS "-Wall" "-Wextra" "-Wno-unused-parameter" "-std=c99" "-n
 
 set(INCLUDES ${CMAKE_SOURCE_DIR}/src/include ${CMAKE_BINARY_DIR})
 set(SOURCES
+  src/adt/ringbuf.c
+  src/console.c
   src/hal.c
   src/main.c
   src/string.c
-  src/console.c
+  src/printf.c
 )
 if (${TARGET} STREQUAL "X86")
   assemble(SOURCES src/x86/bringup-1.s ${SOURCES})
   set(SOURCES ${SOURCES}
     src/x86/bringup-2.c
     src/x86/screen.c
+    src/x86/serial.c
     src/x86/keyboard.c)
 endif()
 
@@ -93,7 +96,11 @@ if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
   target_link_libraries(keyboard libkernel)
   make_image(keyboard.img ${CMAKE_BINARY_DIR}/examples/keyboard ${CMAKE_BINARY_DIR}/examples/keyboard.img keyboard)
 
-  set_target_properties(keyboard screen
+  add_executable(serial examples/serial.c)
+  target_link_libraries(serial libkernel)
+  make_image(serial.img ${CMAKE_BINARY_DIR}/examples/serial ${CMAKE_BINARY_DIR}/examples/serial.img serial)
+
+  set_target_properties(keyboard screen serial
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
 
 endif()
