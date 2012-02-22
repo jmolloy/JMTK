@@ -28,7 +28,7 @@ else:
 defs = "@DEFINITIONS@".split(';')
 incs = ["-I"+i for i in "@INCLUDES@".split(';')]
 
-cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ @CMAKE_BINARY_DIR@/liblibkernel.a" % (
+cmd = "@CMAKE_C_COMPILER@ %s %s @CMAKE_C_FLAGS@ @CMAKE_EXE_LINKER_FLAGS@ @CMAKE_BINARY_DIR@/src/libk.a" % (
     flags, ' '.join(defs+incs))
 
 config.substitutions.append( ('%run', runcmd) )
