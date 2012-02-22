@@ -30,7 +30,9 @@ if(${TARGET} STREQUAL "X86")
   find_program(NASM NAMES nasm yasm)
   set(NASM_ARGS -felf)
 
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/x86/link.ld -nostdlibinc -nostdlib -m32 -Xlinker --build-id=none -lgcc")
+  # -n stops the Gold linker from creating a new segment to hold the file and program headers for the linux kernel. It unfortunately inserts these
+  # in a new segment a page below the .init start address, which is under 1MB and so crashes grub.
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${CMAKE_SOURCE_DIR}/src/x86/link.ld -nostdlibinc -nostdlib -m32 -Xlinker --build-id=none -lgcc -n")
   list(APPEND DEFINITIONS -DX86 -m32 -ffreestanding)
 endif()
 

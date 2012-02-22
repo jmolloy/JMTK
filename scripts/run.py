@@ -20,7 +20,6 @@ class Qemu:
             t = threading.Timer(float(timeout) / 1000.0, _alarm)
             t.start()
 
-        print "TRACE: %s" % trace
         extra = []
         if trace:
             master, slave = os.openpty()
@@ -50,7 +49,7 @@ class Qemu:
         errfd, errfn = tempfile.mkstemp()
         child = subprocess.Popen([self.exe_name,
                                   "-fda", floppy_image,
-                                  "-nographic", "-monitor", "null"] +
+                                  "-nographic", "-monitor", "null", "-no-kvm"] +
                                  extra,
                                  stderr=errfd)
         if trace:
@@ -66,7 +65,10 @@ class Qemu:
                 out += os.read(imaster, 128)
 
         code = child.wait()
-        
+        if code != 0:
+            print open(errfn).read()
+            raise RuntimeError("Qemu exited with code %s!" % code)
+
         if trace:
             os.close(master)
             os.close(slave)
@@ -177,13 +179,8 @@ if __name__ == "__main__":
     except:
         argv = None
 
-    print "Running"
     r = Runner(args[0], trace=opts.trace, syms=opts.syms, symsub=opts.symsub,
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv)
-    print "Done"
-    fd = open("/tmp/donkeyballs","w");
-    for l in r.run():
-        fd.write(l+"\n")
-        print l
 
-    fd.close()
+    for l in r.run():
+        print l
