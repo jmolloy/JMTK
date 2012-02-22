@@ -1,4 +1,4 @@
-import os, sys, signal, subprocess, tempfile, threading
+import os, sys, signal, subprocess, tempfile, threading, select, termios
 
 from image import Image
 
@@ -11,13 +11,16 @@ class Qemu:
         self.args = args
 
     def run(self, floppy_image, trace, timeout):
+        self.stop = False
 
         if timeout:
             def _alarm():
-                child.terminate()
+                self.stop = True
+                child.send_signal(signal.SIGHUP)
             t = threading.Timer(float(timeout) / 1000.0, _alarm)
             t.start()
 
+        print "TRACE: %s" % trace
         extra = []
         if trace:
             master, slave = os.openpty()
@@ -26,19 +29,43 @@ class Qemu:
             tracefd, tracefn = tempfile.mkstemp()
             os.close(tracefd)
 
-        outfd, outfn = tempfile.mkstemp()
+        imaster, islave = os.openpty()
+
+        iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(imaster)
+        
+        # Emulate cfmakeraw(3)
+        iflag &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK |
+                   termios.ISTRIP | termios.INLCR | termios.IGNCR |
+                   termios.ICRNL | termios.IXON)
+        oflag &= ~termios.OPOST;
+        lflag &= ~(termios.ECHO | termios.ECHONL | termios.ICANON |
+                   termios.ISIG | termios.IEXTEN)
+        cflag &= ~(termios.CSIZE | termios.PARENB)
+        cflag |= termios.CS8;
+
+        termios.tcsetattr(imaster, termios.TCSANOW, [iflag, oflag, cflag, lflag, ispeed, ospeed, cc])
+
+        extra += ["-serial", os.ttyname(islave)]
+
         errfd, errfn = tempfile.mkstemp()
         child = subprocess.Popen([self.exe_name,
                                   "-fda", floppy_image,
-                                  "-nographic"] +
+                                  "-nographic", "-monitor", "null"] +
                                  extra,
-                                 stdout=outfd,
                                  stderr=errfd)
         if trace:
             os.write(master, "logfile %s\n" % tracefn)
             os.write(master, "c\n")
 
-        child.wait()
+        out = ""
+        while not self.stop:
+            r,w,x = select.select([0,imaster],[],[],0.05)
+            if 0 in r:
+                os.write(imaster, os.read(0, 128))
+            if imaster in r:
+                out += os.read(imaster, 128)
+
+        code = child.wait()
         
         if trace:
             os.close(master)
@@ -49,13 +76,15 @@ class Qemu:
         if sys.stdout.isatty() or sys.stderr.isatty():
             subprocess.call(["stty", "sane", "-F", "/dev/tty"])
 
+        os.close(imaster)
+        os.close(islave)
+
         if trace:
             ret = open(tracefn).readlines()
             os.unlink(tracefn)
         else:
-            ret = open(outfn).readlines()
+            return out.splitlines()
 
-        os.unlink(outfn)
         os.unlink(errfn)
         return ret
 
@@ -148,7 +177,13 @@ if __name__ == "__main__":
     except:
         argv = None
 
+    print "Running"
     r = Runner(args[0], trace=opts.trace, syms=opts.syms, symsub=opts.symsub,
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv)
+    print "Done"
+    fd = open("/tmp/donkeyballs","w");
     for l in r.run():
+        fd.write(l+"\n")
         print l
+
+    fd.close()

@@ -46,6 +46,7 @@ set(SOURCES
   src/snprintf.c
   src/stdio.c
   src/stdlib.c
+  src/readline.c
 )
 if (${TARGET} STREQUAL "Hosted")
   set(SOURCES ${SOURCES}
@@ -62,8 +63,10 @@ if (${TARGET} STREQUAL "X86")
     src/x86/keyboard.c)
 endif()
 
+# Note that qEmu seems not to like having multiple instances of itself running
+# at once, so we set the number of threads to 1.
 include(FindPythonInterp)
-add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py" "${CMAKE_SOURCE_DIR}/test" "-sv" DEPENDS kernel)
+add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py" "${CMAKE_SOURCE_DIR}/test" "-sv" "-j1" DEPENDS kernel)
 
 
 include_directories(${INCLUDES})
@@ -76,6 +79,9 @@ target_link_libraries(kernel libkernel)
 set(CMAKE_TARGET kernel)
 configure_file("${CMAKE_SOURCE_DIR}/test/lit.site.cfg.in"
   "${CMAKE_BINARY_DIR}/test/lit.site.cfg"  @ONLY)
+
+add_executable(readline examples/readline.c)
+target_link_libraries(readline libkernel)
 
 if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
   macro(make_image name elf out depend)
@@ -108,8 +114,11 @@ if(${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
   target_link_libraries(serial libkernel)
   make_image(serial.img ${CMAKE_BINARY_DIR}/examples/serial ${CMAKE_BINARY_DIR}/examples/serial.img serial)
 
+  make_image(readline.img ${CMAKE_BINARY_DIR}/examples/readline ${CMAKE_BINARY_DIR}/examples/readline.img readline)
   set_target_properties(keyboard screen serial
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
 
 endif()
+set_target_properties(readline
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY examples)
 

@@ -2,6 +2,7 @@
 #include "string.h"
 #include <unistd.h>
 #include <sys/select.h>
+#include <termios.h>
 
 int c_read(console_t *obj, char *buf, int len) {
   fd_set set;
@@ -30,6 +31,11 @@ console_t c = {
 };
 
 int init_console() {
+  struct termios t;
+  tcgetattr(1, &t);
+  t.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|ICANON);
+  tcsetattr(1, TCSANOW, &t);
+
   register_console(&c);
   return 0;
 }
