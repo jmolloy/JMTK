@@ -3,11 +3,67 @@
 #include "stdio.h"
 #include "string.h"
 
-#define LINEBUF_SZ 128
+#define HISTORY_NUM 32
+#define HISTORY_LINE_LEN 256
+static char history[HISTORY_NUM][HISTORY_LINE_LEN];
+int history_idx = -1, history_max = 0;
+
+static void tab_complete(char *buf, size_t bufsz, size_t *bufidx,
+                         readline_completer_t completer);
+static void history_back(char *buf, size_t bufz, size_t *bufidx);
+static void history_forward(char *buf, size_t bufz, size_t *bufidx);
+static void history_add(char *buf, size_t bufsz);
+static void kill_chars_forward(char *buf, size_t bufsz, size_t *bufidx,
+                               int n);
+static void kill_chars_backward(char *buf, size_t bufsz, size_t *bufidx,
+                                size_t n);
+static void kill_eol(char *buf, size_t bufsz, size_t *bufidx);
+static void kill_word_backward(char *buf, size_t bufsz, size_t *bufidx);
+static void insert_chars(char *buf, size_t bufsz, size_t *bufidx, int n,
+                         char *chars);
+static void move_backward(size_t *bufidx, size_t n);
+static void move_forward(char *buf, size_t bufsz, size_t *bufidx, size_t n);
 
 static void tab_complete(char *buf, size_t bufsz, size_t *bufidx,
                          readline_completer_t completer) {
   kprintf("\a");
+}
+
+static void history_back(char *buf, size_t bufsz, size_t *bufidx) {
+  if (history_idx >= history_max-1) {
+    return;
+  }
+
+  char *c = history[++history_idx];
+
+  kill_chars_backward(buf, bufsz, bufidx, *bufidx);
+  insert_chars(buf, bufsz, bufidx, strlen(c), c);
+}
+
+static void history_forward(char *buf, size_t bufsz, size_t *bufidx) {
+  if (history_idx == 0) {
+    kill_chars_backward(buf, bufsz, bufidx, *bufidx);
+    history_idx = -1;
+    return;
+  } else if (history_idx < 0)
+    return;
+
+  char *c = history[--history_idx];
+
+  kill_chars_backward(buf, bufsz, bufidx, *bufidx);
+  insert_chars(buf, bufsz, bufidx, strlen(c), c);
+}
+
+static void history_add(char *buf, size_t bufsz) {
+  memmove((uint8_t*)&history[1],
+          (uint8_t*)&history[0], HISTORY_LINE_LEN * (HISTORY_NUM-1));
+
+  strcpy(history[0], buf);
+  ++history_max;
+  if (history_max > HISTORY_NUM)
+    history_max = HISTORY_NUM;
+
+  history_idx = -1;
 }
 
 static void kill_chars_forward(char *buf, size_t bufsz, size_t *bufidx,
@@ -137,6 +193,16 @@ static size_t handle_escape(char *buf, size_t bufsz, size_t *bufidx, char c,
     move_forward(buf, bufsz, bufidx, 1);
     return 0;
 
+  case 'A':
+    /* Cursor up */
+    history_back(buf, bufsz, bufidx);
+    return 0;
+
+  case 'B':
+    /* Cursor down */
+    history_forward(buf, bufsz, bufidx);
+    return 0;
+
   default:
     kprintf("Unknown escape char: @@%d@@\n", c);
     return 0;
@@ -172,6 +238,7 @@ void readline(char *buf, size_t bufsz, const char *prompt,
 
     case '\r': case '\n':
       kprintf("\r\n");
+      history_add(buf, bufsz);
       return;
 
     case '\x08':
@@ -193,6 +260,22 @@ void readline(char *buf, size_t bufsz, const char *prompt,
       /* Ctrl-W - kill last word. */
       kill_word_backward(buf, bufsz, &bufidx);
       break;
+
+    case '\x01':
+      /* Ctrl-A - start of line. */
+      move_backward(&bufidx, bufidx);
+      break;
+
+    case '\x05':
+      /* Ctrl-E - end of line. */
+      move_forward(buf, bufsz, &bufidx, strlen(buf) - bufidx);
+      break;
+
+    case '\x03':
+      /* Ctrl-C - cancel. */
+      buf[0] = '\0';
+      kprintf("\r\n");
+      return;
 
     default:
       /* Is this a printable character? */

@@ -82,7 +82,7 @@ class ScanTable:
         return tokens
 
     def parse(self):
-        self.tables = {None: {}, 'SHIFT': {}, 'CAPS': {}, 'NUMLOCK': {}}
+        self.tables = {None: {}, 'SHIFT': {}, 'CAPS': {}, 'NUMLOCK': {}, 'CTRL': {}}
         self.flags = {}
         self.known_flags = set()
 
@@ -131,7 +131,7 @@ class ScanTable:
                 state.entries[state.cur_modifier] = s.decode('string_escape')
                 state.cur_modifier = None
                 continue
-            if tok[0] in ('SHIFT', 'CAPS', 'NUMLOCK'):
+            if tok[0] in ('SHIFT', 'CAPS', 'NUMLOCK', 'CTRL'):
                 state.cur_modifier = tok[0]
                 continue
             if tok[0] == 'FLAG':
@@ -500,6 +500,7 @@ if __name__ == '__main__':
         except Exception as e:
             print '%s:error:%s' % (os.path.basename(sys.argv[0]), str(e))
             sys.exit(1)
+            raise
 
         with open(sys.argv[2], 'w') as fd:
             fd.write(s)

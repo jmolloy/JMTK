@@ -31,6 +31,8 @@ static const char *try_scancode(uint32_t flag, uint8_t *table, int len,
 static const char *string_for_scancode(kb_state_t *state, uint8_t scancode) {
   const char *s;
 
+  s = try_scancode(SCAN_CTRL, scan_ctrl, scan_ctrl_len, scancode, state);
+  if (s) return s;
   s = try_scancode(SCAN_SHIFT, scan_shift, scan_shift_len, scancode, state);
   if (s) return s;
   s = try_scancode(SCAN_CAPSLOCK, scan_caps, scan_caps_len, scancode, state);

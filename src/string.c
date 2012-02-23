@@ -9,6 +9,16 @@ void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
   for(; len != 0; len--) *dest++ = *src++;
 }
 
+void memmove(uint8_t *dest, const uint8_t *src, uint32_t len) {
+  if (dest < src) {
+    memcpy(dest, src, len);
+  } else {
+    dest += len;
+    src += len;
+    for(; len != 0; len--) *--dest = *--src;
+  }
+}
+
 // Write len copies of val into dest.
 void memset(uint8_t *dest, uint8_t val, uint32_t len)
 {

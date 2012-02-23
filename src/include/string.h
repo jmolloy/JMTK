@@ -10,6 +10,7 @@
 int strlen(const char *s);
 
 void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len);
+void memmove(uint8_t *dest, const uint8_t *src, uint32_t len);
 
 void memset(uint8_t *dest, uint8_t val, uint32_t len);
 void memsetw(uint16_t *dest, uint16_t val, uint32_t len);

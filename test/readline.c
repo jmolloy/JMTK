@@ -64,4 +64,27 @@ static init_fini_fn_t x run_on_startup = {
 // IN: abcdef\\033D\\033D\\033D\\x0bxy\\n
 // CHECK: 'abcxy'
 
+// Start testing history...
+
+// IN: a\\n
+// IN: b\\n
+// IN: c\\n
+// IN: \\033A\\n
+// CHECK: 'c'
+
+// IN: \\033A\\033A\\033A\\033A\\033Bg\\n
+// CHECK: 'bg'
+
+// IN: \\033A\\033Bs\\n
+// CHECK: 's'
+
+// IN: abc\\x01d\\n
+// CHECK: 'dabc'
+
+// IN: abc\\x01d\\x05e\\n
+// CHECK: 'dabce'
+
+// IN: abc\\x03\\n
+// CHECK: ''
+
 // IN: \\nEND\\n
