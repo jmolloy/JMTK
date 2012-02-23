@@ -36,6 +36,19 @@ int unregister_interrupt_handler(int num, interrupt_handler_t handler,
                                  void *p) {
   return -1;
 }
+void enable_interrupts() weak;
+void enable_interrupts() {
+}
+void disable_interrupts() weak;
+void disable_interrupts() {
+}
+int get_interrupt_state() weak;
+int get_interrupt_state() {
+  return 1;
+}
+void set_interrupt_state(int enable) weak;
+void set_interrupt_state(int enable) {
+}
 
 void trap() weak;
 void trap() {
@@ -46,9 +59,13 @@ void debugger_trap(struct regs *regs) {
 void debugger_except(struct regs *regs, const char *description) weak;
 void debugger_except(struct regs *regs, const char *description) {
 }
+int register_debugger_handler(const char *name, debugger_fn_t fn) weak;
+int register_debugger_handler(const char *name, debugger_fn_t fn) {
+  return -1;
+}
 uintptr_t backtrace(uintptr_t *data) weak;
 uintptr_t backtrace(uintptr_t *data) {
-  return -1;
+  return 0;
 }
 int set_insn_breakpoint(uintptr_t loc) weak;
 int set_insn_breakpoint(uintptr_t loc) {
@@ -83,6 +100,30 @@ int describe_regs(struct regs *regs, int max, const char **names,
 int describe_regs(struct regs *regs, int max, const char **names,
                   uintptr_t **values) {
   return -1;
+}
+
+int get_processor_id() weak;
+int get_processor_id() {
+  return -1;
+}
+int get_num_processors() weak;
+int get_num_processors() {
+  return -1;
+}
+int *get_all_processor_ids() weak;
+int *get_all_processor_ids() {
+  return NULL;
+}
+int get_ipi_interrupt_num() weak;
+int get_ipi_interrupt_num() {
+  return -1;
+}
+void *get_ipi_data(struct regs *r) weak;
+void *get_ipi_data(struct regs *r) {
+  return NULL;
+}
+void send_ipi(int proc_id, void *data) weak;
+void send_ipi(int proc_id, void *data) {
 }
 
 uint64_t get_timestamp() {

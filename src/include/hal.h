@@ -16,7 +16,7 @@ typedef struct init_fini_fn {
   const char **prerequisites; /* Either NULL or a NULL-terminated list of
                                  function IDs that must have already run. */
   int (*fn)(void);            /* The function to run. Returns zero on success. */
-  int padding; /* Pad so the structure is 4 * sizeof(int) large. */
+  int padding;                /* Pad so the structure is 4 * sizeof(int) large. */
 } init_fini_fn_t;
 
 /* Mark an instance of an init_fini_fn_t object as 'run_on_startup' to
@@ -73,7 +73,8 @@ int read_console(char *buf, int len);
 /* Callback type for an interrupt handler. Takes a pointer to the target
    specific struct 'regs' containing the register contents when the interrupt
    was taken. Return nonzero if any changes you made to 'r' should be 
-   reflected when the handler returns. */
+   reflected when the handler returns. 'p' is opaque data passed through
+   from register_interrupt_handler. */
 struct regs;
 typedef int (*interrupt_handler_t)(struct regs *r, void *p);
 
@@ -85,9 +86,25 @@ int register_interrupt_handler(int num, interrupt_handler_t handler, void *p);
    Returns -1 on failure. */
 int unregister_interrupt_handler(int num, interrupt_handler_t handler, void *p);
 
+/* Allows maskable interrupts to happen. */
+void enable_interrupts();
+
+/* Disallows maskable interrupts from happening. */
+void disable_interrupts();
+
+/* Reads the current interrupt state. 1 is enabled, 0 is disabled. */
+int get_interrupt_state();
+
+/* Sets the current interrupt state - 1 is enabled, 0 is disabled. */
+void set_interrupt_state(int enable);
+
 /*******************************************************************************
  * Debugging
  ******************************************************************************/
+
+/* A handler function for a debugger command. Receives the command given
+   in cmd and can handle as appropriate. */
+typedef void (*debugger_fn_t)(const char *cmd);
 
 /* Cause a debug or breakpoint trap. */
 void trap();
@@ -99,6 +116,9 @@ void debugger_trap(struct regs *regs);
 
    Description holds an implementation-defined string describing the error. */
 void debugger_except(struct regs *regs, const char *description);
+
+/* Registers a function for use in the debugger. */
+int register_debugger_handler(const char *name, debugger_fn_t fn);
 
 /* Perform a backtrace.
   
@@ -155,6 +175,42 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs);
    Returns -1 on failure. */
 int describe_regs(struct regs *regs, int max, const char **names,
                   uintptr_t **values);
+
+/********************************************************************************
+ * Multiple processors
+ *******************************************************************************/
+
+/* Returns an implementation defined ID for the current processor.
+   Returns -1 if not implemented. IDs are expected to be sequential
+   starting from zero. It is not defined which CPU is zero. */
+int get_processor_id();
+
+/* Returns the number of processors in the system. Returns -1 if not
+   implemented. */
+int get_num_processors();
+
+/* Returns a pointer to an array of processor IDs representing the processors
+   in the system. */
+int *get_all_processor_ids();
+
+/* Returns an implementation defined value that can be passed to
+   register_interrupt_handler to handle an inter-processor message/interrupt.
+
+   Returns -1 if not implemented. */
+int get_ipi_interrupt_num();
+
+/* Given a struct regs from an interrupt handler registered to
+   get_ipi_interrupt_num, returns the value that was passed to the
+   send_ipi function. */
+void *get_ipi_data(struct regs *r);
+
+/* Sends an inter-processor interrupt - a message between cores. The value in
+   'data' will be available to the receiving core via get_ipi_data.
+
+   The special value -1 for proc_id will send IPIs to all cores in the system.
+
+   The value -2 will send IPIs to all cores but this one. */
+void send_ipi(int proc_id, void *data);
 
 /********************************************************************************
  * Peripherals
