@@ -1,6 +1,14 @@
 #include "hal.h"
 
+void null(const char *cmd, core_debug_state_t *states) {
+
+}
+
 int f() {
+  register_debugger_handler("null",
+                            "This command does absolutely nothing, at all.",
+                            &null);
+
   debugger_except(NULL, "Totally fake trap");
   return 0;
 }

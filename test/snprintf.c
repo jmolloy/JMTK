@@ -199,6 +199,11 @@ static int test() {
   ksnprintf(buf, 64, fmt, 0);
   printf("%s\n", buf);
 
+  // CHECK: .<null>.
+  fmt = ".%s.";
+  ksnprintf(buf, 64, fmt, NULL);
+  printf("%s\n", buf);
+
   return 0;
 }
 

@@ -102,9 +102,21 @@ void set_interrupt_state(int enable);
  * Debugging
  ******************************************************************************/
 
+/* The maximum number of supported cores. */
+#define MAX_CORES 256
+/* The maximum number of entries in a backtrace. */
+#define MAX_BACKTRACE 32
+
+/* The state of one core when debugging. */
+typedef struct core_debug_state {
+  int backtrace[MAX_BACKTRACE];
+  struct regs *registers;
+} core_debug_state_t;
+
 /* A handler function for a debugger command. Receives the command given
-   in cmd and can handle as appropriate. */
-typedef void (*debugger_fn_t)(const char *cmd);
+   in cmd and can handle as appropriate, and the state of all cores
+   in the system. */
+typedef void (*debugger_fn_t)(const char *cmd, core_debug_state_t *states);
 
 /* Cause a debug or breakpoint trap. */
 void trap();
@@ -118,7 +130,8 @@ void debugger_trap(struct regs *regs);
 void debugger_except(struct regs *regs, const char *description);
 
 /* Registers a function for use in the debugger. */
-int register_debugger_handler(const char *name, debugger_fn_t fn);
+int register_debugger_handler(const char *name, const char *help,
+                              debugger_fn_t fn);
 
 /* Perform a backtrace.
   

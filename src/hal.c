@@ -59,8 +59,10 @@ void debugger_trap(struct regs *regs) {
 void debugger_except(struct regs *regs, const char *description) weak;
 void debugger_except(struct regs *regs, const char *description) {
 }
-int register_debugger_handler(const char *name, debugger_fn_t fn) weak;
-int register_debugger_handler(const char *name, debugger_fn_t fn) {
+int register_debugger_handler(const char *name, const char *help,
+                              debugger_fn_t fn) weak;
+int register_debugger_handler(const char *name, const char *help,
+                              debugger_fn_t fn) {
   return -1;
 }
 uintptr_t backtrace(uintptr_t *data) weak;

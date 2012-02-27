@@ -372,10 +372,13 @@ static const char *convert(char *str, unsigned size, const char *format, int *n,
       buf[1] = '\0';
       pad_str(str, size, n, buf, 0, s, NULL);
       return format+1;
-    case 's':
+    case 's': {
       s.zero_pad = 0;
-      pad_str(str, size, n, (char*)args[(*thisarg)++].p, 0, s, NULL);
+      char *in = (char*)args[(*thisarg)++].p;
+      if (!in) in = "<null>";
+      pad_str(str, size, n, in, 0, s, NULL);
       return format+1;
+    }
     case 'p': /* Equivalent to %#x */
       s.zero_pad = 0;
       convert_int(buf, BUFSZ, (uintptr_t)args[(*thisarg)++].p, 16, s, 0);

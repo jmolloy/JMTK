@@ -164,7 +164,8 @@ static int register_keyboard() {
   return 0;
 }
 
-static const char *prereqs[] = {"console", "x86/screen", NULL};
+static const char *prereqs[] = {"console", "x86/screen", "interrupts",
+                                NULL};
 static init_fini_fn_t x run_on_startup = {
   .name = "x86/keyboard",
   .prerequisites = prereqs,
