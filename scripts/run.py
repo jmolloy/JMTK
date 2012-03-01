@@ -91,13 +91,12 @@ class Qemu:
         return ret
 
 class Runner:
-    def __init__(self, image, trace=False, syms=False, symsub=0, timeout=None,
+    def __init__(self, image, trace=False, syms=False, timeout=None,
                  preformatted_image=os.path.join('..','floppy.img.zip'),
                  argv=None):
         self.image = image
         self.trace = trace
         self.syms = syms
-        self.symsub = symsub
         self.timeout = timeout
         self.argv = argv
 
@@ -143,7 +142,7 @@ class Runner:
             colon = l.find(':')
             if colon != -1:
                 try:
-                    pc_loc = int(l[:colon], 0) + self.symsub
+                    pc_loc = int(l[:colon], 0)
                     if pc_loc in self.symbols:
                         s.append(self.symbols[pc_loc] + l[colon:].strip())
                         continue
@@ -161,8 +160,6 @@ if __name__ == "__main__":
                  help='Output an execution trace instead of the serial output')
     p.add_option('--symbols', '--syms', action='store_true', dest='syms',
                  default=False, help='Translate raw addresses in trace output to symbol names if possible')
-    p.add_option('--symsub', dest='symsub', type='int', default=0,
-                 help='Value to subtract from symbol values')
     p.add_option('--timeout', dest='timeout', default=500, type='int',
                  help='Timeout before killing the model in milliseconds')
     p.add_option('--preformatted-image', dest='image',
@@ -179,7 +176,7 @@ if __name__ == "__main__":
     except:
         argv = None
 
-    r = Runner(args[0], trace=opts.trace, syms=opts.syms, symsub=opts.symsub,
+    r = Runner(args[0], trace=opts.trace, syms=opts.syms,
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv)
 
     for l in r.run():

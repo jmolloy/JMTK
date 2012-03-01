@@ -16,33 +16,33 @@ mboot:  dd      MBOOT_HEADER_MAGIC
         ;; Kernel entry point from bootloader.
         ;; At this point EBX is a pointer to the multiboot struct.
 global _start:function _start.end-_start
-_start: lgdt    [trick_gdt]     ; Load the trick GDT for higher half mode.
-        mov     ax, 0x10        ; Data segment selector = 0x10
-        mov     ds, ax
-        mov     es, ax
-        mov     fs, ax
-        mov     gs, ax
-        mov     ss, ax
+_start: mov     eax, pd
+        mov     dword [eax], pt + 3
+        mov     dword [eax+0xC00], pt + 3
 
-        ;; Ensure the multiboot struct pointer is adjusted for the
-        ;; move to the higher half.
-        add     ebx, 0xC0000000
+        mov     edx, pt
+        mov     ecx, 0
+.loop:  mov     eax, ecx
+        shl     eax, 12
+        or      eax, 3
+        mov     [edx+ecx*4], eax
+        inc     ecx
+        cmp     ecx, 1024
+        jnz     .loop
 
-        ;; Far jump sets the code segment selector and moves to
-        ;; the higher half.
-        jmp     0x08:higherhalf
+        mov     eax, pd+3
+        mov     cr3, eax
+        mov     eax, cr0
+        or      eax, 0x80000000
+        mov     cr0, eax
+
+        jmp     higherhalf
 .end:
 
-        ;; Data for Tim Robinson's GDT trick.
-trick_gdt:
-        dw gdt_end - gdt - 1
-        dd gdt
-
-gdt:    dd 0, 0
-        db 0xFF, 0xFF, 0, 0, 0, 10011010b, 11001111b, 0x40	; code selector 0x08: base 0x40000000, limit 0xFFFFFFFF, type 0x9A, granularity 0xCF
-	db 0xFF, 0xFF, 0, 0, 0, 10010010b, 11001111b, 0x40	; data selector 0x10: base 0x40000000, limit 0xFFFFFFFF, type 0x92, granularity 0xCF
-gdt_end:
-
+section .init.bss nobits
+pd:     resb    0x1000
+pt:     resb    0x1000
+        
 extern bringup
 
 section .text

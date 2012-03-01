@@ -7,6 +7,10 @@ SECTIONS
   {
     *(.init)
   }
+  .init.bss ALIGN(4096) :
+  {
+    *(.init.bss)
+  }
 
   . += 0xC0000000;
 
