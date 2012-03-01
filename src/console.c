@@ -1,7 +1,9 @@
 #include "hal.h"
 
+/* The first console in a linked list. */
 static console_t *consoles = NULL;
 
+/* Registers a new console - declared in hal.h */
 int register_console(console_t *c) {
   if (consoles)
     consoles->prev = c;
@@ -15,10 +17,12 @@ int register_console(console_t *c) {
   return 0;
 }
 
+/* Unregisters a console - declared in hal.h */
 void unregister_console(console_t *c) {
   console_t *prev = NULL;
   console_t *this = consoles;
 
+  /* Scan through the linked list looking for 'c'. */
   while (this) {
     if (this == c) {
       if (this->next)
@@ -28,6 +32,7 @@ void unregister_console(console_t *c) {
       if (!prev)
         consoles = c;
 
+      /* Found - call flush() then close(). */
       if (this->flush)
         this->flush(this);
       if (this->close)
@@ -39,6 +44,7 @@ void unregister_console(console_t *c) {
   }
 }
 
+/* Writes to a console - declared in hal.h */
 void write_console(const char *buf, int len) {
   console_t *this = consoles;
   while (this) {
@@ -48,6 +54,7 @@ void write_console(const char *buf, int len) {
   }
 }
 
+/* Reads from a console - declared in hal.h */
 int read_console(char *buf, int len) {
   if (len == 0) return 0;
 
@@ -63,6 +70,7 @@ int read_console(char *buf, int len) {
   return -1;
 }
 
+/* Flush and close all consoles. */
 static int shutdown_console() {
   console_t *this = consoles;
   while (this) {
@@ -75,12 +83,17 @@ static int shutdown_console() {
   return 0;
 }
 
+/* Register a function to run on startup.
+   We don't need to do anything on startup, but that is an implementation detail
+   that other modules may not know about, so we register a NULL function anyway
+   so they can mark us as a prerequisite. */
 static init_fini_fn_t x run_on_startup = {
   .name = "console",
   .prerequisites = NULL,
   .fn = NULL
 };
 
+/* Register 'shutdown_console' for running on shutdown. */
 static init_fini_fn_t y run_on_shutdown = {
   .name = "console",
   .prerequisites = NULL,

@@ -8,6 +8,7 @@ class Graph:
     class Node:
         def __init__(self, value):
             self.value = value
+            self.files = []
             
         def __str__(self):
             return str(self.value)
@@ -28,12 +29,17 @@ class Graph:
                 if not l:
                     continue
                 m = re.match(r'"(.*)"\s*-\>\s*"(.*)"', l)
-                if not m:
-                    raise Graph.GraphSyntaxError(l)
-                lhs = m.group(1)
-                rhs = m.group(2)
+                n = re.match(r'"(.*)"\s*:\s*\[(.*)\]', l)
+                if m:
+                    lhs = m.group(1)
+                    rhs = m.group(2)
 
-                self.add_edge(self.add_node(lhs), self.add_node(rhs))
+                    self.add_edge(self.add_node(lhs), self.add_node(rhs))
+                elif n:
+                    self.nodes[n.group(1)].files += n.group(2).split(' ')
+
+                else:
+                    raise Graph.GraphSyntaxError(l)
 
     def serialize(self):
         out = []
@@ -57,6 +63,9 @@ class Graph:
         if not isinstance(goal, Graph.Node):
             goal = self.nodes[goal]
 
+        if root == goal:
+            return [(root,)]
+
         def _cycles_on(path, n):
             l = []
             accum = []
@@ -73,7 +82,6 @@ class Graph:
             ns = set(path)
             for n in ns:
                 ps = _cycles_on(path, n)
-                print ps
                 if len(set(ps)) < len(ps):
                     return True
             return False

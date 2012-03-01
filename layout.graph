@@ -1,17 +1,16 @@
 "skeleton" -> "console"
 
+"skeleton" -> "bringup stage 1"
+
 "bringup stage 1" -> "screen printing"
 "bringup stage 1" -> "keyboard"
-"bringup stage 1" -> "serial printing"
-"bringup stage 1" -> "serial input"
+"bringup stage 1" -> "serial"
 
 "screen printing" -> "console"
 
 "keyboard" -> "console"
 
-"serial printing" -> "console"
-
-"serial input" -> "console"
+"serial" -> "console"
 
 "bringup stage 2" -> "interrupt handling"
 
@@ -59,3 +58,10 @@
 
 "multiple address spaces" -> "loading programs"
 "ELF loading" -> "loading programs"
+
+"skeleton": [src/CMakeLists.txt src/hal.c src/dummy.c src/main.c src/include/hal.h src/hosted/CMakeLists.txt src/x86/CMakeLists.txt src/hosted/link.ld src/x86/link.ld]
+"bringup stage 1": [src/x86/bringup-1.s src/x86/bringup-2.c src/include/x86/multiboot.h src/include/x86/io.h]
+"keyboard": [src/x86/en_US.scantable src/x86/keyboard.c]
+"serial": [src/x86/serial.c]
+"console": [src/console.c src/hosted/console.c]
+"screen printing": [src/x86/screen.c]
