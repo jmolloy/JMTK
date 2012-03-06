@@ -25,5 +25,6 @@ set(SOURCES ${SOURCES}
   x86/bringup-2.c
   x86/screen.c
   x86/serial.c
-  x86/keyboard.c)
+  x86/keyboard.c
+  x86/gdt.c)
 assemble(SOURCES x86 bringup-1.s ${SOURCES})

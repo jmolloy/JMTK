@@ -23,13 +23,10 @@ static cmd_t cmds[MAX_CMDS];
 
 static void print_tabular(const char *str, int n) {
 #define NUM_COLS 4
-#define SZ_COL 10
-#define P(x,y,z) x #y z
 
   if (n != 0 && n % NUM_COLS == 0 )
     kprintf("\n");
-  kprintf(P("%",SZ_COL,"s"), str);
-#undef P
+  kprintf("%-20s", str);
 }
 
 static int get_unambiguous_cmd(const char *cmd) {
@@ -75,6 +72,7 @@ static void print_ambiguous(const char *cmd) {
         if (!strncmp(cmd, cmds[i].cmd, len))
           print_tabular(cmds[i].cmd, matches++);
       }
+      kprintf("\n");
       return;
     }
   }
