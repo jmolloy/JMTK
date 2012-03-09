@@ -64,6 +64,11 @@ static int test() {
   ksnprintf(buf, 64, fmt, 0xabcdef);
   printf("%s\n", buf);
 
+  // CHECK: .c0000000.
+  fmt = ".%x.";
+  ksnprintf(buf, 64, fmt, 0xc0000000);
+  printf("%s\n", buf);
+
   // CHECK: ABCDEF
   fmt = "%X";
   ksnprintf(buf, 64, fmt, 0xabcdef);

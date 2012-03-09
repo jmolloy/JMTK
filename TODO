@@ -2,4 +2,6 @@
   * Clean up CMakeLists.txt
   * Add examples for each tutorial
   * Printf - test precision smaller than string with no
-    null-terminator
+   null-terminator
+  * Testcase for gdt
+  * Change qemu script to use monitor to poll for finishing (cli/hlt).

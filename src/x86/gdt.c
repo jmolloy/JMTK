@@ -7,14 +7,14 @@ typedef struct gdt_entry {
   uint16_t base_low;
   uint8_t  base_mid;
   uint8_t  type : 4;
-  uint8_t  s : 1;
-  uint8_t  dpl : 2;
-  uint8_t  p : 1;
+  uint8_t  s    : 1;
+  uint8_t  dpl  : 2;
+  uint8_t  p    : 1;
   uint8_t  limit_high : 4;
-  uint8_t  avail : 1;
-  uint8_t  l : 1;
-  uint8_t  d : 1;
-  uint8_t  g : 1;
+  uint8_t  avail: 1;
+  uint8_t  l    : 1;
+  uint8_t  d    : 1;
+  uint8_t  g    : 1;
   uint8_t  base_high;
 } gdt_entry_t;
 
@@ -34,8 +34,8 @@ typedef struct gdt_ptr {
 } __attribute__((packed)) gdt_ptr_t;
 
 static gdt_ptr_t gdt_ptr;
-gdt_entry_t entries[MAX_CORES+5];
-tss_entry_t tss_entries[MAX_CORES];
+static gdt_entry_t entries[MAX_CORES+5];
+static tss_entry_t tss_entries[MAX_CORES];
 
 unsigned num_gdt_entries, num_tss_entries;
 
@@ -107,9 +107,9 @@ static int init_gdt() {
   register_debugger_handler("print-tss", "Print all TSS entries", &print_tss);
 
   /*                         Base Limit Type                 S  Dpl P  L  D  G*/
-  set_gdt_entry(&entries[0], 0,   0,    0,                   0, 0,  0, 0, 0, 0);
+  set_gdt_entry(&entries[0], 0,   0xFFF0,    0,                   0, 0,  0, 0, 0, 0);
   set_gdt_entry(&entries[1], 0,   ~0U,  TY_CODE|TY_READABLE, 1, 0,  1, 0, 1, 1);
-  set_gdt_entry(&entries[2], 0,   ~0U,  TY_DATA_WRITABLE,    1, 0,  1, 0, 1, 1);
+  set_gdt_entry(&entries[2], 0,   ~0U,  TY_DATA_WRITABLE|TY_ACCESSED,    1, 0,  1, 0, 1, 1);
   set_gdt_entry(&entries[3], 0,   ~0U,  TY_CODE|TY_READABLE, 1, 3,  1, 0, 1, 1);
   set_gdt_entry(&entries[4], 0,   ~0U,  TY_DATA_WRITABLE,    1, 3,  1, 0, 1, 1);
 
@@ -123,12 +123,12 @@ static int init_gdt() {
                                       /* Type                S  Dpl P  L  D  G*/
   }
 
-  num_gdt_entries = num_processors + 5 - num_processors;
+  num_gdt_entries = num_processors + 5;
   num_tss_entries = num_processors;
 
-  gdt_ptr.base = (uint32_t)&entries;
+  gdt_ptr.base = (uint32_t*)entries;
   gdt_ptr.limit = sizeof(gdt_entry_t) * num_gdt_entries - 1;
-  
+
   __asm volatile("lgdt %0;"
                  "mov  $0x10, %%ax;"
                  "mov  %%ax, %%ds;"
@@ -137,6 +137,7 @@ static int init_gdt() {
                  "mov  %%ax, %%gs;"
                  "ljmp $0x08, $1f;"
                  "1:" : : "m" (gdt_ptr) : "eax");
+
   return 0;
 }
 

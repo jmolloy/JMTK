@@ -38,6 +38,7 @@
 typedef union arg {
   double d;
   int i;
+  unsigned int u;
   void *p;
 } arg_t;
 
@@ -101,7 +102,8 @@ static void convert_int(char *buf, int bufsz, uint64_t i, int radix,
     tmpbuf[j++] = (state.transliterate_hex ? trans_chars : chars)[i % radix];
     i /= radix;
   }
-
+  tmpbuf[j] = '\0';
+  
   /* String value is in tmpbuf, reversed. */
 
   i = 0;
@@ -336,15 +338,13 @@ static const char *convert(char *str, unsigned size, const char *format, int *n,
     case 'd': case 'i':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_int(buf, BUFSZ,
-                   (uint64_t)((int64_t)args[(*thisarg)++].i),
-                   10, s, 1);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 10, s, 1);
       pad_str(str, size, n, buf, 1, s, NULL);
       return format+1;
     case 'o':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 8, s, 0);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].u, 8, s, 0);
       pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0" : NULL);
       return format+1;
     case 'u':
@@ -356,14 +356,14 @@ static const char *convert(char *str, unsigned size, const char *format, int *n,
     case 'x':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
-      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].u, 16, s, 0);
       pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0x" : NULL);
       return format+1;
     case 'X':
       /* If precision is given, zero_pad must be disabled. */
       if (s.precision != 1) s.zero_pad = 0;
       s.transliterate_hex = 1;
-      convert_int(buf, BUFSZ, args[(*thisarg)++].i, 16, s, 0);
+      convert_int(buf, BUFSZ, args[(*thisarg)++].u, 16, s, 0);
       pad_str(str, size, n, buf, 0, s, s.alternate_form ? "0X" : NULL);
       return format+1;
     case 'c':
