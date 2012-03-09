@@ -51,7 +51,8 @@ isr_common:
 
         push esp
         call interrupt_handler
-
+        add esp, 4
+      
         pop eax
         mov ds, ax
         mov es, ax

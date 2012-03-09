@@ -72,8 +72,6 @@ static struct {
 unsigned num_handlers[NUM_HANDLERS];
 
 static void print_idt_entry(unsigned i, idt_entry_t e) {
-  uint32_t *m = (uint32_t*)&e;
-  kprintf("#%02d: %#08x %#08x\n", i, m[0], m[1]);
   kprintf("#%02d: Base %#08x Sel %#04x\n", i, e.base_low | (e.base_high<<16), e.sel);
 }
 
@@ -100,8 +98,29 @@ static void set_idt_entry(idt_entry_t *e, uint32_t base, uint16_t sel, uint8_t d
   e->base_high = (base >> 16) & 0xFFFF;
 }
 
+static void print_handlers(const char *cmd, core_debug_state_t *states) {
+  for (unsigned i = 0; i < NUM_HANDLERS; ++i) {
+    if (num_handlers[i] == 0) continue;
+
+    kprintf("#%02d: ");
+    for (unsigned j = 0; j < num_handlers[i]; ++j) {
+      interrupt_handler_t h = handlers[i][j].handler;
+
+      int offs;
+      const char *sym = lookup_kernel_symbol((uintptr_t)h, &offs);
+      if (sym)
+        kprintf("%s+%#x ", sym, offs);
+      else
+        kprintf("%p ", h);
+    }
+    kprintf("\n");
+  }
+}
+
 static int init_idt() {
   register_debugger_handler("print-idt", "Print the IDT", &print_idt);
+  register_debugger_handler("print-interrupt-handlers",
+                            "Print all known interrupt handlers", &print_handlers);
 
   memset((uint8_t*)&num_handlers, 0, sizeof(unsigned)*NUM_HANDLERS);
 

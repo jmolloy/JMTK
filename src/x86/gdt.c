@@ -126,7 +126,7 @@ static int init_gdt() {
   num_gdt_entries = num_processors + 5;
   num_tss_entries = num_processors;
 
-  gdt_ptr.base = (uint32_t*)entries;
+  gdt_ptr.base = (uint32_t)&entries[0];
   gdt_ptr.limit = sizeof(gdt_entry_t) * num_gdt_entries - 1;
 
   __asm volatile("lgdt %0;"

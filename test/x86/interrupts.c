@@ -21,6 +21,10 @@ int f () {
   register_interrupt_handler(2, &h, (void*)0xdeadbaba);
 
   __asm volatile("int $2");
+
+  // CHECK: ... and I'm back!
+  kprintf("... and I'm back!");
+
   return 0;
 }
 
