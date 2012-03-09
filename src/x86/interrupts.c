@@ -1,6 +1,7 @@
 #include "hal.h"
 #include "stdio.h"
 #include "string.h"
+#include "x86/io.h"
 #include "x86/regs.h"
 
 #define NUM_TRAP_STRS 20
@@ -71,6 +72,8 @@ static struct {
 } handlers[NUM_HANDLERS][MAX_HANDLERS_PER_INT];
 unsigned num_handlers[NUM_HANDLERS];
 
+void (*ack_irq)(unsigned);
+
 static void print_idt_entry(unsigned i, idt_entry_t e) {
   kprintf("#%02d: Base %#08x Sel %#04x\n", i, e.base_low | (e.base_high<<16), e.sel);
 }
@@ -117,6 +120,31 @@ static void print_handlers(const char *cmd, core_debug_state_t *states) {
   }
 }
 
+static void pic_ack_irq(unsigned num) {
+  /* Was this an IRQ from the slave PIC? */
+  if (num >= 40)
+    /* ACK the slave. */
+    outb(0xA0, 0x20);
+  /* Was this an IRQ from the master or slave PICs? */
+  if (num >= 32)
+    /* ACK the master. */
+    outb(0x20, 0x20);
+}
+
+static void pic_init() {
+  /* Remap the irq table to [32,48) */
+  outb(0x20, 0x11);
+  outb(0xA0, 0x11);
+  outb(0x21, 0x20);
+  outb(0xA1, 0x28);
+  outb(0x21, 0x04);
+  outb(0xA1, 0x02);
+  outb(0x21, 0x01);
+  outb(0xA1, 0x01);
+  outb(0x21, 0x00);
+  outb(0xA1, 0x00);
+}
+
 static int init_idt() {
   register_debugger_handler("print-idt", "Print the IDT", &print_idt);
   register_debugger_handler("print-interrupt-handlers",
@@ -132,6 +160,12 @@ static int init_idt() {
   idt_ptr.base  = (uint32_t)&entries[0];
 
   __asm volatile("lidt %0" : : "m" (idt_ptr));
+
+  /* FIXME: Implement APIC */
+  if (1) {
+    pic_init();
+    ack_irq = &pic_ack_irq;
+  }
 
   return 0;
 }
@@ -168,8 +202,12 @@ int unregister_interrupt_handler(int num, interrupt_handler_t handler, void *p) 
   return 1;
 }
 
+
+
 void interrupt_handler(x86_regs_t *regs) {
   unsigned num = regs->interrupt_num;
+
+  ack_irq(num);
 
   const char *desc = "";
   if (regs->interrupt_num < NUM_TRAP_STRS)

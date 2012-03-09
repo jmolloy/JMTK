@@ -14,4 +14,3 @@ static init_fini_fn_t x run_on_startup = {
   .prerequisites = p,
   .fn = &f
 };
-c
