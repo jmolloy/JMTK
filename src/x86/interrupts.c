@@ -78,7 +78,7 @@ static void print_idt_entry(unsigned i, idt_entry_t e) {
   kprintf("#%02d: Base %#08x Sel %#04x\n", i, e.base_low | (e.base_high<<16), e.sel);
 }
 
-static void print_idt(const char *cmd, core_debug_state_t *states) {
+static void print_idt(const char *cmd, core_debug_state_t *states, int core) {
   for (unsigned i = 0; i < NUM_HANDLERS; ++i) {
     if (i == 20) {
       kprintf("Press any key to continue...\n");
@@ -101,7 +101,7 @@ static void set_idt_entry(idt_entry_t *e, uint32_t base, uint16_t sel, uint8_t d
   e->base_high = (base >> 16) & 0xFFFF;
 }
 
-static void print_handlers(const char *cmd, core_debug_state_t *states) {
+static void print_handlers(const char *cmd, core_debug_state_t *states, int core) {
   for (unsigned i = 0; i < NUM_HANDLERS; ++i) {
     if (num_handlers[i] == 0) continue;
 

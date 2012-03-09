@@ -1,6 +1,6 @@
 #include "hal.h"
 
-void null(const char *cmd, core_debug_state_t *states) {
+void null(const char *cmd, core_debug_state_t *states, int core) {
 
 }
 

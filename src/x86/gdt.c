@@ -58,12 +58,12 @@ static void print_tss_entry(unsigned i, tss_entry_t e) {
           i, e.esp0, e.ss0, e.cs, e.ss, e.ds, e.es, e.fs, e.gs);
 }
 
-static void print_gdt(const char *cmd, core_debug_state_t *states) {
+static void print_gdt(const char *cmd, core_debug_state_t *states, int core) {
   for (unsigned i = 0; i < num_gdt_entries; ++i)
     print_gdt_entry(i, entries[i]);
 }
 
-static void print_tss(const char *cmd, core_debug_state_t *states) {
+static void print_tss(const char *cmd, core_debug_state_t *states, int core) {
   for (unsigned i = 0; i < num_tss_entries; ++i)
     print_tss_entry(i, tss_entries[i]);
 }

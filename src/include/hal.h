@@ -115,8 +115,9 @@ typedef struct core_debug_state {
 
 /* A handler function for a debugger command. Receives the command given
    in cmd and can handle as appropriate, and the state of all cores
-   in the system. */
-typedef void (*debugger_fn_t)(const char *cmd, core_debug_state_t *states);
+   in the system. The 'core' parameter is the current processor that
+   the user is interested in. */
+typedef void (*debugger_fn_t)(const char *cmd, core_debug_state_t *states, int core);
 
 /* Cause a debug or breakpoint trap. */
 void trap();

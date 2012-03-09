@@ -1,6 +1,7 @@
 #include "hal.h"
 #include "readline.h"
 #include "string.h"
+#include "stdlib.h"
 #include "stdio.h"
 
 #define DEBUG_IPI 0
@@ -80,7 +81,7 @@ static void print_ambiguous(const char *cmd) {
   kprintf("%s is not a known command.\n", cmd);
 }
 
-static void help(const char *cmd, core_debug_state_t *states) {
+static void help(const char *cmd, core_debug_state_t *states, int core) {
   /* Strip the "help" and following whitespace off the front. */
   cmd = &cmd[4];
   while (*cmd == ' ')
@@ -125,6 +126,10 @@ static void save_regs(struct regs *regs) {
 }
 
 static void do_repl() {
+  int core = get_processor_id();
+  if (core == -1)
+    core = 0;
+
   char line[256];
   while (1) {
     readline(line, 256, "(db) ", NULL);
@@ -132,11 +137,17 @@ static void do_repl() {
     if (!strcmp(line, "exit"))
       break;
 
+    if (!strncmp(line, "core", 4)) {
+      core = strtoul(line+5, NULL, 10);
+      kprintf("Processor switched to #%d\n", core);
+      break;
+    }
+
     int id = get_unambiguous_cmd(line);
     if (id == -1)
       print_ambiguous(line);
     else
-      cmds[id].fn(line, (core_debug_state_t*)states);
+      cmds[id].fn(line, (core_debug_state_t*)states, core);
       
   }
 }
