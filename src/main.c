@@ -169,7 +169,9 @@ int main(int argc, char **argv) {
 
   /* Run the main function. */
   //  get_main_function()(argc, argv);
-
+  if (!only)
+    debugger_trap(NULL);
+  
   /* Finish by running the shutdown functions. */
   state.begin = (init_fini_fn_t*)&__shutdown_begin;
   state.end   = (init_fini_fn_t*)&__shutdown_end;

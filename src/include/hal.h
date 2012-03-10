@@ -188,7 +188,7 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs);
 
    Returns -1 on failure. */
 int describe_regs(struct regs *regs, int max, const char **names,
-                  uintptr_t **values);
+                  uintptr_t *values);
 
 /********************************************************************************
  * Multiple processors

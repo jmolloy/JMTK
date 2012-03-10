@@ -98,9 +98,9 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs) {
   return NULL;
 }
 int describe_regs(struct regs *regs, int max, const char **names,
-                  uintptr_t **values) weak;
+                  uintptr_t *values) weak;
 int describe_regs(struct regs *regs, int max, const char **names,
-                  uintptr_t **values) {
+                  uintptr_t *values) {
   return -1;
 }
 

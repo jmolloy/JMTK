@@ -27,6 +27,7 @@ set(SOURCES ${SOURCES}
   x86/serial.c
   x86/keyboard.c
   x86/gdt.c
-  x86/interrupts.c)
+  x86/interrupts.c
+  x86/hal.c)
 assemble(SOURCES x86 bringup-1.s ${SOURCES})
 assemble(SOURCES x86 interrupts.s ${SOURCES})

@@ -140,7 +140,7 @@ static void do_repl() {
     if (!strncmp(line, "core", 4)) {
       core = strtoul(line+5, NULL, 10);
       kprintf("Processor switched to #%d\n", core);
-      break;
+      continue;
     }
 
     int id = get_unambiguous_cmd(line);

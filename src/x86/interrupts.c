@@ -105,7 +105,7 @@ static void print_handlers(const char *cmd, core_debug_state_t *states, int core
   for (unsigned i = 0; i < NUM_HANDLERS; ++i) {
     if (num_handlers[i] == 0) continue;
 
-    kprintf("#%02d: ");
+    kprintf("#%02d: ", i);
     for (unsigned j = 0; j < num_handlers[i]; ++j) {
       interrupt_handler_t h = handlers[i][j].handler;
 

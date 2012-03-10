@@ -18,6 +18,7 @@ set(SOURCES ${SOURCES}
   stdlib.c
   readline.c
   debugger.c
+  debugger_cmds.c
 )
 set_source_files_properties(${GENERATED_FILES} PROPERTIES GENERATED 1)
 set_source_files_properties(x86/keyboard.c OBJECT_DEPENDS "${CMAKE_BINARY_DIR}/scantable.inc")
