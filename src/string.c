@@ -97,4 +97,13 @@ int strlen(const char *src)
   return i;
 }
 
+char *strchr(const char *s, int c) {
+  while (*s) {
+    if (*s == (char)c)
+      return s;
+    ++s;
+  }
+  return NULL;
+}
+
 #endif /* !defined(HOSTED) */

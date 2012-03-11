@@ -21,6 +21,7 @@ int strncmp(const char *str1, const char *str2, size_t len);
 char *strcpy(char *dest, const char *src);
 
 char *strcat(char *dest, const char *src);
+char *strchr(const char *s, int c);
 
 #endif /* defined(HOSTED) */
 

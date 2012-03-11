@@ -3,5 +3,6 @@
   * Add examples for each tutorial
   * Printf - test precision smaller than string with no
    null-terminator
+  * Printf - add 64-bit support
   * Testcase for gdt
   * Change qemu script to use monitor to poll for finishing (cli/hlt).

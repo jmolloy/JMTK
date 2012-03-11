@@ -65,8 +65,8 @@ int register_debugger_handler(const char *name, const char *help,
                               debugger_fn_t fn) {
   return -1;
 }
-uintptr_t backtrace(uintptr_t *data) weak;
-uintptr_t backtrace(uintptr_t *data) {
+uintptr_t backtrace(uintptr_t *data, struct regs *regs) weak;
+uintptr_t backtrace(uintptr_t *data, struct regs *regs) {
   return 0;
 }
 int set_insn_breakpoint(uintptr_t loc) weak;
@@ -147,8 +147,8 @@ int unregister_callback(void (*cb)(void*)) {
   return -1;
 }
 
-uint64_t alloc_page() weak;
-uint64_t alloc_page() {
+uint64_t alloc_page(int req) weak;
+uint64_t alloc_page(int req) {
   return ~0ULL;
 }
 int free_page(uint64_t page) weak;
@@ -163,26 +163,29 @@ address_space_t *get_current_address_space() weak;
 address_space_t *get_current_address_space() {
   return NULL;
 }
-int map(address_space_t *a, uintptr_t v, uint64_t p, int num_pages,
-        unsigned flags) weak;
-int map(address_space_t *a, uintptr_t v, uint64_t p, int num_pages,
-        unsigned flags) {
+int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) weak;
+int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) {
   return -1;
 }
-int unmap(address_space_t *a, uintptr_t v, int num_pages) weak;
-int unmap(address_space_t *a, uintptr_t v, int num_pages) {
+int unmap(uintptr_t v, int num_pages, int auto_free) weak;
+int unmap(uintptr_t v, int num_pages, int auto_free) {
   return -1;
 }
-uintptr_t iterate_mappings(address_space_t *a, uintptr_t v) weak;
-uintptr_t iterate_mappings(address_space_t *a, uintptr_t v) {
+uintptr_t iterate_mappings(uintptr_t v) weak;
+uintptr_t iterate_mappings(uintptr_t v) {
   return ~0UL;
 }
-uint64_t get_mapping(address_space_t *a, uintptr_t v, unsigned *flags) weak;
-uint64_t get_mapping(address_space_t *a, uintptr_t v, unsigned *flags) {
+uint64_t get_mapping(uintptr_t v, unsigned *flags) weak;
+uint64_t get_mapping(uintptr_t v, unsigned *flags) {
   return ~0ULL;
 }
-int is_mapped(address_space_t *a, uintptr_t v) weak;
-int is_mapped(address_space_t *a, uintptr_t v) {
+int is_mapped(uintptr_t v) weak;
+int is_mapped(uintptr_t v) {
+  return -1;
+}
+
+int init_virtual_memory(uintptr_t *pages) weak;
+int init_virtual_memory(uintptr_t *pages) {
   return -1;
 }
 

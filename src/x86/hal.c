@@ -30,9 +30,13 @@ void trap() {
   __asm__ volatile("int $3");
 }
 
-uintptr_t backtrace(uintptr_t *data) {
-  if (*data == 0)
-    __asm__ volatile("mov %%ebp, %0" : "=r" (*data));
+uintptr_t backtrace(uintptr_t *data, x86_regs_t *regs) {
+  if (*data == 0) {
+    if (regs)
+      *data = regs->ebp;
+    else
+      __asm__ volatile("mov %%ebp, %0" : "=r" (*data));
+  }
 
   uintptr_t ip = * (uintptr_t*) (*data+4);
   *data = * (uintptr_t*) *data;
@@ -115,4 +119,9 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs) {
   }
 
   return NULL;
+}
+
+void panic(const char *message) {
+  kprintf("*** System panic!: %s\n", message);
+  trap();
 }

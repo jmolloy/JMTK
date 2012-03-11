@@ -38,9 +38,9 @@ typedef struct multiboot_module_entry {
 #define MBOOT_IS_MMAP_TYPE_RAM(x) (x == 1)
 
 typedef struct multiboot_mmap_entry {
-  /* "size" is at offset -4. */
-  uint32_t base_addr;
-  uint32_t length;
+  uint32_t size;
+  uint64_t base_addr;
+  uint64_t length;
   uint32_t type;
 } __attribute__((packed)) multiboot_mmap_entry_t;
 

@@ -112,7 +112,7 @@ static void save_backtrace() {
   if (id == -1) id = 0;
 
   for (int i = 0; i < MAX_BACKTRACE; ++i) {
-    bt = backtrace(&data);
+    bt = backtrace(&data, NULL);
     states[id].backtrace[i] = bt;
     if (bt == 0) break;
   }

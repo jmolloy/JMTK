@@ -141,7 +141,7 @@ int register_debugger_handler(const char *name, const char *help,
 
    Iteratively call until the return value is 0, at which point the backtrace
    is complete. */
-uintptr_t backtrace(uintptr_t *data);
+uintptr_t backtrace(uintptr_t *data, struct regs *regs);
 
 /* Set an instruction breakpoint. Returns -2 if this is not possible on the
    target, or -1 if it is supported but an error occurred.
@@ -249,11 +249,15 @@ int unregister_callback(void (*cb)(void*));
 
 typedef struct address_space address_space_t;
 
-#define PAGE_WRITE   /* Page is writable */
-#define PAGE_EXECUTE /* Page is executable */
-#define PAGE_USER    /* Page is useable by user mode code (else kernel only) */
-#define PAGE_COW     /* Page is marked copy-on-write. It must be copied if
-                        written to. */
+#define PAGE_WRITE   1 /* Page is writable */
+#define PAGE_EXECUTE 2 /* Page is executable */
+#define PAGE_USER    4 /* Page is useable by user mode code (else kernel only) */
+#define PAGE_COW     8 /* Page is marked copy-on-write. It must be copied if
+                          written to. */
+
+#define PAGE_REQ_NONE     0 /* No requirements on page location */
+#define PAGE_REQ_UNDER1MB 1 /* Require that the returned page be < 0x100000 */
+#define PAGE_REQ_UNDER4GB 2 /* Require that the returned page be < 0x10000000 */
 
 /* Returns the (default) page size in bytes. Not all pages may be this size
    (large pages etc.) */
@@ -261,9 +265,12 @@ uintptr_t get_page_size();
 
 /* Allocate a physical page of the size returned by get_page_size(), returning
    the address of the page in the physical address space. Returns ~0ULL on
-   failure. */
-uint64_t alloc_page();
-/* Free a physical page allocated by alloc_page(). Returns -1 on failure. */
+   failure.
+
+   'req' is one of the 'PAGE_REQ_*' flags, indicating a requirement on the
+   address of the returned page. */
+uint64_t alloc_page(int req);
+/* Mark a physical page as free. Returns -1 on failure. */
 int free_page(uint64_t page);
 
 /* Creates a new address space based on 'src' and stores it in 'dest'. */
@@ -273,26 +280,36 @@ int clone_address_space(address_space_t *dest, address_space_t *src);
 address_space_t *get_current_address_space();
 
 /* Maps 'num_pages' * get_page_size() bytes from 'p' in the physical address
-   space to 'v' in the virtual address space 'a'.
+   space to 'v' in the current virtual address space.
 
    Returns zero on success or -1 on failure. */
-int map(address_space_t *a, uintptr_t v, uint64_t p, int num_pages,
+int map(uintptr_t v, uint64_t p, int num_pages,
         unsigned flags);
-/* Unmaps 'num_pages' * get_page_size() bytes from 'v' in the virtual address
-   space 'a'. Returns zero on success or -1 on failure. */
-int unmap(address_space_t *a, uintptr_t v, int num_pages);
+/* Unmaps 'num_pages' * get_page_size() bytes from 'v' in the current virtual address
+   space. Returns zero on success or -1 on failure. */
+int unmap(uintptr_t v, int num_pages, int auto_free);
 
 /* If 'v' has a V->P mapping associated with it, return 'v'. Else return
    the next page (multiple of get_page_size()) which has a mapping associated
    with it. */
-uintptr_t iterate_mappings(address_space_t *a, uintptr_t v);
+uintptr_t iterate_mappings(uintptr_t v);
 
-/* If 'v' is mapped in 'a', return the physical page it is mapped to
+/* If 'v' is mapped, return the physical page it is mapped to
    and fill 'flags' with the mapping flags. Else return ~0ULL. */
-uint64_t get_mapping(address_space_t *a, uintptr_t v, unsigned *flags);
+uint64_t get_mapping(uintptr_t v, unsigned *flags);
 
-/* Return 1 if 'v' is mapped in 'a', else 0, or -1 if not implemented. */
-int is_mapped(address_space_t *a, uintptr_t v);
+/* Return 1 if 'v' is mapped, else 0, or -1 if not implemented. */
+int is_mapped(uintptr_t v);
+
+/* Initialise the virtual memory manager. 'pages' is an array of
+   NUM_INITIAL_PAGES physical pages, which the VMM can use to
+   bootstrap itself into a state where it can map more pages in the
+   area of memory used by the physical memory manager
+   (MMAP_PMM_STACK2..MMAP_PMM_STACKEND).
+   
+   Returns 0 on success or -1 on failure. */
+int init_virtual_memory(uintptr_t *pages);
+#define NUM_INITIAL_PAGES 8
 
 /*******************************************************************************
  * Devices
