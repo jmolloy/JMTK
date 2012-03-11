@@ -82,6 +82,11 @@ static int register_commands() {
   return 0;
 }
 
+void panic(const char *message) {
+  kprintf("*** System panic!: %s\n", message);
+  trap();
+}
+
 static const char *p[] = {"debugger", NULL};
 static init_fini_fn_t x run_on_startup = {
   .name = "debugger-cmds",

@@ -1,10 +1,5 @@
 // RUN: %compile %s -o %t && %run %t only-run vmm-test 2>&1 | %FileCheck %s
-// XFAIL: Hosted
 // XFAIL: X64
-
-#if !defined(X86)
-# error This test must be run on an x86 bare kernel!
-#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -66,7 +61,7 @@ int f () {
   // CHECK-NOT: p 0x100000
   // CHECK: flags 1
   p = (uint32_t)get_mapping(0x60000000, &f);
-  kprintf("p %x\nflags %d", p, f);
+  kprintf("p %x\nflags %d\n", p, f);
 
   // CHECK: x[0] = 42, x[1] = 24
   x[1] = 24;
@@ -76,7 +71,7 @@ int f () {
 }
 
 static const char *p[] = {"console", "x86/serial",
-                          "x86/free_memory", NULL};
+                          "x86/free_memory", "hosted/free_memory", NULL};
 
 static init_fini_fn_t run_on_startup x = {
   .name = "vmm-test",

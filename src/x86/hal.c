@@ -120,8 +120,3 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs) {
 
   return NULL;
 }
-
-void panic(const char *message) {
-  kprintf("*** System panic!: %s\n", message);
-  trap();
-}

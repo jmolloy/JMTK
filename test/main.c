@@ -1,8 +1,8 @@
-// RUN: %compile -DTEST0 %s -o %t1 && %t1 | %FileCheck --check-prefix=TEST0 %s
-// RUN: %compile -DTEST1 %s -o %t2 && %t2 | %FileCheck --check-prefix=TEST1 %s
-// RUN: %compile -DTEST2 %s -o %t3 && %t3 | %FileCheck --check-prefix=TEST2 %s
-// RUN: %compile -DTEST3 %s -o %t4 && %t4 | %FileCheck --check-prefix=TEST3 %s
-// RUN: %compile -DTEST4 %s -o %t5 && %t5 | %FileCheck --check-prefix=TEST4 %s
+// RUN: %compile -DTEST0 %s -o %t1 && %t1 only-run X | %FileCheck --check-prefix=TEST0 %s
+// RUN: %compile -DTEST1 %s -o %t2 && %t2 only-run X | %FileCheck --check-prefix=TEST1 %s
+// RUN: %compile -DTEST2 %s -o %t3 && %t3 only-run X | %FileCheck --check-prefix=TEST2 %s
+// RUN: %compile -DTEST3 %s -o %t4 && %t4 only-run X | %FileCheck --check-prefix=TEST3 %s
+// RUN: %compile -DTEST4 %s -o %t5 && %t5 only-run Y | %FileCheck --check-prefix=TEST4 %s
 
 // XFAIL: X86
 // XFAIL: X64
