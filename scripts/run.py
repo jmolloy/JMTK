@@ -10,27 +10,8 @@ class Qemu:
         self.exe_name = exe_name
         self.args = args
 
-    def run(self, floppy_image, trace, timeout):
-        self.stop = False
-
-        if timeout:
-            def _alarm():
-                self.stop = True
-                child.send_signal(signal.SIGHUP)
-            t = threading.Timer(float(timeout) / 1000.0, _alarm)
-            t.start()
-
-        extra = []
-        if trace:
-            master, slave = os.openpty()
-            extra += ["-d", "in_asm"]
-            extra += ["-S", "-monitor", os.ttyname(slave)]
-            tracefd, tracefn = tempfile.mkstemp()
-            os.close(tracefd)
-
-        imaster, islave = os.openpty()
-
-        iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(imaster)
+    def _setup_terminal(self, t):
+        iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(t)
         
         # Emulate cfmakeraw(3)
         iflag &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK |
@@ -42,7 +23,39 @@ class Qemu:
         cflag &= ~(termios.CSIZE | termios.PARENB)
         cflag |= termios.CS8;
 
-        termios.tcsetattr(imaster, termios.TCSANOW, [iflag, oflag, cflag, lflag, ispeed, ospeed, cc])
+        termios.tcsetattr(t, termios.TCSANOW, [iflag, oflag, cflag, lflag, ispeed, ospeed, cc])
+
+    def _check_finished(self, fd):
+        os.write(fd, "info registers\n");
+        s = os.read(fd, 4096)
+        # Look for interrupts disabled and halted.
+        return s.find('HLT=1') != -1 and s.find('II=0') != -1
+
+    def run(self, floppy_image, trace, timeout):
+        self.stop = False
+
+        if timeout:
+            def _alarm():
+                self.stop = True
+            t = threading.Timer(float(timeout) / 1000.0, _alarm)
+            t.start()
+
+        extra = []
+
+        # Pty for communicating with qemu's monitor.
+        master, slave = os.openpty()
+        extra += ["-S", "-monitor", os.ttyname(slave)]
+        
+        if trace:
+            extra += ["-d", "in_asm"]
+
+            tracefd, tracefn = tempfile.mkstemp()
+            os.close(tracefd)
+
+        imaster, islave = os.openpty()
+
+        # Put the terminal in raw mode.
+        self._setup_terminal(imaster)
 
         extra += ["-serial", os.ttyname(islave)]
 
@@ -54,24 +67,42 @@ class Qemu:
                                  stderr=errfd)
         if trace:
             os.write(master, "logfile %s\n" % tracefn)
-            os.write(master, "c\n")
+        os.write(master, "c\n")
 
         out = ""
         while not self.stop:
             r,w,x = select.select([0,imaster],[],[],0.05)
+
+            # stdin ready for reading?
             if 0 in r:
                 os.write(imaster, os.read(0, 128))
+
+            # pty ready for reading?
             if imaster in r:
                 out += os.read(imaster, 128)
 
+            if self._check_finished(master):
+                break
+
+        # Kill qemu.
+        child.send_signal(signal.SIGTERM)
+
+        # Ensure all data is read from the child before reaping it.
+        while True:
+            r,w,x = select.select([imaster],[],[],0.05)
+            if imaster in r:
+                out += os.read(imaster, 1024)
+                continue
+            break
+
         code = child.wait()
+
+        os.close(master)
+        os.close(slave)
+
         if code != 0:
             print open(errfn).read()
             raise RuntimeError("Qemu exited with code %s!" % code)
-
-        if trace:
-            os.close(master)
-            os.close(slave)
 
         # Quitting qemu causes it to mess up the console. Call stty sane
         # to unmangle it!
@@ -88,6 +119,7 @@ class Qemu:
             return out.splitlines()
 
         os.unlink(errfn)
+        t.cancel()
         return ret
 
 class Runner:
@@ -160,7 +192,7 @@ if __name__ == "__main__":
                  help='Output an execution trace instead of the serial output')
     p.add_option('--symbols', '--syms', action='store_true', dest='syms',
                  default=False, help='Translate raw addresses in trace output to symbol names if possible')
-    p.add_option('--timeout', dest='timeout', default=500, type='int',
+    p.add_option('--timeout', dest='timeout', default=2000, type='int',
                  help='Timeout before killing the model in milliseconds')
     p.add_option('--preformatted-image', dest='image',
                  default=os.path.join('..','floppy.img.zip'),
@@ -181,3 +213,4 @@ if __name__ == "__main__":
 
     for l in r.run():
         print l
+

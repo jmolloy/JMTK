@@ -1,4 +1,4 @@
-// RUN: %compile %s -o %t && %run --trace --syms %t 2>&1 | %FileCheck %s
+// RUN: %compile %s -o %t && %run --trace --syms %t only-run xxx 2>&1 | %FileCheck %s
 // XFAIL: Hosted
 // XFAIL: X64
 

@@ -42,11 +42,9 @@ list(APPEND DEFINITIONS "-Wall" "-Wextra" "-Wno-unused-parameter" "-std=c99" "-n
 set(INCLUDES ${CMAKE_SOURCE_DIR}/src/include ${CMAKE_BINARY_DIR})
 
 # Set up the "make check" target for testing.
-# Note that qEmu seems not to like having multiple instances of itself running
-# at once, so we set the number of threads to 1.
 include(FindPythonInterp)
 add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py"
-  "${CMAKE_SOURCE_DIR}/test" "-sv" "-j1" DEPENDS k)
+  "${CMAKE_SOURCE_DIR}/test" "-sv" DEPENDS k)
 
 if (${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
   macro(add_image name target srcs)
