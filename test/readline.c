@@ -2,7 +2,7 @@
 // RUN: grep '^// IN:' %s | \
 // RUN: xargs echo -e | \
 // RUN: sed -e 's, \?// IN: ,,g' | \
-// RUN: %run %t only-run readline-test --timeout 3000 | \
+// RUN: %run %t only-run readline-test --timeout 4000 | \
 // RUN: %FileCheck %s
 
 #include "hal.h"

@@ -167,8 +167,8 @@ int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) weak;
 int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) {
   return -1;
 }
-int unmap(uintptr_t v, int num_pages, int auto_free) weak;
-int unmap(uintptr_t v, int num_pages, int auto_free) {
+int unmap(uintptr_t v, int num_pages) weak;
+int unmap(uintptr_t v, int num_pages) {
   return -1;
 }
 uintptr_t iterate_mappings(uintptr_t v) weak;

@@ -2,6 +2,8 @@
 #include "mmap.h"
 #include "stdio.h"
 #include "string.h"
+#include "x86/io.h"
+#include "x86/regs.h"
 
 #define X86_PRESENT 0x1
 #define X86_WRITE   0x2
@@ -18,11 +20,6 @@ struct address_space {
 };
 
 address_space_t *current = NULL;
-
-uint32_t *cow_cache = NULL;
-/* FIXME: Lock for the cow cache */
-
-uintptr_t max_memory_extent = 0;
 
 static int from_x86_flags(int flags) {
   int f = 0;
@@ -42,7 +39,7 @@ static int to_x86_flags(int flags) {
 }
 
 int clone_address_space(address_space_t *deest, address_space_t *src) {
-
+  return -1;
 }
 
 address_space_t *get_current_address_space() {
@@ -50,7 +47,11 @@ address_space_t *get_current_address_space() {
 }
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
-  kprintf("map(%x)\n", v);
+
+  /* Quick sanity check - a page with CoW must not be writable. */
+  if (flags & PAGE_COW)
+    flags &= ~PAGE_WRITE;
+
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0) {
     uint64_t p = alloc_page(PAGE_REQ_UNDER4GB);
@@ -68,9 +69,6 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
 
   *page_table_entry = (p & 0xFFFFF000) | (to_x86_flags(flags) | X86_PRESENT);
 
-  if (flags & PAGE_COW)
-    ++cow_cache[p >> 12];
-
   return 0;
 }
 
@@ -82,7 +80,7 @@ int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) {
   return 0;
 }
 
-static int unmap_one_page(uintptr_t v, int auto_free) {  
+static int unmap_one_page(uintptr_t v) {  
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0)
     panic("Tried to unmap a page that doesn't have its table mapped!");
@@ -91,21 +89,15 @@ static int unmap_one_page(uintptr_t v, int auto_free) {
   if ((*page_table_entry & X86_PRESENT) == 0)
     panic("Tried to unmap a page that isn't mapped!");
 
-  uint32_t p = *page_table_entry & 0xFFFFF000;
-
-  if ((*page_table_entry & X86_COW) &&
-      --cow_cache[p >> 12] == 0 && auto_free)
-    free_page(p);
-
   *page_table_entry = 0;
 
   __asm__ volatile("invlpg %0" : : "m" (v));
   return 0;
 }
 
-int unmap(uintptr_t v, int num_pages, int auto_free) {  
+int unmap(uintptr_t v, int num_pages) {  
   for (int i = 0; i < num_pages; ++i) {
-    if (unmap_one_page(v+i*0x1000, auto_free) == -1)
+    if (unmap_one_page(v+i*0x1000) == -1)
       return -1;
   }
   return 0;
@@ -139,13 +131,53 @@ int is_mapped(uintptr_t v) {
   return get_mapping(v, &flags) != ~0ULL;
 }
 
+static int page_fault(x86_regs_t *regs, void *ptr) {
+  uint32_t cr2 = read_cr2();
+  unsigned flags;
+
+  uint32_t p = (uint32_t)get_mapping(cr2, &flags);
+
+  if ((regs->error_code & (X86_PRESENT|X86_WRITE)) &&
+      p != ~0UL && (flags & PAGE_COW) ) {
+    /* Page was marked copy-on-write. */
+    uint32_t p2 = (uint32_t)alloc_page(PAGE_REQ_UNDER4GB);
+
+    /* We have to copy the page. In order to avoid a costly and 
+       non-reentrant map/unmap pair to temporarily have them
+       both mapped into memory, copy first into a buffer on
+       the stack (this means the stack must be >4KB). */
+    uint8_t buffer[4096];
+
+    uint32_t v = cr2 & 0xFFFFF000;
+    memcpy(buffer, (uint8_t*)v, 0x1000);
+    
+    if (unmap(v, 1) == -1)
+      panic("unmap() failed during copy-on-write!");
+
+    unsigned f = ((flags & X86_USER) ? PAGE_USER : 0) |
+      ((flags & X86_EXECUTE) ? PAGE_EXECUTE : 0) |
+      PAGE_WRITE;
+    if (map(v, p2, 1, f) == -1)
+      panic("map() failed during copy-on-write!");
+
+    memcpy((uint8_t*)v, buffer, 0x1000);
+
+    return 0;
+  }
+
+  kprintf("*** Page fault @ 0x%08x (", cr2);
+  kprint_bitmask("iruwp", regs->error_code);
+  kprintf(")\n");
+  debugger_trap(regs);
+  return 0;
+}
+
 int init_virtual_memory(uintptr_t *pages) {
   int n = 0;
-  kprintf("Initialising VMM...\n");
+
   /* Initialise the initial address space object. */
   static address_space_t a;
-  uint32_t d;
-  __asm__ volatile("mov %%cr3, %0" : "=r" (d));
+  uint32_t d = read_cr3();
   a.directory = (uint32_t*) (d & 0xFFFFF000);
   
   current = &a;
@@ -184,6 +216,10 @@ int init_virtual_memory(uintptr_t *pages) {
       last_table = PAGE_DIR_IDX(addr);
     }
   }
+
+  register_interrupt_handler(14, &page_fault, NULL);
+
+  write_cr0( read_cr0() | CR0_WP );
 
   return 0;
 }

@@ -287,7 +287,7 @@ int map(uintptr_t v, uint64_t p, int num_pages,
         unsigned flags);
 /* Unmaps 'num_pages' * get_page_size() bytes from 'v' in the current virtual address
    space. Returns zero on success or -1 on failure. */
-int unmap(uintptr_t v, int num_pages, int auto_free);
+int unmap(uintptr_t v, int num_pages);
 
 /* If 'v' has a V->P mapping associated with it, return 'v'. Else return
    the next page (multiple of get_page_size()) which has a mapping associated

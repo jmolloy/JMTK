@@ -32,7 +32,7 @@ int f () {
 
 
   // CHECK: unmap: 0
-  kprintf("unmap: %d\n", unmap(0x50000000, 1, 0));
+  kprintf("unmap: %d\n", unmap(0x50000000, 1));
 
   // CHECK: is_mapped: 0
   kprintf("is_mapped: %d\n", is_mapped(0x50000000));
@@ -55,6 +55,22 @@ int f () {
     v = iterate_mappings(v);
   }
   kprintf("end\n");
+
+  // Check copy-on-write.
+
+  // CHECK: map: 0
+  kprintf("map: %d\n",
+          map(0x60000000, 0x100000, 1, PAGE_COW|PAGE_WRITE));
+  volatile char *x = (volatile char*)0x60000000;
+  x[0] = 42;
+  // CHECK-NOT: p 0x100000
+  // CHECK: flags 1
+  p = (uint32_t)get_mapping(0x60000000, &f);
+  kprintf("p %x\nflags %d", p, f);
+
+  // CHECK: x[0] = 42, x[1] = 24
+  x[1] = 24;
+  kprintf("x[0] = %d, x[1] = %d\n", x[0], x[1]);
 
   return 0;
 }
