@@ -4,7 +4,7 @@
 #include "types.h"
 
 /* Call to send the system into a panic. */
-void panic(const char *message);
+void panic(const char *message) __attribute__((noreturn));
 
 /*******************************************************************************
  * Initialisation / finalisation function registration
@@ -247,7 +247,11 @@ int unregister_callback(void (*cb)(void*));
  * Memory management
  ******************************************************************************/
 
-typedef struct address_space address_space_t;
+typedef struct address_space {
+  uint32_t *directory;
+  /* FIXME: Put a lock in here. */
+} address_space_t;
+
 
 #define PAGE_WRITE   1 /* Page is writable */
 #define PAGE_EXECUTE 2 /* Page is executable */
@@ -273,8 +277,13 @@ uint64_t alloc_page(int req);
 /* Mark a physical page as free. Returns -1 on failure. */
 int free_page(uint64_t page);
 
-/* Creates a new address space based on 'src' and stores it in 'dest'. */
-int clone_address_space(address_space_t *dest, address_space_t *src);
+/* Creates a new address space based on the current one and stores it in
+   'dest'. If 'make_cow' is nonzero, all pages marked WRITE are modified so
+   that they are copy-on-write. */
+int clone_address_space(address_space_t *dest, int make_cow);
+
+/* Switches address space. Returns -1 on failure. */
+int switch_address_space(address_space_t *dest);
 
 /* Returns the current address space. */
 address_space_t *get_current_address_space();

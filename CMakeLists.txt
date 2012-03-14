@@ -44,7 +44,7 @@ set(INCLUDES ${CMAKE_SOURCE_DIR}/src/include ${CMAKE_BINARY_DIR})
 # Set up the "make check" target for testing.
 include(FindPythonInterp)
 add_custom_target(check "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/test/lit/lit.py"
-  "${CMAKE_SOURCE_DIR}/test" "-sv" DEPENDS k)
+  "${CMAKE_SOURCE_DIR}/test" "-sv" "-j1" DEPENDS k)
 
 if (${TARGET} STREQUAL "X86" OR ${TARGET} STREQUAL "X64")
   macro(add_image name target srcs)

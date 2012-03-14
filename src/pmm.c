@@ -31,8 +31,8 @@ static void stack_push(stack_t *stack, uint64_t value) {
 
 static uint64_t stack_pop(stack_t *stack) {
   if (stack->addr == 0)
-    panic("stack_pop() on uninitialised stack!");
-
+    return ~0ULL;
+  
   if (stack->addr == stack->base)
     return ~0ULL;
   return *--stack->addr;

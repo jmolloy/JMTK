@@ -27,15 +27,23 @@ class Qemu:
 
     def _check_finished(self, fd):
         os.write(fd, "info registers\n");
-        s = os.read(fd, 4096)
-        # Look for interrupts disabled and halted.
-        return s.find('HLT=1') != -1 and s.find('II=0') != -1
+        r,w,x = select.select([fd],[],[],0.05)
+        if fd in r:
+            s = os.read(fd, 4096)
+            # Look for interrupts disabled and halted.
+            return s.find('HLT=1') != -1 and s.find('II=0') != -1
+        else:
+            return True
 
     def run(self, floppy_image, trace, timeout):
         self.stop = False
 
         if timeout:
             def _alarm():
+                try:
+                    child.send_signal(signal.SIGKILL);
+                except:
+                    pass
                 self.stop = True
             t = threading.Timer(float(timeout) / 1000.0, _alarm)
             t.start()
@@ -81,26 +89,30 @@ class Qemu:
             if imaster in r:
                 out += os.read(imaster, 128)
 
-            if self._check_finished(master):
+            if not self.stop and self._check_finished(master):
                 break
 
-        # Kill qemu.
-        child.send_signal(signal.SIGTERM)
+        try:
+            # Kill qemu.
+            child.send_signal(signal.SIGTERM)
 
-        # Ensure all data is read from the child before reaping it.
-        while True:
-            r,w,x = select.select([imaster],[],[],0.05)
-            if imaster in r:
-                out += os.read(imaster, 1024)
-                continue
-            break
+            # Ensure all data is read from the child before reaping it.
+            while True:
+                r,w,x = select.select([imaster],[],[],0.05)
+                if imaster in r:
+                    out += os.read(imaster, 1024)
+                    continue
+                break
+        except:
+            pass
 
         code = child.wait()
 
         os.close(master)
         os.close(slave)
 
-        if code != 0:
+        if code != 0 and not self.stop:
+            print out
             print open(errfn).read()
             raise RuntimeError("Qemu exited with code %s!" % code)
 
@@ -116,7 +128,7 @@ class Qemu:
             ret = open(tracefn).readlines()
             os.unlink(tracefn)
         else:
-            return out.splitlines()
+            ret = out.splitlines()
 
         os.unlink(errfn)
         t.cancel()

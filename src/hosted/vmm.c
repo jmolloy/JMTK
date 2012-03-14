@@ -16,6 +16,14 @@ struct address_space {
 
 address_space_t *current, *kernel;
 
+int clone_address_space(address_space_t *dest, int make_cow) {
+  /* FIXME: lock */
+  
+
+  /* FIXME: unlock */
+  return 0;
+}
+
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
 
   /* Sanity check - if CoW, disable write access. */
@@ -106,7 +114,8 @@ uint64_t get_mapping(uintptr_t v, unsigned *flags) {
     return ~0ULL;
 
   uint32_t p = *entry & 0xFFFFF000;
-  *flags = *entry & 0xFFF;
+  if (flags)
+    *flags = *entry & 0xFFF;
 
   return p;
 }

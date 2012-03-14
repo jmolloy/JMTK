@@ -85,6 +85,7 @@ static int register_commands() {
 void panic(const char *message) {
   kprintf("*** System panic!: %s\n", message);
   trap();
+  for(;;);
 }
 
 static const char *p[] = {"debugger", NULL};

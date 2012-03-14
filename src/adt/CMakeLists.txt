@@ -1,2 +1,3 @@
 set(SOURCES ${SOURCES}
-  adt/ringbuf.c)
+  adt/ringbuf.c
+  adt/xbitmap.c)

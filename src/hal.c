@@ -6,6 +6,7 @@ static uint64_t timestamp;
 
 void panic(const char *message) weak;
 void panic(const char *message) {
+  for(;;);
 }
 
 int register_console(console_t *c) weak;
@@ -155,8 +156,12 @@ int free_page(uint64_t page) weak;
 int free_page(uint64_t page) {
   return -1;
 }
-int clone_address_space(address_space_t *dest, address_space_t *src) weak;
-int clone_address_space(address_space_t *dest, address_space_t *src) {
+int clone_address_space(address_space_t *dest, int make_cow) weak;
+int clone_address_space(address_space_t *dest, int make_cow) {
+  return -1;
+}
+int switch_address_space(address_space_t *dest) weak;
+int switch_address_space(address_space_t *dest) {
   return -1;
 }
 address_space_t *get_current_address_space() weak;

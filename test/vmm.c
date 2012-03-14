@@ -67,6 +67,36 @@ int f () {
   x[1] = 24;
   kprintf("x[0] = %d, x[1] = %d\n", x[0], x[1]);
 
+  // Check cloning.
+  
+  // CHECK: map: 0
+  kprintf("map: %d\n",
+          map(0x61000000, 0x100000, 1, PAGE_WRITE));
+
+  static address_space_t d __attribute__((aligned(4096)));
+
+  // CHECK: clone: 0
+  kprintf("clone: %d\n",
+          clone_address_space(&d, /*make_cow=*/1));
+
+  // CHECK: map: 0
+  kprintf("map: %d\n",
+          map(0x62000000, 0x100000, 1, PAGE_WRITE));
+
+  // CHECK: switch: 0
+  kprintf("switch: %d\n",
+          switch_address_space(&d));
+
+  // CHECK: is_mapped1: 1
+  kprintf("is_mapped1: %d\n", is_mapped(0x61000000));
+  // CHECK: is_mapped2: 0
+  kprintf("is_mapped2: %d\n", is_mapped(0x62000000));
+
+  // Flags should be COW
+  // CHECK: flags: 8
+  get_mapping(0x61000000, &f);
+  kprintf("flags: %d\n", f);
+
   return 0;
 }
 

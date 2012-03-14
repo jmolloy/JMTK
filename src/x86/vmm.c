@@ -14,11 +14,6 @@
 #define PAGE_DIR_IDX(x) (x>>22)
 #define PAGE_TABLE_IDX(x) (x>>12)
 
-struct address_space {
-  uint32_t *directory;
-  /* FIXME: Put a lock in here. */
-};
-
 address_space_t *current = NULL;
 
 static int from_x86_flags(int flags) {
@@ -38,8 +33,58 @@ static int to_x86_flags(int flags) {
   return f;
 }
 
-int clone_address_space(address_space_t *deest, address_space_t *src) {
-  return -1;
+int clone_address_space(address_space_t *dest, int make_cow) {
+  /* FIXME: Global lock start */
+  uint32_t p = alloc_page(PAGE_REQ_UNDER4GB);
+  
+  dest->directory = (uint32_t*)p;
+
+  map(MMAP_KERNEL_TMP1, p, 1, PAGE_WRITE);
+  uint32_t *d_dir = (uint32_t*)MMAP_KERNEL_TMP1;
+  uint32_t *s_dir = (uint32_t*)MMAP_PAGE_DIR;
+
+  for (unsigned i = 0; i < 1023; ++i) {
+    d_dir[i] = s_dir[i];
+
+    int is_user = ! IS_KERNEL_ADDR( 0x400000 * i );
+
+    if (s_dir[i] & X86_PRESENT) {
+      if (is_user || i == 1022) {
+        uint32_t p2 = alloc_page(PAGE_REQ_UNDER4GB);
+        d_dir[i] = p2 | X86_WRITE | X86_USER | X86_PRESENT;
+
+        map(MMAP_KERNEL_TMP2, p2, 1, PAGE_WRITE);
+
+        uint32_t *d_table = (uint32_t*)MMAP_KERNEL_TMP2;
+        uint32_t *s_table = (uint32_t*)(MMAP_PAGE_TABLES + i*0x1000);
+        for (unsigned j = 0; j < 1024; ++j) {
+          d_table[j] = s_table[j];
+          if (make_cow && is_user && s_table[j] & X86_WRITE) {
+            d_table[j] = (s_table[j] & ~X86_WRITE) | X86_COW;
+          }
+        }
+
+        /* tables[1022][1023] is mapped to the directory for the recursive
+           page dir trick. */
+        if (i == 1022)
+          d_table[1023] = p | X86_PRESENT | X86_WRITE;
+        unmap(MMAP_KERNEL_TMP2, 1);
+      }
+    }
+  }
+
+  /* tables[1023] is mapped to the directory for the recursive page dir
+     trick. */
+  d_dir[1023] = p | X86_PRESENT | X86_WRITE;
+
+  unmap(MMAP_KERNEL_TMP1, 1);
+  /* FIXME: Global lock end. */
+  return 0;
+}
+
+int switch_address_space(address_space_t *dest) {
+  write_cr3((uintptr_t)dest->directory | X86_PRESENT | X86_WRITE);
+  return 0;
 }
 
 address_space_t *get_current_address_space() {
@@ -58,7 +103,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
     if (p == ~0ULL)
       panic("alloc_page failed in map()!");
 
-    *page_dir_entry = (p & 0xFFFFF000) | X86_PRESENT | X86_WRITE;
+    *page_dir_entry = (p & 0xFFFFF000) | X86_PRESENT | X86_WRITE | X86_USER;
 
     memset((uint8_t*) (MMAP_PAGE_TABLES + PAGE_DIR_IDX(v)*0x1000), 0, 0x1000);
   }
@@ -121,7 +166,8 @@ uint64_t get_mapping(uintptr_t v, unsigned *flags) {
   if ((*page_table_entry & X86_PRESENT) == 0)
     return ~0ULL;
 
-  *flags = from_x86_flags(*page_table_entry & 0xFFF);
+  if (flags)
+    *flags = from_x86_flags(*page_table_entry & 0xFFF);
 
   return *page_table_entry & 0xFFFFF000;
 }
