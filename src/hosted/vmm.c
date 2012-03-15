@@ -3,6 +3,7 @@
 #include "stdio.h"
 #include "string.h"
 
+/* FIXME: Find out why we need these workarounds and remove them. */
 #define __USE_MISC /* Workaround to get MAP_ANON defined */
 #include <sys/mman.h>
 #include <stdlib.h>
@@ -10,17 +11,45 @@
 #define __USE_POSIX /* Workaround to get siginfo_t defined */
 #include <signal.h>
 
-struct address_space {
-  uint32_t a[1<<20];
-};
-
 address_space_t *current, *kernel;
 
 int clone_address_space(address_space_t *dest, int make_cow) {
   /* FIXME: lock */
   
+  memcpy(dest, current, sizeof(address_space_t));
+
+  if (make_cow) {
+    for (unsigned i = 0; i < (1<<20); ++i) {
+      if (dest->a[i] & PAGE_WRITE)
+        dest->a[i] = (dest->a[i] & ~PAGE_WRITE) | PAGE_COW;
+    }
+  }
 
   /* FIXME: unlock */
+  return 0;
+}
+
+int switch_address_space(address_space_t *dest) {
+  for (unsigned i = 0; i < (1<<20); ++i) {
+    if (current->a[i])
+      munmap((void*)(uint64_t)(i*0x1000), 0x1000);
+  }
+
+  for (unsigned i = 0; i < (1<<20); ++i) {
+    if (dest->a[i] == 0) continue;
+
+    unsigned flags = dest->a[i] & 0xFFF;
+    unsigned prot = ((flags & PAGE_WRITE) ? PROT_WRITE : 0) |
+      ((flags & PAGE_EXECUTE) ? PROT_EXEC : 0) | PROT_READ;
+    
+    void *v = (void*) (uint64_t)(i*0x1000);
+    if (mmap(v, dest->a[i] & 0xFFFFF000, prot, MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0) != v) {
+      kprintf("v: %p\n", v);
+      panic("mmap failed in switch_address_space!");
+    }
+
+  }
+  current = dest;
   return 0;
 }
 
@@ -33,7 +62,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   address_space_t *a = current;
   if (v >= MMAP_KERNEL_START)
     a = kernel;
-  uint32_t *entry = &a->a[v>>12];
+  uint32_t *entry = &a->a[(uint32_t)v>>12];
 
   if (*entry)
     panic("Tried to map a page that was already mapped!");
@@ -75,7 +104,7 @@ static int unmap_one_page(uintptr_t v) {
   address_space_t *a = current;
   if (v >= MMAP_KERNEL_START)
     a = kernel;
-  uint32_t *entry = &a->a[v>>12];
+  uint32_t *entry = &a->a[(uint32_t)v>>12];
 
   if (*entry == 0)
     panic("Tried to unmap a page that wasn't mapped!");
@@ -168,7 +197,9 @@ int init_virtual_memory(uintptr_t *pages) {
     kprintf("malloc failed!\n");
 
   current = a;
+  memset(a, 0, sizeof(address_space_t));
   kernel = malloc(sizeof(address_space_t));
+  memset(kernel, 0, sizeof(address_space_t));
 
   struct sigaction sa;
   sa.sa_flags = SA_SIGINFO;

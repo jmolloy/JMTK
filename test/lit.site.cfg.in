@@ -16,11 +16,11 @@ else:
 
 if "@CMAKE_BUILD_TYPE@" == "Debug":
     flags = "@CMAKE_C_FLAGS_DEBUG@"
-if "@CMAKE_BUILD_TYPE@" == "Release":
+elif "@CMAKE_BUILD_TYPE@" == "Release":
     flags = "@CMAKE_C_FLAGS_RELEASE@"
-if "@CMAKE_BUILD_TYPE@" == "MinSizeRel":
+elif "@CMAKE_BUILD_TYPE@" == "MinSizeRel":
     flags = "@CMAKE_C_FLAGS_MINSIZEREL@"
-if "@CMAKE_BUILD_TYPE@" == "RelWithDebInfo":
+elif "@CMAKE_BUILD_TYPE@" == "RelWithDebInfo":
     flags = "@CMAKE_C_FLAGS_RELWITHDEBINFO@"
 else:
     flags = "@CMAKE_C_FLAGS@"

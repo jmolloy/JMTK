@@ -3,6 +3,12 @@
 
 #include "types.h"
 
+#if defined(X86)
+# include "x86/hal.h"
+#elif defined(HOSTED)
+# include "hosted/hal.h"
+#endif
+
 /* Call to send the system into a panic. */
 void panic(const char *message) __attribute__((noreturn));
 
@@ -246,12 +252,6 @@ int unregister_callback(void (*cb)(void*));
 /*******************************************************************************
  * Memory management
  ******************************************************************************/
-
-typedef struct address_space {
-  uint32_t *directory;
-  /* FIXME: Put a lock in here. */
-} address_space_t;
-
 
 #define PAGE_WRITE   1 /* Page is writable */
 #define PAGE_EXECUTE 2 /* Page is executable */

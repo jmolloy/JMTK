@@ -101,7 +101,7 @@ static int run_startup_shutdown_functions(init_fini_state_t *s) {
       /* If i has prerequisites, iterate through them. */
       if (i->prerequisites) {
         for (const char **prereq = i->prerequisites; *prereq != NULL; ++prereq) {
-          /* Has this function not already been run and do we have it? */ 
+          /* Has this function not already been run and do we have it? */
           if (!fn_has_been_run(s, *prereq) && has_fn(s, *prereq)) {
 #if defined(HOSTED)
             printf("%s requires %s\n", i->name, *prereq);
