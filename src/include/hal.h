@@ -12,6 +12,7 @@
 /* Call to send the system into a panic. */
 void panic(const char *message) __attribute__((noreturn));
 
+
 /*******************************************************************************
  * Initialisation / finalisation function registration
  ******************************************************************************/

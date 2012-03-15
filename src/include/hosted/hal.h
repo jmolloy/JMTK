@@ -5,4 +5,7 @@ typedef struct address_space {
   uint32_t a[1<<20];
 } address_space_t;
 
+/* For abort() */
+extern void abort() __attribute__((noreturn));
+
 #endif

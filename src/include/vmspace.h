@@ -11,9 +11,11 @@
 
 typedef struct vmspace {
   uintptr_t start, size;
-  xbitmap_t *orders[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2];
+  xbitmap_t orders[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
+  uintptr_t order_alloc_ptrs[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
 } vmspace_t;
 
+int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz);
 uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys);
 void vmspace_free(vmspace_t *vms, unsigned sz, uintptr_t addr, int free_phys);
 

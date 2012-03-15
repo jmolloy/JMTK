@@ -1,5 +1,4 @@
 // RUN: %compile %s -o %t && %run %t only-run vmm-test 2>&1 | %FileCheck %s
-// XFAIL: X64
 
 #include "hal.h"
 #include "stdio.h"

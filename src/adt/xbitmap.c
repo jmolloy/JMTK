@@ -31,7 +31,6 @@ static uint8_t *findbyte(xbitmap_t *xb, unsigned byte, int extend) {
         block = newblock(xb);
         *blockaddr = block;
       }
-      byte -= xb->blocksz - sizeof(void*);
       
     } else {
       return &block[byte];

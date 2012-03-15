@@ -54,7 +54,6 @@ int switch_address_space(address_space_t *dest) {
 }
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
-
   /* Sanity check - if CoW, disable write access. */
   if (flags & PAGE_COW)
     flags &= ~PAGE_WRITE;

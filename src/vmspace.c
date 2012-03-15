@@ -24,26 +24,54 @@ static unsigned log2_roundup(uint32_t n) {
   return l2+1;
 }
 
-static int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
+static void *alloc(unsigned sz, void *p) {
+  uintptr_t *x = (uintptr_t*)p;
+  uintptr_t ret = *x;
+
+  *x += get_page_size();
+  map(ret, alloc_page(PAGE_REQ_NONE), 1, PAGE_WRITE);
+
+  return (void*) ret;
+}
+static void free(void *ptr, void *p) {
+  unsigned flags;
+  free_page(get_mapping((uintptr_t)ptr, &flags));
+  unmap((uintptr_t)ptr, 1);
+}
+
+int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
   vms->start = addr;
   vms->size = sz;
 
-  for (unsigned i = 0; i < MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2; ++i)
-    xbitmap_init(vms->orders[i], 0, NULL, NULL, NULL);
+  uintptr_t _sz = sz;
+  for (unsigned i = 0; i <= MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2; ++i) {
+    /* The maximum size this bitmap could grow to. */
+    uintptr_t max_bm_sz = (_sz >> (i+MIN_BUDDY_SZ_LOG2)) / 8;
+
+    /* Round up to the page size. */
+    unsigned pgsz = get_page_size();
+    max_bm_sz = (max_bm_sz & ~(pgsz-1)) + pgsz;
+
+    sz -= max_bm_sz;
+    vms->order_alloc_ptrs[i] = addr + sz;
+    xbitmap_init(&vms->orders[i], get_page_size(), alloc, free, (void*)&vms->order_alloc_ptrs[i]);
+  }
 
   unsigned i = MAX_BUDDY_SZ_LOG2;
   uintptr_t idx = 0;
   while (sz > 0 && i >= MIN_BUDDY_SZ_LOG2) {
     unsigned _sz = 1U << i;
     if (sz >= _sz) {
-      xbitmap_set(vms->orders[i], idx++);
+      xbitmap_set(&vms->orders[i-MIN_BUDDY_SZ_LOG2], idx++);
       sz -= _sz;
+
+      kprintf("vmspace_init: %#x (sz 2**%d)\n", addr +(idx-1)*_sz, i);
     } else {
       --i;
       idx <<= 1;
     }
   }
-  if (sz != 0 && i == MIN_BUDDY_SZ_LOG2)
+  if (sz >= (1U<<MIN_BUDDY_SZ_LOG2) && i == MIN_BUDDY_SZ_LOG2)
     panic("vmspace_init: algorithmic error!");
 
   return 0;
@@ -62,7 +90,7 @@ uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
   while (log_sz <= MAX_BUDDY_SZ_LOG2) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
     
-    idx = xbitmap_first_set(vms->orders[order_idx]);
+    idx = xbitmap_first_set(&vms->orders[order_idx]);
     if (idx != ~0U)
       break;
     ++log_sz;
@@ -73,17 +101,17 @@ uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
 
     /* We're splitting a block, so deallocate it first... */
-    xbitmap_clear(vms->orders[order_idx], idx);
+    xbitmap_clear(&vms->orders[order_idx], idx);
 
     /* Then set both its children as free in the next order. */
     idx <<= 1;
-    xbitmap_set(vms->orders[order_idx-1], idx);
-    xbitmap_set(vms->orders[order_idx-1], idx+1);
+    xbitmap_set(&vms->orders[order_idx-1], idx);
+    xbitmap_set(&vms->orders[order_idx-1], idx+1);
   }
 
   /* Mark the block as not free. */
   int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
-  xbitmap_clear(vms->orders[order_idx], idx);
+  xbitmap_clear(&vms->orders[order_idx], idx);
 
   uintptr_t addr = vms->start + (idx << log_sz);
 
@@ -122,15 +150,15 @@ void vmspace_free(vmspace_t *vms, unsigned sz, uintptr_t addr, int free_phys) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
 
     /* Mark this node free. */
-    xbitmap_set(vms->orders[order_idx], idx);
+    xbitmap_set(&vms->orders[order_idx], idx);
     /* Is this node's buddy also free? */
-    if (xbitmap_isset(vms->orders[order_idx], BUDDY(idx, log_sz)) == 0)
+    if (xbitmap_isset(&vms->orders[order_idx], BUDDY(idx, log_sz)) == 0)
       /* no :( */
       break;
 
     /* Mark them both non free. */
-    xbitmap_clear(vms->orders[order_idx], idx);
-    xbitmap_clear(vms->orders[order_idx], BUDDY(idx, log_sz));
+    xbitmap_clear(&vms->orders[order_idx], idx);
+    xbitmap_clear(&vms->orders[order_idx], BUDDY(idx, log_sz));
 
     /* Move up an order. */
     idx >>= 1;
