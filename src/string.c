@@ -100,7 +100,7 @@ int strlen(const char *src)
 char *strchr(const char *s, int c) {
   while (*s) {
     if (*s == (char)c)
-      return s;
+      return (char*)s;
     ++s;
   }
   return NULL;

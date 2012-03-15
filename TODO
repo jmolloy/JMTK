@@ -6,3 +6,8 @@
   * Printf - add 64-bit support
   * Testcase for gdt
   * Change qemu script to use monitor to poll for finishing (cli/hlt).
+
+Known optimisation opportunities:
+  * x86/vmm clone_address_space should do a temporary recursive
+   mapping of page tables for the copy, instead of many maps/unmaps.
+  * xbitmap should use 32/64bit compares instead of 8bit.

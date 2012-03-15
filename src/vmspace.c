@@ -29,7 +29,7 @@ static int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
   vms->size = sz;
 
   for (unsigned i = 0; i < MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2; ++i)
-    xbitmap_init(vms->orders[i], /*use_kmalloc=*/0);
+    xbitmap_init(vms->orders[i], 0, NULL, NULL, NULL);
 
   unsigned i = MAX_BUDDY_SZ_LOG2;
   uintptr_t idx = 0;

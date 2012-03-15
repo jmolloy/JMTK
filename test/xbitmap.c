@@ -4,9 +4,23 @@
 #include "adt/xbitmap.h"
 #include "stdio.h"
 
+static void *alloc(unsigned sz, void *obj) {
+  uintptr_t *x = (uintptr_t*)obj;
+  uintptr_t r = *x;
+
+  *x += sz;
+
+  map(r, alloc_page(PAGE_REQ_NONE), 1, PAGE_WRITE);
+
+  return (void*)r;
+}
+static void free(void *ptr, void *obj) {
+}
+
 static int test() {
   xbitmap_t xb;
-  xbitmap_init(&xb, /*use_kmalloc=*/0);
+  uintptr_t loc = 0x20000000;
+  xbitmap_init(&xb, get_page_size(), &alloc, &free, (void*)&loc);
 
   // CHECK: isset(0) = 0
   kprintf("isset(0) = %d\n", xbitmap_isset(&xb, 0));
@@ -34,18 +48,21 @@ static int test() {
   kprintf("first_set() = %d\n", xbitmap_first_set(&xb));
 
   // CHECK: isset(0x3456) = 0
-  kprintf("isset(0x3456) = %d", xbitmap_isset(&xb, 0x3456));
+  kprintf("isset(0x3456) = %d\n", xbitmap_isset(&xb, 0x3456));
   xbitmap_set(&xb, 0x3456);
   // CHECK: isset(0x3456) = 1
-  kprintf("isset(0x3456) = %d", xbitmap_isset(&xb, 0x3456));
+  kprintf("isset(0x3456) = %d\n", xbitmap_isset(&xb, 0x3456));
   // CHECK: isset(0x3455) = 0
-  kprintf("isset(0x3456) = %d", xbitmap_isset(&xb, 0x3455));
+  kprintf("isset(0x3455) = %d\n", xbitmap_isset(&xb, 0x3455));
   // CHECK: isset(12) = 1
-  kprintf("isset(12) = %d", xbitmap_isset(&xb, 12));
+  kprintf("isset(12) = %d\n", xbitmap_isset(&xb, 12));
 
   xbitmap_clear(&xb, 7);
   xbitmap_clear(&xb, 12);
   xbitmap_clear(&xb, 20);
+
+  // CHECK: isset(6) = 0
+  kprintf("isset(6) = %d\n", xbitmap_isset(&xb, 6));
   
   // CHECK: first_set() = 0x3456
   kprintf("first_set() = 0x%x\n", xbitmap_first_set(&xb));
