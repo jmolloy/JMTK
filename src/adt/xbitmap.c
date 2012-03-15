@@ -102,11 +102,13 @@ int xbitmap_first_set(xbitmap_t *xb) {
   unsigned i = 0;
   while (block && i < xb->extent/8) {
     for(unsigned thisblock_i = 0; thisblock_i < nb; ++thisblock_i) {
-      if (block[thisblock_i] != 0)
-        return (i+thisblock_i) * 8 + lsb_set(block[thisblock_i]);
+      if (block[thisblock_i] != 0) {
+        int idx = (i+thisblock_i) * 8 + lsb_set(block[thisblock_i]);
+        return (idx > (int)xb->extent) ? -1 : idx;
+      }
     }
     i += nb;
-    block = (uint8_t*) ((uintptr_t)block + nb);
+    block = * NEXT_BLK(block);
   }
   return -1;
 }

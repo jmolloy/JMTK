@@ -8,7 +8,5 @@
 
 // CHECK: higherhalf:
 // CHECK: bringup:
-// CHECK: earlyalloc:
-// CHECK: tokenize:
 // CHECK: main:
 // CHECK: hlt

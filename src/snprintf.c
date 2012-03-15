@@ -467,7 +467,7 @@ int kvsnprintf(char *str, size_t size, const char *format, va_list ap) {
 
   const char *fmt_copy = format;
   const char *fmt_copy_2;
-  int nargs = 0, ty;
+  int nargs = 0, ty = 0;
 
   while ( (ty=find_required_args(&fmt_copy, ty)) != TY_END) {
 #ifdef PRINTF_DEBUG

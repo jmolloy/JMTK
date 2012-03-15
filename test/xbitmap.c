@@ -47,13 +47,13 @@ static int test() {
   // CHECK: first_set() = 7
   kprintf("first_set() = %d\n", xbitmap_first_set(&xb));
 
-  // CHECK: isset(0x3456) = 0
-  kprintf("isset(0x3456) = %d\n", xbitmap_isset(&xb, 0x3456));
-  xbitmap_set(&xb, 0x3456);
-  // CHECK: isset(0x3456) = 1
-  kprintf("isset(0x3456) = %d\n", xbitmap_isset(&xb, 0x3456));
-  // CHECK: isset(0x3455) = 0
-  kprintf("isset(0x3455) = %d\n", xbitmap_isset(&xb, 0x3455));
+  // CHECK: isset(0x8456) = 0
+  kprintf("isset(0x8456) = %d\n", xbitmap_isset(&xb, 0x8456));
+  xbitmap_set(&xb, 0x8456);
+  // CHECK: isset(0x8456) = 1
+  kprintf("isset(0x8456) = %d\n", xbitmap_isset(&xb, 0x8456));
+  // CHECK: isset(0x8455) = 0
+  kprintf("isset(0x8455) = %d\n", xbitmap_isset(&xb, 0x8455));
   // CHECK: isset(12) = 1
   kprintf("isset(12) = %d\n", xbitmap_isset(&xb, 12));
 
@@ -64,9 +64,10 @@ static int test() {
   // CHECK: isset(6) = 0
   kprintf("isset(6) = %d\n", xbitmap_isset(&xb, 6));
   
-  // CHECK: first_set() = 0x3456
+  // CHECK: first_set() = 0x8456
   kprintf("first_set() = 0x%x\n", xbitmap_first_set(&xb));
-  xbitmap_clear(&xb, 0x3456);
+  xbitmap_clear(&xb, 0x8456);
+  
   // CHECK: first_set() = -1
   kprintf("first_set() = %d\n", xbitmap_first_set(&xb));
   

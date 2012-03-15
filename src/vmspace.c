@@ -1,22 +1,12 @@
 #include "vmspace.h"
 #include "hal.h"
 
-#define BUDDY(x, log_sz) (x ^ (1U<<log_sz))
-
-static unsigned clz(uint32_t n) {
-  /* I really hope this naive algorithm is converted to bsr/clz... */
-  unsigned r = 0;
-  while ((n & (1U<<31)) == 0) {
-    ++r;
-    n <<= 1;
-  }
-  return r;
-}
+#define BUDDY(x) (x ^ 1)
 
 static unsigned log2_roundup(uint32_t n) {
   /* Calculate the floor of log2(n) */
-  unsigned l2 = 32 - clz(n);
-  
+  unsigned l2 = 31 - __builtin_clz(n);
+
   /* If n == 2^log2(n), floor(n) == n so we can return l2. */
   if (n == 1U<<l2)
     return l2;
@@ -64,8 +54,6 @@ int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
     if (sz >= _sz) {
       xbitmap_set(&vms->orders[i-MIN_BUDDY_SZ_LOG2], idx++);
       sz -= _sz;
-
-      kprintf("vmspace_init: %#x (sz 2**%d)\n", addr +(idx-1)*_sz, i);
     } else {
       --i;
       idx <<= 1;
@@ -151,14 +139,15 @@ void vmspace_free(vmspace_t *vms, unsigned sz, uintptr_t addr, int free_phys) {
 
     /* Mark this node free. */
     xbitmap_set(&vms->orders[order_idx], idx);
+
     /* Is this node's buddy also free? */
-    if (xbitmap_isset(&vms->orders[order_idx], BUDDY(idx, log_sz)) == 0)
+    if (xbitmap_isclear(&vms->orders[order_idx], BUDDY(idx)))
       /* no :( */
       break;
 
     /* Mark them both non free. */
     xbitmap_clear(&vms->orders[order_idx], idx);
-    xbitmap_clear(&vms->orders[order_idx], BUDDY(idx, log_sz));
+    xbitmap_clear(&vms->orders[order_idx], BUDDY(idx));
 
     /* Move up an order. */
     idx >>= 1;
