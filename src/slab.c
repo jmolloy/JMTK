@@ -1,27 +1,35 @@
 #include "hal.h"
 #include "slab.h"
+#include "string.h"
 
 typedef struct slab_footer {
   struct slab_footer *next;
 } slab_footer_t;
 
-
 #define SLAB_ADDR_MASK ~(SLAB_SIZE-1)
 #define FOOTER_FOR_PTR(x) (void*)(((uintptr_t) x & SLAB_ADDR_MASK) + SLAB_SIZE - sizeof(slab_footer_t))
 #define START_FOR_FOOTER(f) ((uintptr_t)f & SLAB_ADDR_MASK)
 
-static void destroy(slab_footer_t *f);
+/* Internal functions */
+/* Destroy a slab, given its footer. */
+static void destroy(slab_cache_t *c, slab_footer_t *f);
+/* Create a new slab, in the given cache. */
 static slab_footer_t *create(slab_cache_t *c);
+/* Mark a slab entry as used - obj is a pointer relative to the start of the slab. */
 static void mark_used(slab_cache_t *c, slab_footer_t *f, void *obj);
+/* Mark a slab entry as unused - obj is a pointer relative to the start of the slab. */
 static void mark_unused(slab_cache_t *c, slab_footer_t *f, void *obj);
+/* Predicate: are all the entries in the given slab unused? */
 static int all_unused(slab_cache_t *c, slab_footer_t *f);
+/* Return the address of an empty object in the given slab, or NULL if all full. */
+static void *find_empty_obj(slab_cache_t *c, slab_footer_t *f);
 
 int slab_cache_create(slab_cache_t *c, vmspace_t *vms, unsigned size, void *init) {
   c->size = size;
   c->init = init;
   c->first = NULL;
   c->empty = NULL;
-  c->vmspace = vms;
+  c->vms = vms;
   return 0;
 }
 
@@ -29,7 +37,7 @@ int slab_cache_destroy(slab_cache_t *c) {
   slab_footer_t *s = c->first;
   while (s) {
     slab_footer_t *s_ = s->next;
-    destroy(s);
+    destroy(c, s);
     s = s_;
   }
   c->first = NULL;
@@ -54,18 +62,17 @@ void *slab_cache_alloc(slab_cache_t *c) {
 
     /* No empty pointer - must create a new slab. */
     slab_footer_t *f = c->first;
-    while (f->next) {
-      f = f->next;
-    }
-    f->next = create(c);
+    c->first = create(c);
+    c->first->next = f;
     
-    void *obj = find_empty_obj(c, f);
+    obj = (void*)START_FOR_FOOTER(f);
     mark_used(c, f, obj);
 
     c->empty = find_empty_obj(c, f);
 
   }
-  memcpy(obj, c->init, c->size);
+  if (c->init)
+    memcpy(obj, c->init, c->size);
   return obj;
 }
 
@@ -76,34 +83,34 @@ void slab_cache_free(slab_cache_t *c, void *obj) {
   if (!c->empty || c->empty > obj)
     c->empty = obj;
 
-  while (!f->next && all_unused(c, f)) {
+  if (!f->next && all_unused(c, f)) {
     slab_footer_t *f2 = c->first;
     while (f2->next != f)
       f2 = f2->next;
 
-    f2->next = NULL;
-    destroy(f);
-
-    /* Work our way back down the chain, freeing memory where
-       possible. */
-    f = f2;
+    f2->next = f->next;
+    destroy(c, f);
   }
+
 }
 
 static void destroy(slab_cache_t *c, slab_footer_t *f) {
   vmspace_free(c->vms, SLAB_SIZE, START_FOR_FOOTER(f), /*free_phys=*/1);
 }
 
+/* Return the number of entries in a bitmap for an object of 'obj_sz'. */
 static inline unsigned bitmap_num(int obj_sz) {
   unsigned avail = SLAB_SIZE - sizeof(slab_footer_t);
   return avail / obj_sz;
 }
 
+/* Return the size in bytes of a bitmap for an object of 'obj_sz'. */
 static inline unsigned bitmap_sz(int obj_sz) {
   return bitmap_num(obj_sz) / 8;
 }
 
-static inline unsigned bitmap_offs(slab_footer_t *f, void *obj, int obj_sz) {
+/* Return the bitmap entry index that represents 'obj'. */
+static inline unsigned bitmap_idx(slab_footer_t *f, void *obj, int obj_sz) {
   return ( (uintptr_t)obj - START_FOR_FOOTER(f) ) / obj_sz;
 }
 
@@ -116,24 +123,26 @@ static slab_footer_t *create(slab_cache_t *c) {
   /* Initialise the used/free bitmap. */
   uintptr_t bm = (uintptr_t)f - bitmap_sz(c->size);
   memset((uint8_t*)bm, 0, bitmap_sz(c->size));
+
+  return f;
 }
 
 static void mark_used(slab_cache_t *c, slab_footer_t *f, void *obj) {
-  unsigned offs = bitmap_offs(f, obj, c->size);
+  unsigned idx = bitmap_idx(f, obj, c->size);
   unsigned sz = bitmap_sz(c->size);
 
-  unsigned byte = offs >> 3;
-  unsigned bit = offs & 7;
+  unsigned byte = idx >> 3;
+  unsigned bit = idx & 7;
   uint8_t *ptr = (uint8_t*)f - sz + byte;
   *ptr |= 1 << bit;
 }
 
 static void mark_unused(slab_cache_t *c, slab_footer_t *f, void *obj) {
-  unsigned offs = bitmap_offs(f, obj, c->size);
+  unsigned idx = bitmap_idx(f, obj, c->size);
   unsigned sz = bitmap_sz(c->size);
 
-  unsigned byte = offs >> 3;
-  unsigned bit = offs & 7;
+  unsigned byte = idx >> 3;
+  unsigned bit = idx & 7;
   uint8_t *ptr = (uint8_t*)f - sz + byte;
   *ptr &= ~(1 << bit);
 }
@@ -144,6 +153,29 @@ static int all_unused(slab_cache_t *c, slab_footer_t *f) {
 
   /* FIXME: Use something fast like memcmp? */
   for (unsigned i = 0; i < sz; ++i)
-    if (p != 0) return 0;
+    if (*p++ != 0) return 0;
   return 1;
+}
+
+static int lsb_set(uint8_t byte) {
+  int i = 0;
+  while ((byte & 1) == 0) {
+    ++i;
+    byte >>= 1;
+  }
+  return i;
+}
+
+static void *find_empty_obj(slab_cache_t *c, slab_footer_t *f) {
+  unsigned sz = bitmap_sz(c->size);
+  uint8_t *p = (uint8_t*)f - sz;
+
+  for (unsigned i = 0; i < sz; ++i) {
+    if (*p != 0) {
+      unsigned idx = i * 8 + lsb_set(*p);
+      return (idx >= bitmap_num(c->size)) ? NULL : (void*)(f + c->size*idx);
+    }
+    ++p;
+  }
+  return NULL;
 }

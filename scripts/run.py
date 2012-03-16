@@ -1,7 +1,7 @@
 import os, sys, signal, subprocess, tempfile, threading, select, termios
 
 from image import Image
-
+3
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
@@ -41,7 +41,7 @@ class Qemu:
         if timeout:
             def _alarm():
                 try:
-                    child.send_signal(signal.SIGKILL);
+                    child.send_signal(signal.SIGTERM);
                 except:
                     pass
                 self.stop = True

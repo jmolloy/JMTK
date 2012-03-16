@@ -44,6 +44,7 @@ int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
 
     sz -= max_bm_sz;
     vms->order_alloc_ptrs[i] = addr + sz;
+
     xbitmap_init(&vms->orders[i], get_page_size(), alloc, free, (void*)&vms->order_alloc_ptrs[i]);
   }
 

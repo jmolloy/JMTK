@@ -8,12 +8,9 @@
 typedef struct slab_cache {
   unsigned size;
   void *init;
-  slab_footer_t *first;
+  struct slab_footer *first;
   void *empty;
   vmspace_t *vms;
-
-  void (*free_fn)(vmspace_t*,unsigned,uintptr_t,int);
-  uintptr_t (*alloc_fn)(vmspace_t*,unsigned,int);
 
   /* FIXME: Add a lock here. */
 } slab_cache_t;

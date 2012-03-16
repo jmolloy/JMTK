@@ -7,52 +7,52 @@
 int f () {
     vmspace_t vms;
     // CHECK: init: 0
-    kprintf("init: %d\n", vmspace_init(&vms, 0xC0000000, 0x1C000000));
+    kprintf("init: %d\n", vmspace_init(&vms, 0xC1000000, 0x1C000000));
 
-    // CHECK: alloc1: dbfea000
+    // CHECK: alloc1: dcfea000
     kprintf("alloc1: %x\n", vmspace_alloc(&vms, 0x1000, 0));
-    // CHECK: alloc2: dbfe8000
+    // CHECK: alloc2: dcfe8000
     kprintf("alloc2: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc3: dbfe9000
+    // CHECK: alloc3: dcfe9000
     kprintf("alloc3: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc4: dbfe0000
+    // CHECK: alloc4: dcfe0000
     kprintf("alloc4: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc5: dbfe1000
+    // CHECK: alloc5: dcfe1000
     kprintf("alloc5: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc6: dbfe2000
+    // CHECK: alloc6: dcfe2000
     kprintf("alloc6: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc7: dbfc0000
+    // CHECK: alloc7: dcfc0000
     kprintf("alloc7: %x\n", vmspace_alloc(&vms, 0x10000, 0)); 
 
-    vmspace_free(&vms, 0x1000, 0xdbfe2000, 0);
-    // CHECK: alloc8: dbfe2000
+    vmspace_free(&vms, 0x1000, 0xdcfe2000, 0);
+    // CHECK: alloc8: dcfe2000
     kprintf("alloc8: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
 
     // If we free everything we just allocated, and then allocate
     // them again, we can check buddies were correctly merged
     // by observing that the allocations return the same values
     // in the same order.
-    vmspace_free(&vms, 0x1000, 0xdbfea000, 0);
-    vmspace_free(&vms, 0x1000, 0xdbfe8000, 0);
-    vmspace_free(&vms, 0x1000, 0xdbfe9000, 0);
-    vmspace_free(&vms, 0x1000, 0xdbfe0000, 0);
-    vmspace_free(&vms, 0x1000, 0xdbfe1000, 0);
-    vmspace_free(&vms, 0x1000, 0xdbfe2000, 0);
-    vmspace_free(&vms, 0x10000, 0xdbfc0000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfea000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfe8000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfe9000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfe0000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfe1000, 0);
+    vmspace_free(&vms, 0x1000, 0xdcfe2000, 0);
+    vmspace_free(&vms, 0x10000, 0xdcfc0000, 0);
 
-    // CHECK: alloc1: dbfea000
+    // CHECK: alloc1: dcfea000
     kprintf("alloc1: %x\n", vmspace_alloc(&vms, 0x1000, 0));
-    // CHECK: alloc2: dbfe8000
+    // CHECK: alloc2: dcfe8000
     kprintf("alloc2: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc3: dbfe9000
+    // CHECK: alloc3: dcfe9000
     kprintf("alloc3: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc4: dbfe0000
+    // CHECK: alloc4: dcfe0000
     kprintf("alloc4: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc5: dbfe1000
+    // CHECK: alloc5: dcfe1000
     kprintf("alloc5: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc6: dbfe2000
+    // CHECK: alloc6: dcfe2000
     kprintf("alloc6: %x\n", vmspace_alloc(&vms, 0x1000, 0)); 
-    // CHECK: alloc7: dbfc0000
+    // CHECK: alloc7: dcfc0000
     kprintf("alloc7: %x\n", vmspace_alloc(&vms, 0x10000, 0)); 
 
 
