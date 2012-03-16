@@ -10,15 +10,18 @@ int history_idx = -1, history_max = 0;
 
 static void tab_complete(char *buf, size_t bufsz, size_t *bufidx,
                          readline_completer_t completer);
+
 static void history_back(char *buf, size_t bufz, size_t *bufidx);
 static void history_forward(char *buf, size_t bufz, size_t *bufidx);
 static void history_add(char *buf, size_t bufsz);
+
 static void kill_chars_forward(char *buf, size_t bufsz, size_t *bufidx,
                                int n);
 static void kill_chars_backward(char *buf, size_t bufsz, size_t *bufidx,
                                 size_t n);
 static void kill_eol(char *buf, size_t bufsz, size_t *bufidx);
 static void kill_word_backward(char *buf, size_t bufsz, size_t *bufidx);
+
 static void insert_chars(char *buf, size_t bufsz, size_t *bufidx, int n,
                          char *chars);
 static void move_backward(size_t *bufidx, size_t n);
@@ -26,6 +29,7 @@ static void move_forward(char *buf, size_t bufsz, size_t *bufidx, size_t n);
 
 static void tab_complete(char *buf, size_t bufsz, size_t *bufidx,
                          readline_completer_t completer) {
+  /* FIXME: Implement! */
   kprintf("\a");
 }
 
@@ -220,17 +224,22 @@ void readline(char *buf, size_t bufsz, const char *prompt,
   /* Holds the current cursor position. */
   size_t bufidx = 0;
   char c;
-  int escape = 0;
-  char escape_buf[8];
-  size_t escape_idx = 0;
 
+  /* Escape (\033) handling. */
+  int escape = 0;        /* Has an \033 been seen? */
+  char escape_buf[8];    /* Buffer for handle_escape() */
+  size_t escape_idx = 0; /* Index into escape_buf, for handle_escape() */
+
+  /* Reset the input buffer to all '\0' to begin. */
   memset((uint8_t*)buf, 0, bufsz);
 
   while (read_console(&c, 1) != -1) {
+    /* If we're handling an escape sequence, handle it and exit early. */
     if (escape) {
       escape = handle_escape(buf, bufsz, &bufidx, c, escape_buf, &escape_idx);
       continue;
     }
+
     switch (c) {
     case '\t':
       tab_complete(buf, bufsz, &bufidx, completer);
@@ -248,6 +257,7 @@ void readline(char *buf, size_t bufsz, const char *prompt,
       break;
 
     case '\033':
+      /* Escape detected - move to escape handling mode. */
       escape = 1;
       break;
 
@@ -278,7 +288,7 @@ void readline(char *buf, size_t bufsz, const char *prompt,
       return;
 
     default:
-      /* Is this a printable character? */
+      /* No special action, but only insert if this is a printable character. */
       if (c >= ' ' && c <= '~')
         insert_chars(buf, bufsz, &bufidx, 1, &c);
     }
@@ -287,4 +297,3 @@ void readline(char *buf, size_t bufsz, const char *prompt,
   kprintf("readline: read failed!\n");
   buf[0] = '\0';
 }
-  

@@ -24,6 +24,8 @@ void char_ringbuf_write(char_ringbuf_t *state, const char *buf, int len) {
   for (int i = 0; i < len; ++i) {
     *state->buffer_end++ = buf[i];
 
+    /* If we are about to run off the end of the buffer, reset to the 
+       start. */
     if (state->buffer_end >= (state->buffer+state->buffer_length))
       state->buffer_end -= state->buffer_length;
   }

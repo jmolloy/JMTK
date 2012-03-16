@@ -11,7 +11,7 @@
 
 /* Call to send the system into a panic. */
 void panic(const char *message) __attribute__((noreturn));
-
+void assert_fail(const char *cond, const char *file, int line) __attribute__((noreturn));
 
 /*******************************************************************************
  * Initialisation / finalisation function registration
@@ -111,12 +111,9 @@ void set_interrupt_state(int enable);
 
 /* The maximum number of supported cores. */
 #define MAX_CORES 256
-/* The maximum number of entries in a backtrace. */
-#define MAX_BACKTRACE 32
 
 /* The state of one core when debugging. */
 typedef struct core_debug_state {
-  int backtrace[MAX_BACKTRACE];
   struct regs *registers;
 } core_debug_state_t;
 
@@ -225,12 +222,15 @@ int get_ipi_interrupt_num();
    send_ipi function. */
 void *get_ipi_data(struct regs *r);
 
+#define IPI_ALL -1
+#define IPI_ALL_BUT_THIS -2
+
 /* Sends an inter-processor interrupt - a message between cores. The value in
    'data' will be available to the receiving core via get_ipi_data.
 
-   The special value -1 for proc_id will send IPIs to all cores in the system.
+   The special value -1 (IPI_ALL) for proc_id will send IPIs to all cores in the system.
 
-   The value -2 will send IPIs to all cores but this one. */
+   The value -2 (IPI_ALL_BUT_THIS) will send IPIs to all cores but this one. */
 void send_ipi(int proc_id, void *data);
 
 /********************************************************************************

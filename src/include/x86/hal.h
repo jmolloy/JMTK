@@ -8,4 +8,6 @@ typedef struct address_space {
 
 #include "x86/regs.h"
 
+#define abort() (void)0
+
 #endif

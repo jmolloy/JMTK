@@ -9,6 +9,11 @@ void panic(const char *message) {
   for(;;);
 }
 
+void assert_fail(const char *cond, const char *file, int line) weak;
+void assert_fail(const char *cond, const char *file, int line) {
+  for(;;);
+}
+
 int register_console(console_t *c) weak;
 int register_console(console_t *c) {
   return -1;

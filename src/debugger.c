@@ -4,24 +4,31 @@
 #include "stdlib.h"
 #include "stdio.h"
 
+/** The interprocessor interrupt number that the debugger can use. */
 #define DEBUG_IPI 0
 
+/** The maximum number of debugger commands that can be registered. */
 #define MAX_CMDS 32
 
+/** Used for multicore - are we in the debugger? */
 static volatile int in_debugger = 0;
+/** Used for multicore - how many cores are currently in the debugger? */
 static volatile int num_cores_in_debugger = 0;
 
+/** State of all cores. */
 static volatile core_debug_state_t states[MAX_CORES];
 
+/** A debugger command. */
 typedef struct cmd {
-  const char *cmd;
-  const char *help;
-  debugger_fn_t fn;
+  const char *cmd;  /* The command name */
+  const char *help; /* Help text */
+  debugger_fn_t fn; /* The function itself */
 } cmd_t;
 
 static int num_cmds = 0;
 static cmd_t cmds[MAX_CMDS];
 
+/* Prints the n'th string in a table */
 static void print_tabular(const char *str, int n) {
 #define NUM_COLS 4
 
@@ -30,6 +37,9 @@ static void print_tabular(const char *str, int n) {
   kprintf("%-20s", str);
 }
 
+/* Assume that 'cmd' must be unambiguous, and try and 
+   fuzzy match it. Return the index into 'cmds' on success or
+   -1 on failure. */
 static int get_unambiguous_cmd(const char *cmd) {
   /* Scan for the first space. */
   int len = 0;
@@ -53,6 +63,8 @@ static int get_unambiguous_cmd(const char *cmd) {
   return -1;
 }
 
+/* Assume that 'cmd' can be ambiguous, and print out the
+   possibly disambiguations for the user. */
 static void print_ambiguous(const char *cmd) {
   for (int len = strlen(cmd); len != 0; --len) {
     int matches = 0;
@@ -81,6 +93,8 @@ static void print_ambiguous(const char *cmd) {
   kprintf("%s is not a known command.\n", cmd);
 }
 
+/* The 'help' command - print out the help text for all known commands, or
+   if a parameter is given, just the help for that command. */
 static void help(const char *cmd, core_debug_state_t *states, int core) {
   /* Strip the "help" and following whitespace off the front. */
   cmd = &cmd[4];
@@ -101,21 +115,7 @@ static void help(const char *cmd, core_debug_state_t *states, int core) {
 }
 
 static void stop_other_processors() {
-  send_ipi(-2, (void*)DEBUG_IPI);
-}
-
-static void save_backtrace() {
-  uintptr_t data = 0;
-  uintptr_t bt;
-
-  int id = get_processor_id();
-  if (id == -1) id = 0;
-
-  for (int i = 0; i < MAX_BACKTRACE; ++i) {
-    bt = backtrace(&data, NULL);
-    states[id].backtrace[i] = bt;
-    if (bt == 0) break;
-  }
+  send_ipi(IPI_ALL_BUT_THIS, (void*)DEBUG_IPI);
 }
 
 static void save_regs(struct regs *regs) {
@@ -125,6 +125,7 @@ static void save_regs(struct regs *regs) {
   states[id].registers = regs;
 }
 
+/* Main REPL for the debugger. */
 static void do_repl() {
   int core = get_processor_id();
   if (core == -1)
@@ -152,16 +153,17 @@ static void do_repl() {
   }
 }
 
+/* Enter the debugger proper. */
 static void do_debug() {
   num_cores_in_debugger = 0;
   in_debugger = 1;
   stop_other_processors();
 
+  /* Wait until all processors are stopped before continuing. */
   int num_other_processors = get_num_processors();
   if (num_other_processors != -1)
     while (num_cores_in_debugger != num_other_processors)
       ;
-  save_backtrace();
   
   kprintf("*** Kernel debugger entered from core #%d\n",
           get_processor_id() == -1 ? 0 : get_processor_id());
@@ -190,7 +192,6 @@ static int debugger_handle_ipi(struct regs *regs, void *p) {
     enable_interrupts();
 
     __sync_fetch_and_add(&num_cores_in_debugger, 1);
-    save_backtrace();
 
     while (in_debugger)
       ;

@@ -85,6 +85,13 @@ static int register_commands() {
 void panic(const char *message) {
   kprintf("*** System panic!: %s\n", message);
   abort();
+  for(;;);
+}
+
+void assert_fail(const char *cond, const char *file, int line) {
+  kprintf("*** Assertion failed: %s\n***   @ %s:%d\n", cond, file, line);
+  abort();
+  for(;;);
 }
 
 static const char *p[] = {"debugger", NULL};
