@@ -3,6 +3,16 @@
 
 #include "types.h"
 
+/* Platform specific hal.h's are required to define the following:
+     - void abort(), with attribute "noreturn".
+     - void far_call(void *fn, uintptr_t stack), which must call 'fn' with
+       the given stack.
+     - typedef jmp_buf, which must have type "array of length 1", e.g.:
+         typedef jmp_buf_impl jmp_buf[1];
+       This trick was taken from the GNU header setjmp.h, and means jmp_buf
+       can be treated as a pointer yet still have static storage.
+     - struct regs, which is implementation defined and is passed to 
+       interrupt handlers and the debugger. */
 #if defined(X86)
 # include "x86/hal.h"
 #elif defined(HOSTED)
@@ -520,9 +530,55 @@ void close(inode_t inode);
  * Threading
  *******************************************************************************/
 
-struct thread_target_state;
+typedef struct spinlock {
+  unsigned val;
+} spinlock_t;
 
-int thread_setjmp(struct thread_target_state *buf);
-void thread_longjmp(struct thread_target_state *buf, int val);
+/* Initialise a spinlock to the released state. */
+void spinlock_init(spinlock_t *lock);
+/* Returns a new, initialised spinlock. */
+spinlock_t *spinlock_new();
+/* Acquire 'lock', blocking until it is available. */
+void spinlock_acquire(spinlock_t *lock);
+/* Attempt to acquire 'lock'. Nonblocking, returns 0 on success, -1 on failure */
+int spinlock_tryacquire(spinlock_t *lock);
+/* Release 'lock'. Nonblocking. */
+void spinlock_release(spinlock_t *lock);
+
+typedef struct semaphore {
+  unsigned val;
+
+  spinlock_t queue_lock;
+  struct thread *queue_head;
+} semaphore_t;
+
+/* Initialise a semaphore to the value zero. */
+void semaphore_init(semaphore_t *s);
+/* Returns a new semaphore, initialised to the value zero. */
+semaphore_t *semaphore_new();
+/* Reduce the semaphore by one - pend/wait/acquire. This may be a blocking 
+   operation. */
+void semaphore_wait(semaphore_t *s);
+/* Increase the semaphore by one - post/signal/release. */
+void semaphore_signal(semaphore_t *s);
+
+typedef semaphore_t mutex_t;
+
+/* Initialise a mutex to the value zero. */
+void mutex_init(mutex_t *s);
+/* Returns a new mutex, initialised to the value zero. */
+mutex_t *mutex_new();
+/* Acquire the mutex. Blocking operation. */
+void mutex_acquire(mutex_t *s);
+/* Release the mutex. */
+void mutex_release(mutex_t *s);
+
+/* Saves the current location and register state for jumping back to
+   with longjmp(). It returns 0 if returning directly, and nonzero
+   if returning via longjmp(). */
+int setjmp(jmp_buf buf);
+/* Jumps to a location saved with setjmp(), causing it to return seemingly
+   with 'val', which must be nonzero. */
+void longjmp(jmp_buf buf, int val);
 
 #endif // HAL_H

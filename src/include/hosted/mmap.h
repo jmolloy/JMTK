@@ -3,6 +3,11 @@
 
 #define MMAP_KERNEL_START 0xC0000000
 
+#define MMAP_KERNEL_VMSPACE_START \
+                          0xD0000000
+#define MMAP_KERNEL_VMSPACE_END \
+                          0xFEFF0000
+
 #define MMAP_PMM_STACK2   0xFF000000
 #define MMAP_PMM_STACK1   0xFF400000
 #define MMAP_PMM_STACK0   0xFF800000

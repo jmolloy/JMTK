@@ -1,18 +1,8 @@
-#include "vmspace.h"
 #include "hal.h"
+#include "math.h"
+#include "vmspace.h"
 
 #define BUDDY(x) (x ^ 1)
-
-static unsigned log2_roundup(uint32_t n) {
-  /* Calculate the floor of log2(n) */
-  unsigned l2 = 31 - __builtin_clz(n);
-
-  /* If n == 2^log2(n), floor(n) == n so we can return l2. */
-  if (n == 1U<<l2)
-    return l2;
-  /* else floor(n) != n, so return l2+1 to round up. */
-  return l2+1;
-}
 
 static void *alloc(unsigned sz, void *p) {
   uintptr_t *x = (uintptr_t*)p;

@@ -55,6 +55,9 @@ int f () {
     // CHECK: alloc7: dcfc0000
     kprintf("alloc7: %x\n", vmspace_alloc(&vms, 0x10000, 0)); 
 
+    // CHECK-NOT: Page fault
+    uintptr_t *addr = (uintptr_t*)vmspace_alloc(&vms, 0x1000, 1);
+    *addr = 0x42;
 
     return 0;
 }

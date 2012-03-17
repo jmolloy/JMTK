@@ -125,7 +125,7 @@ int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) {
   return 0;
 }
 
-static int unmap_one_page(uintptr_t v) {  
+static int unmap_one_page(uintptr_t v) {
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0)
     panic("Tried to unmap a page that doesn't have its table mapped!");
@@ -136,7 +136,9 @@ static int unmap_one_page(uintptr_t v) {
 
   *page_table_entry = 0;
 
-  __asm__ volatile("invlpg %0" : : "m" (v));
+  /* Invalidate TLB entry. */
+  uintptr_t *pv = (uintptr_t*)v;
+  __asm__ volatile("invlpg %0" : : "m" (*pv));
   return 0;
 }
 

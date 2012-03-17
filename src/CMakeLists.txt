@@ -22,6 +22,9 @@ set(SOURCES ${SOURCES}
   pmm.c
   vmspace.c
   slab.c
+  thread.c
+  scheduler.c
+  kmalloc.c
 )
 set_source_files_properties(${GENERATED_FILES} PROPERTIES GENERATED 1)
 set_source_files_properties(x86/keyboard.c OBJECT_DEPENDS "${CMAKE_BINARY_DIR}/scantable.inc")

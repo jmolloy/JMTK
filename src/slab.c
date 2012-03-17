@@ -65,10 +65,10 @@ void *slab_cache_alloc(slab_cache_t *c) {
     c->first = create(c);
     c->first->next = f;
     
-    obj = (void*)START_FOR_FOOTER(f);
-    mark_used(c, f, obj);
+    obj = (void*)START_FOR_FOOTER(c->first);
+    mark_used(c, c->first, obj);
 
-    c->empty = find_empty_obj(c, f);
+    c->empty = find_empty_obj(c, c->first);
 
   }
   if (c->init)
@@ -106,7 +106,7 @@ static inline unsigned bitmap_num(int obj_sz) {
 
 /* Return the size in bytes of a bitmap for an object of 'obj_sz'. */
 static inline unsigned bitmap_sz(int obj_sz) {
-  return bitmap_num(obj_sz) / 8;
+  return bitmap_num(obj_sz) / 8 + 1;
 }
 
 /* Return the bitmap entry index that represents 'obj'. */
@@ -157,9 +157,9 @@ static int all_unused(slab_cache_t *c, slab_footer_t *f) {
   return 1;
 }
 
-static int lsb_set(uint8_t byte) {
+static int lsb_clear(uint8_t byte) {
   int i = 0;
-  while ((byte & 1) == 0) {
+  while ((byte & 1) == 1) {
     ++i;
     byte >>= 1;
   }
@@ -171,9 +171,9 @@ static void *find_empty_obj(slab_cache_t *c, slab_footer_t *f) {
   uint8_t *p = (uint8_t*)f - sz;
 
   for (unsigned i = 0; i < sz; ++i) {
-    if (*p != 0) {
-      unsigned idx = i * 8 + lsb_set(*p);
-      return (idx >= bitmap_num(c->size)) ? NULL : (void*)(f + c->size*idx);
+    if (*p != 0xFF) {
+      unsigned idx = i * 8 + lsb_clear(*p);
+      return (idx >= bitmap_num(c->size)) ? NULL : (void*)(START_FOR_FOOTER(f) + c->size*idx);
     }
     ++p;
   }

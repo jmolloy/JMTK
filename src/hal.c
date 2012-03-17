@@ -231,10 +231,11 @@ int unregister_filesystem(const char *ident) {
   return -1;
 }
 
-int thread_setjmp(struct thread_target_state *buf) weak;
-int thread_setjmp(struct thread_target_state *buf) {
+int setjmp(jmp_buf buf) weak;
+int setjmp(jmp_buf buf) {
   return -1;
 }
-void thread_longjmp(struct thread_target_state *buf, int val) weak;
-void thread_longjmp(struct thread_target_state *buf, int val) {
+void longjmp(jmp_buf buf, int val) weak;
+void longjmp(jmp_buf buf, int val) {
+  for(;;);
 }
