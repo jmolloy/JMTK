@@ -38,10 +38,6 @@ static uint64_t stack_pop(stack_t *stack) {
   return *--stack->addr;
 }
 
-uintptr_t get_page_size() {
-  return 0x1000;
-}
-
 uint64_t alloc_page(int req) {
   uint64_t val = stack_pop(&stacks[req]);
 

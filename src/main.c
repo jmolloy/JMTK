@@ -111,7 +111,8 @@ static int run_startup_shutdown_functions(init_fini_state_t *s) {
             /* If we're only running one function and its prereqs, add this function
                to its prereq list. */
             if (s->only) {
-              s->needed_fns[s->num_needed_fns++] = *prereq;
+              if (!need_fn(s, *prereq))
+                s->needed_fns[s->num_needed_fns++] = *prereq;
               made_progress = 1;
             }
             break;

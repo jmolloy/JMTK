@@ -58,5 +58,8 @@ higherhalf:
 .end:
         
 section .bss
-        resb    0x8000
+align 8192
+global stack_base
+stack_base:
+        resb    0x2000
 stack:

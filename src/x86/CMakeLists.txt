@@ -33,3 +33,4 @@ set(SOURCES ${SOURCES}
   x86/vmm.c)
 assemble(SOURCES x86 bringup-1.s ${SOURCES})
 assemble(SOURCES x86 interrupts.s ${SOURCES})
+assemble(SOURCES x86 setjmp.s ${SOURCES})

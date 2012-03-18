@@ -137,12 +137,13 @@ class Qemu:
 class Runner:
     def __init__(self, image, trace=False, syms=False, timeout=None,
                  preformatted_image=os.path.join('..','floppy.img.zip'),
-                 argv=None):
+                 argv=None, keep_temps=False):
         self.image = image
         self.trace = trace
         self.syms = syms
         self.timeout = timeout
         self.argv = argv
+        self.keep_temps = keep_temps
 
         assert os.path.exists(self.image)
         
@@ -176,7 +177,10 @@ class Runner:
 
     def run(self):
         x = self.model.run(self.tmpimage, self.trace, self.timeout)
-        os.unlink(self.tmpimage)
+        if not self.keep_temps:
+            os.unlink(self.tmpimage)
+        else:
+            print "Image @ %s" % self.tmpimage
         if not self.trace:
             return x
         if not self.syms:
@@ -209,6 +213,7 @@ if __name__ == "__main__":
     p.add_option('--preformatted-image', dest='image',
                  default=os.path.join('..','floppy.img.zip'),
                  help='Path to the preformatted floppy disk image to splat the kernel onto')
+    p.add_option('--keep-temps', action='store_true', dest='keep_temps')
     opts, args = p.parse_args()
 
     if not args:
@@ -221,7 +226,8 @@ if __name__ == "__main__":
         argv = None
 
     r = Runner(args[0], trace=opts.trace, syms=opts.syms,
-               timeout=opts.timeout, preformatted_image=opts.image, argv=argv)
+               timeout=opts.timeout, preformatted_image=opts.image, argv=argv,
+               keep_temps=opts.keep_temps)
 
     for l in r.run():
         print l

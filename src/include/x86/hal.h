@@ -10,15 +10,29 @@ static inline void abort() {
   for(;;);
 }
 
+static inline unsigned get_page_size() {
+  return 4096;
+}
+
 #include "x86/regs.h"
 
-typedef struct {
-  uint32_t esp, eip, ebx, esi, edi, eflags;
-} jmp_buf;
+struct jmp_buf_impl {
+  uint32_t esp, ebp, eip, ebx, esi, edi, eflags;
+};
 
-static inline void far_call(void *fn, uintptr_t stack) {
-  __asm__ volatile("mov %0, %%esp;"
-                   "call *%1" : : "r" (stack), "r" (fn) );
+typedef struct jmp_buf_impl jmp_buf[1];
+
+static inline void jmp_buf_set_stack(jmp_buf buf, uintptr_t stack) {
+  buf[0].esp = stack;
+}
+
+static inline void jmp_buf_to_regs(struct regs *r, jmp_buf buf) {
+  r->esp = buf[0].esp;
+  r->ebp = buf[0].ebp;
+  r->eip = buf[0].eip;
+  r->ebx = buf[0].ebx;
+  r->esi = buf[0].edi;
+  r->eflags = buf[0].eflags;
 }
 
 #define abort() (void)0

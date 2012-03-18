@@ -531,7 +531,7 @@ void close(inode_t inode);
  *******************************************************************************/
 
 typedef struct spinlock {
-  unsigned val;
+  volatile unsigned val;
 } spinlock_t;
 
 /* Initialise a spinlock to the released state. */
@@ -576,9 +576,13 @@ void mutex_release(mutex_t *s);
 /* Saves the current location and register state for jumping back to
    with longjmp(). It returns 0 if returning directly, and nonzero
    if returning via longjmp(). */
-int setjmp(jmp_buf buf);
+int setjmp(jmp_buf buf) __attribute__((returns_twice));
 /* Jumps to a location saved with setjmp(), causing it to return seemingly
    with 'val', which must be nonzero. */
 void longjmp(jmp_buf buf, int val);
+
+/* Given 'buf', copy all relevant state into 'r' so it can be used
+   with the debugging functions. */
+void jmp_buf_to_regs(struct regs *r, jmp_buf buf);
 
 #endif // HAL_H
