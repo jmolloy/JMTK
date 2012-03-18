@@ -22,6 +22,7 @@ static void free(void *ptr, void *p) {
 int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
   vms->start = addr;
   vms->size = sz;
+  spinlock_init(&vms->lock);
 
   uintptr_t _sz = sz;
   for (unsigned i = 0; i <= MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2; ++i) {
@@ -57,6 +58,8 @@ int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
 }
 
 uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
+  spinlock_acquire(&vms->lock);
+
   unsigned log_sz = log2_roundup(sz);
   if (log_sz > MAX_BUDDY_SZ_LOG2)
     panic("vmspace_alloc had request that was too large to handle!");
@@ -105,10 +108,12 @@ uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
     }
   }
 
+  spinlock_release(&vms->lock);
   return addr;
 }
 
 void vmspace_free(vmspace_t *vms, unsigned sz, uintptr_t addr, int free_phys) {
+  spinlock_acquire(&vms->lock);
 
   if (free_phys) {
     unsigned pgsz = get_page_size();
@@ -145,4 +150,5 @@ void vmspace_free(vmspace_t *vms, unsigned sz, uintptr_t addr, int free_phys) {
     ++log_sz;
   }
 
+  spinlock_release(&vms->lock);
 }

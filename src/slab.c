@@ -30,6 +30,7 @@ int slab_cache_create(slab_cache_t *c, vmspace_t *vms, unsigned size, void *init
   c->first = NULL;
   c->empty = NULL;
   c->vms = vms;
+  spinlock_init(&c->lock);
   return 0;
 }
 
@@ -45,6 +46,8 @@ int slab_cache_destroy(slab_cache_t *c) {
 }
 
 void *slab_cache_alloc(slab_cache_t *c) {
+  spinlock_acquire(&c->lock);
+
   void *obj;
   if (c->empty) {
 
@@ -73,10 +76,13 @@ void *slab_cache_alloc(slab_cache_t *c) {
   }
   if (c->init)
     memcpy(obj, c->init, c->size);
+
+  spinlock_release(&c->lock);
   return obj;
 }
 
 void slab_cache_free(slab_cache_t *c, void *obj) {
+  spinlock_acquire(&c->lock);
   slab_footer_t *f = FOOTER_FOR_PTR(obj);
 
   mark_unused(c, f, obj);
@@ -92,6 +98,7 @@ void slab_cache_free(slab_cache_t *c, void *obj) {
     destroy(c, f);
   }
 
+  spinlock_release(&c->lock);
 }
 
 static void destroy(slab_cache_t *c, slab_footer_t *f) {

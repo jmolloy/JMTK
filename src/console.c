@@ -3,8 +3,12 @@
 /* The first console in a linked list. */
 static console_t *consoles = NULL;
 
+/* Lock for all console operations. */
+static spinlock_t lock = SPINLOCK_RELEASED;
+
 /* Registers a new console - declared in hal.h */
 int register_console(console_t *c) {
+  spinlock_acquire(&lock);
   if (consoles)
     consoles->prev = c;
   c->next = consoles;
@@ -14,11 +18,14 @@ int register_console(console_t *c) {
 
   if (c->open)
     c->open(c);
+  spinlock_release(&lock);
   return 0;
 }
 
 /* Unregisters a console - declared in hal.h */
 void unregister_console(console_t *c) {
+  spinlock_acquire(&lock);
+
   console_t *prev = NULL;
   console_t *this = consoles;
 
@@ -42,31 +49,40 @@ void unregister_console(console_t *c) {
     prev = this;
     this = this->next;
   }
+
+  spinlock_release(&lock);
 }
 
 /* Writes to a console - declared in hal.h */
 void write_console(const char *buf, int len) {
+  spinlock_acquire(&lock);
   console_t *this = consoles;
   while (this) {
     if (this->write)
       this->write(this, buf, len);
     this = this->next;
   }
+  spinlock_release(&lock);
 }
 
 /* Reads from a console - declared in hal.h */
 int read_console(char *buf, int len) {
   if (len == 0) return 0;
 
+  spinlock_acquire(&lock);
   console_t *this = consoles;
   while (this) {
     if (this->read) {
       int n = this->read(this, buf, len);
-      if (n > 0) return n;
+      if (n > 0) {
+        spinlock_release(&lock);
+        return n;
+      }
     }
     this = this->next;
     if (!this) this = consoles;
   }
+  spinlock_release(&lock);
   return -1;
 }
 

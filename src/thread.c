@@ -9,7 +9,7 @@
 static slab_cache_t thread_cache;
 
 static thread_t *thread_list_head = NULL;
-static spinlock_t thread_list_lock;
+static spinlock_t thread_list_lock = SPINLOCK_RELEASED;
 
 #define CANARY_VAL 0x4321abcd
 
@@ -209,7 +209,6 @@ static int threading_init() {
   *tls_slot(TLS_SLOT_CANARY, t->stack) = CANARY_VAL;
 
   thread_list_head = t;
-  spinlock_init(&thread_list_lock);
 
   register_debugger_handler("threads", "List all thread states", &inspect_threads);
   

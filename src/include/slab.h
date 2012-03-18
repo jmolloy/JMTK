@@ -12,7 +12,7 @@ typedef struct slab_cache {
   void *empty;
   vmspace_t *vms;
 
-  /* FIXME: Add a lock here. */
+  spinlock_t lock;
 } slab_cache_t;
 
 int slab_cache_create(slab_cache_t *c, vmspace_t *vms, unsigned size, void *init);

@@ -2,7 +2,7 @@
 #include "assert.h"
 
 static thread_t *ready_s = NULL, *ready_e = NULL;
-static spinlock_t ready_lock;
+static spinlock_t ready_lock = SPINLOCK_RELEASED;
 
 void scheduler_ready(thread_t *t) {
   assert(t);
@@ -26,12 +26,10 @@ thread_t *scheduler_next() {
   ready_s = t->scheduler_next;
 
   spinlock_release(&ready_lock);
-
   return t;
 }
 
 static int scheduler_init() {
-  spinlock_init(&ready_lock);
   return 0;
 }
 

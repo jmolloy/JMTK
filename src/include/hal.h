@@ -3,6 +3,11 @@
 
 #include "types.h"
 
+typedef struct spinlock {
+  volatile unsigned val;
+  unsigned interrupts;
+} spinlock_t;
+
 /* Platform specific hal.h's are required to define the following:
      - void abort(), with attribute "noreturn".
      - void far_call(void *fn, uintptr_t stack), which must call 'fn' with
@@ -530,9 +535,8 @@ void close(inode_t inode);
  * Threading
  *******************************************************************************/
 
-typedef struct spinlock {
-  volatile unsigned val;
-} spinlock_t;
+#define SPINLOCK_RELEASED {.val=0, .interrupts=0};
+#define SPINLOCK_ACQUIRED {.val=1, .interrupts=0};
 
 /* Initialise a spinlock to the released state. */
 void spinlock_init(spinlock_t *lock);
@@ -540,8 +544,6 @@ void spinlock_init(spinlock_t *lock);
 spinlock_t *spinlock_new();
 /* Acquire 'lock', blocking until it is available. */
 void spinlock_acquire(spinlock_t *lock);
-/* Attempt to acquire 'lock'. Nonblocking, returns 0 on success, -1 on failure */
-int spinlock_tryacquire(spinlock_t *lock);
 /* Release 'lock'. Nonblocking. */
 void spinlock_release(spinlock_t *lock);
 

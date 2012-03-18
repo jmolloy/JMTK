@@ -1,6 +1,8 @@
 #include "hal.h"
 #include "mmap.h"
 
+static spinlock_t lock = SPINLOCK_RELEASED;
+
 typedef struct stack {
   uint64_t *base, *addr, *limit, *max;
 } stack_t;
@@ -39,11 +41,14 @@ static uint64_t stack_pop(stack_t *stack) {
 }
 
 uint64_t alloc_page(int req) {
+  spinlock_acquire(&lock);
+  
   uint64_t val = stack_pop(&stacks[req]);
 
   if (val == ~0ULL && req == PAGE_REQ_NONE)
-    return stack_pop(&stacks[PAGE_REQ_UNDER4GB]);
+    val = stack_pop(&stacks[PAGE_REQ_UNDER4GB]);
 
+  spinlock_release(&lock);
   return val;
 }
 
@@ -55,7 +60,10 @@ int free_page(uint64_t page) {
     req = PAGE_REQ_UNDER4GB;
   else
     req = PAGE_REQ_NONE;
+
+  spinlock_acquire(&lock);
   stack_push(&stacks[req], page);
+  spinlock_release(&lock);
 
   return 0;
 }

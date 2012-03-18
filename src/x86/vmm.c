@@ -16,6 +16,8 @@
 
 address_space_t *current = NULL;
 
+spinlock_t global_vmm_lock = SPINLOCK_RELEASED;
+
 static int from_x86_flags(int flags) {
   int f = 0;
   if (flags & X86_WRITE) f |= PAGE_WRITE;
@@ -34,9 +36,11 @@ static int to_x86_flags(int flags) {
 }
 
 int clone_address_space(address_space_t *dest, int make_cow) {
-  /* FIXME: Global lock start */
+  spinlock_acquire(&global_vmm_lock);
+
   uint32_t p = alloc_page(PAGE_REQ_UNDER4GB);
   
+  spinlock_init(&dest->lock);
   dest->directory = (uint32_t*)p;
 
   map(MMAP_KERNEL_TMP1, p, 1, PAGE_WRITE);
@@ -78,7 +82,9 @@ int clone_address_space(address_space_t *dest, int make_cow) {
   d_dir[1023] = p | X86_PRESENT | X86_WRITE;
 
   unmap(MMAP_KERNEL_TMP1, 1);
-  /* FIXME: Global lock end. */
+
+  spinlock_release(&global_vmm_lock);
+
   return 0;
 }
 
@@ -92,6 +98,7 @@ address_space_t *get_current_address_space() {
 }
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
+  spinlock_acquire(&current->lock);
 
   /* Quick sanity check - a page with CoW must not be writable. */
   if (flags & PAGE_COW)
@@ -114,6 +121,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
 
   *page_table_entry = (p & 0xFFFFF000) | (to_x86_flags(flags) | X86_PRESENT);
 
+  spinlock_release(&current->lock);
   return 0;
 }
 
@@ -126,6 +134,8 @@ int map(uintptr_t v, uint64_t p, int num_pages, unsigned flags) {
 }
 
 static int unmap_one_page(uintptr_t v) {
+  spinlock_acquire(&current->lock);
+
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0)
     panic("Tried to unmap a page that doesn't have its table mapped!");
@@ -139,6 +149,8 @@ static int unmap_one_page(uintptr_t v) {
   /* Invalidate TLB entry. */
   uintptr_t *pv = (uintptr_t*)v;
   __asm__ volatile("invlpg %0" : : "m" (*pv));
+
+  spinlock_release(&current->lock);
   return 0;
 }
 
@@ -227,6 +239,8 @@ int init_virtual_memory(uintptr_t *pages) {
   static address_space_t a;
   uint32_t d = read_cr3();
   a.directory = (uint32_t*) (d & 0xFFFFF000);
+
+  spinlock_init(&a.lock);
   
   current = &a;
 
@@ -267,6 +281,8 @@ int init_virtual_memory(uintptr_t *pages) {
 
   register_interrupt_handler(14, &page_fault, NULL);
 
+  /* Enable write protection, which allows page faults for read-only addresses
+     in kernel mode. */
   write_cr0( read_cr0() | CR0_WP );
 
   return 0;

@@ -13,6 +13,7 @@ typedef struct vmspace {
   uintptr_t start, size;
   xbitmap_t orders[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
   uintptr_t order_alloc_ptrs[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
+  spinlock_t lock;
 } vmspace_t;
 
 int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz);

@@ -3,7 +3,7 @@
 
 typedef struct address_space {
   uint32_t *directory;
-  /* FIXME: Put a lock here. */
+  spinlock_t lock;
 } address_space_t;
 
 static inline void abort() {
