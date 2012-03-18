@@ -12,7 +12,7 @@ int f() {
   thread_t *t = thread_current();
   kprintf("Current: %p\n", t);
 
-  t = thread_spawn(g, (void*)0x1234, 1);
+  thread_spawn(g, (void*)0x1234, 1);
 
   thread_yield();
 

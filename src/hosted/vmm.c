@@ -208,7 +208,7 @@ int init_virtual_memory(uintptr_t *pages) {
   spinlock_init(&a->lock);
 
   if (!a)
-    kprintf("malloc failed!\n");
+    panic("malloc failed!\n");
 
   current = a;
   memset(a, 0, sizeof(address_space_t));

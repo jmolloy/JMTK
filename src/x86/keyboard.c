@@ -128,7 +128,8 @@ static int kb_int_handler(struct regs *regs, void *p) {
 
   uint8_t sc = get_scancode_block();
   const char *str = process_scancode(state, sc);
-  char_ringbuf_write(&state->buf, str, strlen(str));
+  if (str)
+    char_ringbuf_write(&state->buf, str, strlen(str));
 
   return 0;
 }

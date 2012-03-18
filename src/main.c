@@ -164,6 +164,7 @@ int main(int argc, char **argv) {
 
   /* Start by running the startup functions. */
   int success = run_startup_shutdown_functions(&state);
+  (void)success;
 #if defined(HOSTED)
   printf("Running startup functions, status = %d\n", success);
 #endif
@@ -180,6 +181,7 @@ int main(int argc, char **argv) {
   state.text  = "Stopped";
 
   success = run_startup_shutdown_functions(&state);
+  (void)success;
 #if defined(HOSTED)
   printf("Running shutdown functions, status = %d\n", success);
 #endif
