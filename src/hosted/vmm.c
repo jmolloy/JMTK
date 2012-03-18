@@ -12,11 +12,13 @@
 #include <signal.h>
 
 address_space_t *current, *kernel;
+static spinlock_t global_vmm_lock = SPINLOCK_RELEASED;
 
 int clone_address_space(address_space_t *dest, int make_cow) {
-  /* FIXME: lock */
+  spinlock_acquire(&current->lock);
   
   memcpy(dest, current, sizeof(address_space_t));
+  spinlock_init(&dest->lock);
 
   if (make_cow) {
     for (unsigned i = 0; i < (1<<20); ++i) {
@@ -25,11 +27,14 @@ int clone_address_space(address_space_t *dest, int make_cow) {
     }
   }
 
-  /* FIXME: unlock */
+  spinlock_release(&current->lock);
   return 0;
 }
 
 int switch_address_space(address_space_t *dest) {
+  spinlock_acquire(&global_vmm_lock);
+  spinlock_acquire(&current->lock);
+
   for (unsigned i = 0; i < (1<<20); ++i) {
     if (current->a[i])
       munmap((void*)(uint64_t)(i*0x1000), 0x1000);
@@ -49,7 +54,11 @@ int switch_address_space(address_space_t *dest) {
     }
 
   }
+  spinlock_release(&current->lock);
+
   current = dest;
+
+  spinlock_release(&global_vmm_lock);
   return 0;
 }
 
@@ -61,6 +70,8 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   address_space_t *a = current;
   if (v >= MMAP_KERNEL_START)
     a = kernel;
+
+  spinlock_acquire(&a->lock);
   uint32_t *entry = &a->a[(uint32_t)v>>12];
 
   if (*entry)
@@ -88,6 +99,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
       (void*)v)
     panic("mmap() failed!");
 
+  spinlock_release(&a->lock);
   return 0;
 }
 
@@ -103,6 +115,7 @@ static int unmap_one_page(uintptr_t v) {
   address_space_t *a = current;
   if (v >= MMAP_KERNEL_START)
     a = kernel;
+  spinlock_acquire(&a->lock);
   uint32_t *entry = &a->a[(uint32_t)v>>12];
 
   if (*entry == 0)
@@ -112,6 +125,7 @@ static int unmap_one_page(uintptr_t v) {
 
   if (munmap((void*)v, 0x1000) == -1)
     panic("munmap() failed!");
+  spinlock_release(&a->lock);
   return 0;
 }
 
@@ -191,6 +205,7 @@ static void segv(int sig, siginfo_t *si, void *unused) {
 int init_virtual_memory(uintptr_t *pages) {
   void *malloc(unsigned);
   address_space_t *a = malloc(sizeof(address_space_t));
+  spinlock_init(&a->lock);
 
   if (!a)
     kprintf("malloc failed!\n");

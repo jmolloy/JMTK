@@ -1,18 +1,32 @@
 #ifndef HOSTED_HAL_H
 #define HOSTED_HAL_H
 
-#include <setjmp.h>
-
 typedef struct address_space {
   uint32_t a[1<<20];
+  spinlock_t lock;
 } address_space_t;
 
 /* For abort() */
 extern void abort() __attribute__((noreturn));
 
-static inline void far_call(void *fn, uintptr_t stack) {
-  __asm__ volatile("mov %0, %%rsp;"
-                   "call *%1" : : "rm" (stack), "r" (fn) );
+static inline unsigned get_page_size() {
+  return 4096;
+}
+
+struct regs {
+};
+
+struct jmp_buf_impl {
+  uint32_t rsp, rbp, rip, rbx, rsi, rdi, rflags;
+};
+
+typedef struct jmp_buf_impl jmp_buf[1];
+
+static inline void jmp_buf_set_stack(jmp_buf buf, uintptr_t stack) {
+  buf[0].rsp = stack;
+}
+
+static inline void jmp_buf_to_regs(struct regs *r, jmp_buf buf) {
 }
 
 #endif

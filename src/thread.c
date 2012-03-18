@@ -19,7 +19,7 @@ static void inspect_threads(const char *cmd, core_debug_state_t *states, int cor
     struct regs r;
     jmp_buf_to_regs(&r, t->jmpbuf);
 
-    uintptr_t data = NULL;
+    uintptr_t data = 0;
     uintptr_t pc = backtrace(&data, &r);
     int offs;
     const char *sym = lookup_kernel_symbol(pc, &offs);

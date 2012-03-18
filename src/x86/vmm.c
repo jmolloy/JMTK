@@ -14,9 +14,9 @@
 #define PAGE_DIR_IDX(x) (x>>22)
 #define PAGE_TABLE_IDX(x) (x>>12)
 
-address_space_t *current = NULL;
+static address_space_t *current = NULL;
 
-spinlock_t global_vmm_lock = SPINLOCK_RELEASED;
+static spinlock_t global_vmm_lock = SPINLOCK_RELEASED;
 
 static int from_x86_flags(int flags) {
   int f = 0;

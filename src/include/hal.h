@@ -281,7 +281,7 @@ int unregister_callback(void (*cb)(void*));
 
 /* Returns the (default) page size in bytes. Not all pages may be this size
    (large pages etc.) */
-uintptr_t get_page_size();
+unsigned get_page_size();
 
 /* Allocate a physical page of the size returned by get_page_size(), returning
    the address of the page in the physical address space. Returns ~0ULL on
