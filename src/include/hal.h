@@ -548,7 +548,7 @@ void spinlock_acquire(spinlock_t *lock);
 void spinlock_release(spinlock_t *lock);
 
 typedef struct semaphore {
-  unsigned val;
+  volatile unsigned val;
 
   spinlock_t queue_lock;
   struct thread *queue_head;
