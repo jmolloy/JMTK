@@ -1,4 +1,5 @@
 #include "hal.h"
+#include "kmalloc.h"
 #include "stdlib.h"
 #include "thread.h"
 
@@ -23,6 +24,13 @@ void semaphore_init(semaphore_t *s) {
   s->val = 0;
   spinlock_init(&s->queue_lock);
   s->queue_head = NULL;
+}
+
+semaphore_t *semaphore_new() {
+  /* FIXME: Make this a slab cache. */
+  semaphore_t *p = kmalloc(sizeof(semaphore_t));
+  semaphore_init(p);
+  return p;
 }
 
 void semaphore_wait(semaphore_t *s) {

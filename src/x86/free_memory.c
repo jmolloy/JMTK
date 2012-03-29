@@ -38,7 +38,7 @@ static int free_memory() {
   return 0;
 }
 
-static const char *prereqs[] = {"console", "x86/serial", "x86/screen", "x86/keyboard", "debugger-cmds", NULL};
+static const char *prereqs[] = {"console", "x86/serial", "x86/screen", "x86/keyboard", "debugger", "debugger-cmds", NULL};
 static init_fini_fn_t x run_on_startup = {
   .name = "x86/free_memory",
   .prerequisites = prereqs,

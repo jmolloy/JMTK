@@ -72,7 +72,17 @@ static struct {
 } handlers[NUM_HANDLERS][MAX_HANDLERS_PER_INT];
 unsigned num_handlers[NUM_HANDLERS];
 
-void (*ack_irq)(unsigned);
+#define PIC1_CMD  0x20
+#define PIC1_DATA 0x21
+#define PIC2_CMD  0xA0
+#define PIC2_DATA 0xA1
+
+#define PIC_INIT  0x10
+#define PIC_ICW4  0x01
+#define PIC_8086  0x01
+
+static void (*ack_irq)(unsigned) = 0;
+static void (*enable_irq)(uint8_t, unsigned) = 0;
 
 static void print_idt_entry(unsigned i, idt_entry_t e) {
   kprintf("#%02d: Base %#08x Sel %#04x\n", i, e.base_low | (e.base_high<<16), e.sel);
@@ -124,25 +134,38 @@ static void pic_ack_irq(unsigned num) {
   /* Was this an IRQ from the slave PIC? */
   if (num >= 40)
     /* ACK the slave. */
-    outb(0xA0, 0x20);
+    outb(PIC2_CMD, 0x20);
   /* Was this an IRQ from the master or slave PICs? */
   if (num >= 32)
     /* ACK the master. */
-    outb(0x20, 0x20);
+    outb(PIC1_CMD, 0x20);
 }
 
 static void pic_init() {
   /* Remap the irq table to [32,48) */
-  outb(0x20, 0x11);
-  outb(0xA0, 0x11);
-  outb(0x21, 0x20);
-  outb(0xA1, 0x28);
-  outb(0x21, 0x04);
-  outb(0xA1, 0x02);
-  outb(0x21, 0x01);
-  outb(0xA1, 0x01);
-  outb(0x21, 0x00);
-  outb(0xA1, 0x00);
+  outb(PIC1_CMD, PIC_INIT|PIC_ICW4);
+  outb(PIC2_CMD, PIC_INIT|PIC_ICW4);
+  outb(PIC1_DATA, 0x20); /* Offset 32 */
+  outb(PIC2_DATA, 0x28); /* Offset 40 */
+  outb(PIC1_DATA, 1 << 2); /* Slave PIC @ irq 2 */
+  outb(PIC2_DATA, 0x02); /* Slave PIC's identity is 2 */
+  outb(PIC1_DATA, PIC_8086);
+  outb(PIC2_DATA, PIC_8086);
+  outb(PIC1_DATA, ~(1<<2)); /* Mask all interrupts but IRQ2 */
+  outb(PIC2_DATA, 0xFF); /* Mask all interrupts */
+}
+
+static void pic_enable_irq(uint8_t irq, unsigned enable) {
+  uint8_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
+  uint8_t irq_bit = 1 << (irq & 0x7);
+
+  uint8_t value = inb(port);
+  if (enable)
+    value &= ~irq_bit;
+  else
+    value |= irq_bit;
+                            
+  outb(port, value);
 }
 
 static int init_idt() {
@@ -165,6 +188,7 @@ static int init_idt() {
   if (1) {
     pic_init();
     ack_irq = &pic_ack_irq;
+    enable_irq = &pic_enable_irq;
   }
 
   return 0;
@@ -177,6 +201,9 @@ int register_interrupt_handler(int num, interrupt_handler_t handler, void *p) {
     return -1;
   handlers[num][num_handlers[num]].handler = handler;
   handlers[num][num_handlers[num]++].p = p;
+
+  if (num >= 32 && enable_irq)
+    enable_irq(num-32, 1);
 
   return 0;
 }
@@ -197,6 +224,10 @@ int unregister_interrupt_handler(int num, interrupt_handler_t handler, void *p) 
 
   if (found) {
     --num_handlers[num];
+
+    if (num_handlers[num] == 0 && num >= 32 && enable_irq)
+      enable_irq(num-32, 0);
+    
     return 0;
   }
   return 1;
@@ -212,6 +243,11 @@ void interrupt_handler(x86_regs_t *regs) {
   const char *desc = "";
   if (regs->interrupt_num < NUM_TRAP_STRS)
     desc = trap_strs[num];
+  else {
+    char buf[32];
+    ksnprintf(buf, 32, "Exception #%d", regs->interrupt_num);
+    desc = buf;
+  }
 
   if (num_handlers[num]) {
     for (unsigned i = 0, e = num_handlers[num];

@@ -340,6 +340,10 @@ int init_virtual_memory(uintptr_t *pages);
  * Devices
  ******************************************************************************/
 
+/* Device ID type is a pure 32-bit number, made up of minor and major
+   parts. */
+typedef uint32_t dev_t;
+
 /* A character device - a streaming device. */
 typedef struct char_device {
   /* Read from a character device - if no data is available, block until some is.
@@ -359,6 +363,12 @@ typedef struct char_device {
   int (*unregister_callback)(struct char_device *obj, void (*cb)(void*),
                              void *cb_param);
 
+  /* Return a string describing the device. */
+  void (*describe)(struct char_device *obj, char *buf, unsigned bufsz);
+
+  /* The device ID */
+  dev_t id;
+
   /* Implementation dependent */
   void *data;
 } char_device_t;
@@ -374,13 +384,27 @@ typedef struct block_device {
   /* Flush the write buffer, if applicable. */
   void (*flush)(struct block_device *obj);
 
+  /* Return a string describing the device. */
+  void (*describe)(struct block_device *obj, char *buf, unsigned bufsz);
+
+  /* The device ID */
+  dev_t id;
+
   /* Implementation dependent */
   void *data;
 } block_device_t;
 
-/* Device ID type is a pure 32-bit number, made up of minor and major
-   parts. */
-typedef uint32_t dev_t;
+/* Known device major numbers. */
+#define DEV_MAJ_NULL 0
+#define DEV_MAJ_ZERO 1
+#define DEV_MAJ_HDA  2
+#define DEV_MAJ_HDB  3
+#define DEV_MAJ_HDC  4
+#define DEV_MAJ_HDD  5
+#define DEV_MAJ_SDA  6
+#define DEV_MAJ_SDB  7
+#define DEV_MAJ_SDC  8
+#define DEV_MAJ_SDD  9
 
 static inline unsigned minor(dev_t x) {
   return x & 0xFFFF;

@@ -30,7 +30,9 @@ set(SOURCES ${SOURCES}
   x86/interrupts.c
   x86/hal.c
   x86/free_memory.c
-  x86/vmm.c)
+  x86/vmm.c
+  x86/pci.c
+  x86/ide.c)
 assemble(SOURCES x86 bringup-1.s ${SOURCES})
 assemble(SOURCES x86 interrupts.s ${SOURCES})
 assemble(SOURCES x86 setjmp.s ${SOURCES})
