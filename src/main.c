@@ -1,3 +1,76 @@
+/**#1
+
+   Introduction
+   ============
+
+   So you want to make your own operating system, huh? You've searched around,
+   found plenty of resources about scheduling algorithms, memory management
+   techniques and "the way Linux does it", but still don't really have a clue how
+   to get started or more importantly where those ideas fit in with the big
+   picture?
+
+   This set of tutorials/walkthroughs is designed to help you stitch together
+   the theory and the practical and show you the links between the two, in the
+   hopes that it'll "click" for you and you'll be able to go and research new ideas
+   independently.
+
+   If you've read the previous incarnation of my tutorial series, this will be a
+   slight depart from that formula. While many liked them, there was derision
+   from some corners for them being too "hand-holdy" - spending too much time on
+   basic C instead of the concepts it was trying to teach.
+
+   Therefore this is more of a walkthrough than a tutorial - I've created what I
+   like to call a teaching kernel. It is a simple UNIX-like operating system
+   that should be portable and maintainable (one of the things that was poor
+   about my previous tutorials was that it was very difficult for me to
+   maintain).
+
+   It should ideally serve as a prop or aid to show the basic concepts of
+   operating system implementation or as a base upon which to experiment or
+   research, perhaps as part of an operating systems 101 course (I've had this
+   request in the past).
+
+   Design concepts
+   ===============
+
+   I mentioned above that this operating system is UNIX-like. *Why UNIX?* -
+   well, UNIX is fully defined in the [POSIX
+   specification](http://pubs.opengroup.org/onlinepubs/009695399/) and allows us
+   to create *just a kernel*, none of the outlying OS utilities, to get a
+   functioning operating system working. It also fits with the overall aims of
+   the series, that being to show how theory and practice combine to produce the
+   familiar.
+
+   The kernel is *modular-monolithic*. A monolithic kernel is one where all
+   functionality is compiled in. A modular kernel has the functionality split
+   into modules which are loaded at boot time. A modular monolithic kernel has
+   the functionality explicitly split into modules but links them all in at
+   build time.
+
+   This allows each chapter of the tutorial to be self standing, and ideally
+   fully pluggable - you should be able to just take the "threading.c" file, add
+   it to the src/ directory and then end up with a kernel that can multi-thread.
+
+   I'm not really going to mention this much during the tutorial text, but I
+   have developed this kernel such that it can be tested as much as
+   possible. For each target-specific feature (such as paging) I have stubbed up
+   an implementation that should work on any computer as a hosted process under
+   linux. All of this code is in the "hosted" subdirectories. This allows me
+   (and you!) to
+   test the target-agnostic parts such as the scheduler and heap in isolation
+   and with a proper debugger and valgrind.
+
+   Along with this we also have target tests, which are run via a python wrapper
+   around qEmu. The test harness itself is
+   ["Lit"](http://llvm.org/cmds/lit.html), which is part of the LLVM compiler
+   infrastructure and is used for their testing. It's extremely lightweight,
+   robust and is an exceedingly good tool. 
+
+   For building the kernel I use CMake. No holy wars please, it's just a build
+   system ;).
+
+**/
+
 #include "hal.h"
 #include "string.h"
 
@@ -5,10 +78,9 @@
 # include <stdio.h>
 #endif
 
-#include "stdio.h"
-extern int __startup_begin, __startup_end;
-extern int __shutdown_begin, __shutdown_end;
-
+/**#4
+   The first real thing we should do is define a structure to hold the state of
+   running initialisation or finalisation functions. {*/
 typedef struct init_fini_state {
   /* If non-null, only run functions in the transitive closure of prerequisites
      rooted at this node. */
@@ -26,10 +98,89 @@ typedef struct init_fini_state {
   /* First and last init_fini_fn_t */
   init_fini_fn_t *begin, *end;
 
-  /* Explanatory text to show in the console */
+  /* Explanatory text to show in the console - "Started" or "Stopped" */
   const char *text;
 } init_fini_state_t;
 
+/**
+   I should mention here that the kernel is designed to have two modes - to
+   function as a full kernel (in which case all modules are loaded) and to
+   function as a test harness, in which case we may specify just one module to
+   load and only want to load it and its dependencies (and its dependencies'
+   dependencies and so on - referred to as the "transitive closure" of the
+   dependencies).
+
+   The structure has to hold the name of the specific module we're loading if in
+   test harness mode, the functions that have been run already (``run_fns``), and the set of
+   functions that we have discovered are required to be loaded (``needed_fns``).
+
+   With this in place, lets next define the entry point to the kernel
+   proper. Note that this is the target-agnostic entry point - there may (and
+   will) be target-dependent startup code before we get to this point. {*/
+
+/* Symbols defined by the linker script, the address of which can be treated as
+   a init_fini_fn_t*. */
+extern int __startup_begin, __startup_end;
+extern int __shutdown_begin, __shutdown_end;
+
+static int run_startup_shutdown_functions(init_fini_state_t *s);
+
+int main(int argc, char **argv) {
+  const char *only = NULL;
+
+  /* To function as a test harness, we may be asked to only load in
+     functions that are (transitive) prerequisites of a particular
+     function. Otherwise, we should load all functions. */
+  if (argc >= 3 && !strcmp(argv[1], "only-run")) {
+    only = argv[2];
+  }
+
+  init_fini_state_t state;
+  state.begin = (init_fini_fn_t*)&__startup_begin;
+  state.end   = (init_fini_fn_t*)&__startup_end;
+  state.only  = only;
+  state.text  = "Started";
+
+  /* Start by running the startup functions. */
+  int success = run_startup_shutdown_functions(&state);
+  (void)success;
+#if defined(HOSTED)
+  printf("Running startup functions, status = %d\n", success);
+#endif
+
+  if (!only)
+    debugger_trap(NULL);
+  
+  /* Finish by running the shutdown functions. */
+  state.begin = (init_fini_fn_t*)&__shutdown_begin;
+  state.end   = (init_fini_fn_t*)&__shutdown_end;
+  state.only  = only;
+  state.text  = "Stopped";
+
+  success = run_startup_shutdown_functions(&state);
+  (void)success;
+#if defined(HOSTED)
+  printf("Running shutdown functions, status = %d\n", success);
+#endif
+  return 0;
+}
+
+/**
+   You may notice that this calls a few functions not yet defined.
+   
+     * ``run_startup_shutdown_functions`` will be defined shortly, and will walk
+       the dependency tree and start running functions for either startup or
+       shutdown.
+     * ``debugger_trap`` is declared in ``hal.h``, and will launch the kernel
+       debugger (or do nothing if the debugger is not implemented as it isn't at
+       the moment). This is called after all modules have finished loading - it
+       assumes that if we are not in test harness mode (``!only``) we don't want
+       to immediately shut down if all modules complete loading successfully,
+       and so traps to allow us to inspect the state of the kernel. **/
+
+/**
+   Lets define a few helper functions for use when implementing
+   ``run_startup_shutdown_functions``. {*/
 
 /* Has the function 'c' been run already? */
 static int fn_has_been_run(init_fini_state_t *s, const char *c) {
@@ -77,9 +228,20 @@ static void log_status(int status, const char *name, init_fini_state_t *s) {
   write_console("\n", 1);
 }
 
+/**
+   This last function ``log_status`` uses another as-yet-undefined function
+   ``write_console``. This again is declared in ``hal.h`` and allows access to
+   the kernel console. It takes a character array and a length. We'll define it
+   later. Until then, it'll be difficult to test this code unless we are on a
+   hosted platform (running as a hosted process under linux, with -DHOSTED=1 and
+   ``printf`` available!).
+
+   Now we can define the grunt function which will run all module
+   startup/shutdown functions in order. {*/
+
 /* Run through all known functions in 's' and run them.
 
-   If the s->only is non-NULL, only run the function s->only and 
+   If s->only is non-NULL, only run the function s->only and 
    any of its prerequisities (transitively). */
 static int run_startup_shutdown_functions(init_fini_state_t *s) {
   int ok = 0;
@@ -146,44 +308,12 @@ static int run_startup_shutdown_functions(init_fini_state_t *s) {
   return ok;
 }
 
-int main(int argc, char **argv) {
-  const char *only = NULL;
+/**
+   ... and that should be that. It can only be tested so far in hosted mode -
+   configure with
 
-  /* To function as a test harness, we may be asked to only load in
-     functions that are (transitive) prerequisites of a particular
-     function. Otherwise, we should load all functions. */
-  if (argc >= 3 && !strcmp(argv[1], "only-run")) {
-    only = argv[2];
-  }
+       cmake -DTARGET=Hosted
+       make -j
 
-  init_fini_state_t state;
-  state.begin = (init_fini_fn_t*)&__startup_begin;
-  state.end   = (init_fini_fn_t*)&__startup_end;
-  state.only  = only;
-  state.text  = "Started";
-
-  /* Start by running the startup functions. */
-  int success = run_startup_shutdown_functions(&state);
-  (void)success;
-#if defined(HOSTED)
-  printf("Running startup functions, status = %d\n", success);
-#endif
-
-  /* Run the main function. */
-  //  get_main_function()(argc, argv);
-  if (!only)
-    debugger_trap(NULL);
-  
-  /* Finish by running the shutdown functions. */
-  state.begin = (init_fini_fn_t*)&__shutdown_begin;
-  state.end   = (init_fini_fn_t*)&__shutdown_end;
-  state.only  = only;
-  state.text  = "Stopped";
-
-  success = run_startup_shutdown_functions(&state);
-  (void)success;
-#if defined(HOSTED)
-  printf("Running shutdown functions, status = %d\n", success);
-#endif
-  return 0;
-}
+   Then run ``./src/kernel``. In the next chapter we'll define startup code to
+   allow booting natively baremetal. */

@@ -1,3 +1,30 @@
+/**#2
+   Hardware abstraction
+   ====================
+
+   The most important thing about our entire kernel is the interface between all
+   of the core modules. This will be defined globally as the HAL or hardware
+   abstraction layer.
+
+   This allows target-agnostic parts of the kernel to link with and use the
+   target-specific parts they need. All functions are going to be declared
+   up-front, and then defined as "weak" in hal.c with stubbed, "do-nothing"
+   implementations. A weak function is an ELF (executable and linking format,
+   the canonical POSIX object file format) concept - it defines a function but
+   allows it to be overridden at link time if another function exists with
+   normal "global" linkage. The idea behind this is that when you add a new file
+   with a *real* implementation of a function, that function is "global" and so
+   overrides the "weak" implementation in hal.c without any intervention. So
+   with this base, we can build a kernel that can have functionality added
+   easily.
+
+   This file contains interfaces for many parts of the kernel, and so explaining
+   all of it at this point would require also explaining many concepts that will
+   appear later, so I'll leave it undocumented for now and come back to pieces
+   in later chapters.
+
+ **/
+
 #ifndef HAL_H
 #define HAL_H
 
@@ -28,6 +55,12 @@ typedef struct spinlock {
 void panic(const char *message) __attribute__((noreturn));
 void assert_fail(const char *cond, const char *file, int line) __attribute__((noreturn));
 
+/**#3
+
+   That said, the first thing we are going to do is write code to load modules,
+   so let's look at a small part - the functions and structures that define the
+   interface between modules. {*/
+
 /*******************************************************************************
  * Initialisation / finalisation function registration
  ******************************************************************************/
@@ -51,6 +84,21 @@ typedef struct init_fini_fn {
  
      static init_fini_fn_t x run_on_shutdown = {"bar", NULL, &bar}; */
 #define run_on_shutdown __attribute__((__section__(".shutdown"),used))
+
+/**}
+   So this interface defines a structure "init_fini_fn_t" that we can use to
+   define a function (for module initialisation or teardown) that must be run at
+   startup or shutdown. The "name" field gives the name of the module, and
+   "prerequisites" gives a (NULL-terminated) list of the functions this one
+   requires before it can run. "fn" is the actual function itself.
+
+   A module makes an instance of one of these structs, and marks it either
+   "run_on_startup" or "run_on_shutdown". You'll see that the definition of
+   these macros does some attribute magic - this forces the compiler to put the
+   struct in a different section to normal - see later. It also informs the
+   compiler that the definition is always used, even though it may look like it
+   is not.
+**/
 
 /*******************************************************************************
  * Console
