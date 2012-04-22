@@ -88,7 +88,9 @@ MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC+MBOOT_FLAGS)
 
 ;;; The checksum field is to ensure the magic and flags got read correctly, and
 ;;; is defined as the number required to add to the magic number and flags in
-;;; order to make the result zero.
+;;; order to make the result zero. Another important role checksum field serves
+;;; is to guarantee that this is actually a multiboot header that the bootloader 
+;;; has found and not some random bytes just looking the same way.
 ;;;
 ;;; Now lets define the header. {
         
