@@ -92,7 +92,7 @@ MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC+MBOOT_FLAGS)
 ;;; is to guarantee that this is actually a multiboot header that the bootloader 
 ;;; has found and not some random bytes just looking the same way.
 ;;;
-;;; Now lets define the header. {
+;;; Now let's define the header. {
         
 section .init
 mboot:  dd      MBOOT_HEADER_MAGIC
@@ -100,6 +100,7 @@ mboot:  dd      MBOOT_HEADER_MAGIC
         dd      MBOOT_CHECKSUM
 ;;; }
 ;;; That's it, that's all that is required to create a multiboot compliant image.
+;;; 
 ;;; Higher half kernels
 ;;; ===================
 ;;; 
