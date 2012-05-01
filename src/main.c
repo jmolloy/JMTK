@@ -30,26 +30,130 @@
    research, perhaps as part of an operating systems 101 course (I've had this
    request in the past).
 
-   Design concepts
-   ===============
+   The goal of this chapter in particular is to explain the basics of how the
+   kernel we will build is structured; in particular the build system used and
+   the testing methodology.
 
-   I mentioned above that this operating system is UNIX-like. *Why UNIX?* -
-   well, UNIX is fully defined in the [POSIX
-   specification](http://pubs.opengroup.org/onlinepubs/009695399/) and allows us
-   to create *just a kernel*, none of the outlying OS utilities, to get a
-   functioning operating system working. It also fits with the overall aims of
-   the series, that being to show how theory and practice combine to produce the
-   familiar.
+   What is an operating system?
+   ============================
 
-   The kernel is *modular-monolithic*. A monolithic kernel is one where all
-   functionality is compiled in. A modular kernel has the functionality split
-   into modules which are loaded at boot time. A modular monolithic kernel has
-   the functionality explicitly split into modules but links them all in at
-   build time.
+   Before delving into creating a kernel, let's first step back and define what
+   an *operating system* actually is.
 
-   This allows each chapter of the tutorial to be self standing, and ideally
-   fully pluggable - you should be able to just take the "threading.c" file, add
-   it to the src/ directory and then end up with a kernel that can multi-thread.
+   `Wikipedia <http://en.wikipedia.org/wiki/Operating_system>`_ says:
+
+       An operating system (OS) is a set of software that manages computer
+       hardware resources and provide common services for computer programs. The
+       operating system is a vital component of the system software in a
+       computer system. Application programs require an operating system to
+       function.
+
+   Linux (or GNU/Linux) is an operating system, as is Windows, as is Mac OS. An
+   operating system provides access to hardware, memory management and task
+   scheduling capabilities, but also importantly provide some sort of shell or
+   interface with which a user can interact with the system.
+
+   The canonical shell on a Linux system is a command shell such as /bin/sh,
+   along with the standard utilities such as ``mv``, ``cp``, ``grep``
+   etc. Without these, even with ``/bin/sh`` a user could not effectively
+   interact with the system. On windows, the shell is the Windows desktop and
+   Windows Explorer.
+
+   So what is a kernel?
+   --------------------
+
+   A kernel is a part of an operating system. It runs in a privileged mode and provides and regulates access
+   to hardware, task scheduling, memory management and the minimal set of
+   functionality that nonprivileged applications require to work.
+
+   The rest of the operating system sits atop this layer, exposing more complex
+   functionality to the user and perhap decomposing it into simple calls to the
+   kernel to actually do some work.
+
+   For example, the command "mv a.txt b.txt" in a shell expands into several
+   kernel calls:
+ 
+   .. image:: doc/1.png
+
+   The shell first calls the ``fork()`` in order to create a new child
+   process. This process calls ``execve()`` to load the executable and start
+   executing it. Once executing, ``mv`` will call ``stat()`` on both filenames
+   to ensure the first exists and the second does not or exists and is not
+   write-protected.
+
+   If these both succeed, ``mv`` will then call ``rename()`` and exit, where the
+   call to ``waitpid`` in the parent shell process will then return.
+
+   Our aim in this tutorial is to create such a kernel, that a "userland" such
+   as the GNU tools found in Linux or the BSD tools in {Open,Net}BSD can sit
+   upon.
+
+   This brings us nicely to the next question:
+
+   Why UNIX?
+   ---------
+
+   As I've mentioned earlier, in this tutorial we are attempting to produce a
+   *kernel*, not a full operating system. That would be a much larger scope of
+   problem (although of course can be done).
+
+   A kernel interacts with the rest of the system (OS and user applications) via
+   some API, and in the case of UNIX this is clearly specified in the `POSIX
+   specification <http://pubs.opengroup.org/onlinepubs/009695399/>`_ - if we
+   stick to this API, we should be able to build and run applications written
+   for other kernels on ours. This also aids my primary tutorial goal of showing
+   how theory and practice combine to produce the familiar.
+
+   Modularity
+   ----------
+
+   Moving slightly to kernel design, there are many schools on how to design
+   a kernel, and they generally form a scale from
+   "everything-built-together-in-one-big-blob" to
+   "absolutely-everything-completely-separated":
+
+     * *Monolithic* - Everything is built into one kernel binary.
+     * *Modular* - All functionality that can realistically be is moved into
+       modules that are loaded at boot time.
+     * *Microkernel* - A very small kernel, and all functionality that can be
+       (sometimes including memory management) moved out into nonprivileged
+       applications called "servers". The idea being that if they fail they can
+       be simply restarted and not take down the entire kernel.
+
+   An example of a monolithic kernel is "classic" Linux - by classic I mean
+   "Linux as it was in 1992 when Torvalds and Tanenbaum had their infamous
+   `argument
+   <http://en.wikipedia.org/wiki/Tanenbaum%E2%80%93Torvalds_debate>`_", and the
+   counterexample of microkernel is Minix (written by Andrew Tanenbaum).
+
+   It should be noted that there are very few kernels that fit directly into one
+   of these categories. Much like true free market or communist economies can
+   never really exist, most tend towards a hybrid design with an inclination one
+   way or the other.
+
+   Only if one is motivated by design ideals (Minix, GNU Hurd) or abnormal
+   design constraints (QNX - hard real time, safety critical) does a design
+   result that can be clearly categorised into one of the above.
+
+   That said, if I were to categorise the kernel we produce in this set of
+   tutorials it would be *modular monolithic* - everything is built into one
+   binary, but inside the binary everything is modularised and initialised
+   separately at runtime.
+
+   I'm going to cut the OS theory short here - this isn't meant to be a full OS
+   theory introduction - see `the OSDev.org wiki <http://wiki.osdev.org>`_ or
+   Tanenbaum's Minix book for a fuller discussion.
+
+   General project structure
+   =========================
+
+   The rigorous use of modules allows each chapter of the tutorial to be self
+   standing, and ideally fully pluggable - you should be able to just take the
+   "threading.c" file, add it to the src/ directory and then end up with a
+   kernel that can multi-thread.
+
+   Testing
+   -------
 
    I'm not really going to mention this much during the tutorial text, but I
    have developed this kernel such that it can be tested as much as
@@ -62,12 +166,63 @@
 
    Along with this we also have target tests, which are run via a python wrapper
    around qEmu. The test harness itself is
-   ["Lit"](http://llvm.org/cmds/lit.html), which is part of the LLVM compiler
+   `"Lit" <http://llvm.org/cmds/lit.html>`_, which is part of the LLVM compiler
    infrastructure and is used for their testing. It's extremely lightweight,
-   robust and is an exceedingly good tool. 
+   robust and is an exceedingly good tool.
+
+   In the tutorial documentation I will not explicitly mention the use of tests,
+   but tests will have been written for every feature and chapter. Similarly I
+   will keep the focus on the target in question (x86/x64/arm), and not mention
+   the hosted build at all (except for this first chapter!).
+
+   Code layout
+   -----------
+
+   The code is layed out something like this::
+
+       .
+       +-- doc
+       +-- examples
+       +-- scripts
+       |   +-- elftools
+       |   `-- pyelftools-0.20
+       +-- src
+       |   +-- adt
+       |   +-- hosted
+       |   +-- include
+       |   +-- third_party
+       |   `-- x86
+       `-- test
+           +-- lit
+           `-- x86
+
+   ``scripts`` holds a bunch of scripts for interacting with qEmu (see later),
+   generating floppy disk image (again, see later) and manipulating the graph of
+   chapter dependencies (for my use only ;) ).
+
+   All the source is in the ``src`` subdirectory, with ``hosted`` holding code
+   relating to hosted mode (stubbed linux subprocess), ``x86`` holding the x86
+   and x64 specific code, and ``adt`` holding some abstract data types (such as
+   an extensible bitmap) used elsewhere in the kernel.
+
+   Build system
+   ------------
 
    For building the kernel I use CMake. No holy wars please, it's just a build
-   system ;).
+   system! ;).
+
+   The intended usage of the CMakeLists.txt provided is shown below - CMake can
+   be rather irritating to learn so if you plan to code along, I suggest just
+   for this tutorial you just download the skeleton provided at the end::
+
+       mkdir build
+       cd build
+       cmake .. -DTARGET=Hosted
+
+   Replace "Hosted" with "X86", "X64" or "ARM" for your preferred target.
+
+   Code!
+   =====
 
 **/
 
@@ -270,8 +425,8 @@ static int run_startup_shutdown_functions(init_fini_state_t *s) {
 #endif
             /* Prereq hasn't been run, so this function can't be run yet. */
             cant_go = 1;
-            /* If we're only running one function and its prereqs, add this function
-               to its prereq list. */
+            /* If we're only running one function and its prereqs, add this
+               function to its prereq list. */
             if (s->only) {
               if (!need_fn(s, *prereq))
                 s->needed_fns[s->num_needed_fns++] = *prereq;
@@ -310,7 +465,7 @@ static int run_startup_shutdown_functions(init_fini_state_t *s) {
 
 /**
    ... and that should be that. It can only be tested so far in hosted mode -
-   configure with
+   configure with::
 
        cmake -DTARGET=Hosted
        make -j

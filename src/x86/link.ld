@@ -4,7 +4,7 @@
    The next thing we have to do is tell the linker how to link our
    kernel. Normal application programs under linux have a lot of magic done by
    the linker - we want to stop all that happening and also do some magic of our
-   own. For this, we need a linker script (*.ld).
+   own. For this, we need a linker script (\*.ld).
 
    Note that the format of a linker script is not the nicest in the world, so 
    I'm going to assume that you either don't care about the syntax or can sort
@@ -13,8 +13,9 @@
 OUTPUT_FORMAT("elf32-i386")
 OUTPUT_ARCH("i386")
 ENTRY(_start)
-/*}*/
-/** Then we define how to map sections. A section is an ELF concept, and is a
+
+/**
+   Then we define how to map sections. A section is an ELF concept, and is a
    chunk of code or data. It can have a name, a physical location and a virtual
    location - that is, you can instruct the linker to create an ELF section that
    will be loaded at one address but linked as if it were at another
@@ -22,8 +23,7 @@ ENTRY(_start)
 
    Firstly we want to create the ``.init`` section, which will be linked and
    loaded at 1MB, and the special ``.init.bss`` section which contains some of
-   the magic in the bringup process that has yet to be fully described. {
-   */
+   the magic in the bringup process that has yet to be fully described. { */
 SECTIONS
 {
   .init 0x100000 :
@@ -35,15 +35,17 @@ SECTIONS
     *(.init.bss)
   }
 
-  /** Now that the lower half stuff has been defined, we add 3GB to the link
-  address (``.``) so that everything else will be linked in the higher half. { */
+  /**
+     Now that the lower half stuff has been defined, we add 3GB to the link
+     address (``.``) so that everything else will be linked in the higher half. { */
   . += 0xC0000000;
 
-  /** All other sections (``.text``, which contains the program code,
-  ``.rodata`` which contains read-only data, and ``.data`` which contains
-  mutable data) should be aligned on a page boundary, and loaded at the current
-  link address (which will be >3GB) minus 3GB so that they are loaded to
-  addresses in the lower half. { */
+  /**
+     All other sections (``.text``, which contains the program code,
+     ``.rodata`` which contains read-only data, and ``.data`` which contains
+     mutable data) should be aligned on a page boundary, and loaded at the current
+     link address (which will be >3GB) minus 3GB so that they are loaded to
+     addresses in the lower half. { */
   .text ALIGN(4096) : AT(ADDR(.text) - 0xC0000000)
   {
     *(.mboot)
@@ -116,7 +118,7 @@ SECTIONS
       which will default to 64-bit.
 
     ``-ffreestanding``
-      ``#undef``s ``STDC_HOSTED`` and a variety of other ``#define``s that
+      ``#undef`` s ``STDC_HOSTED`` and a variety of other ``#define`` s that
       standard headers use to detect if you are on a system with an OS
       underneath. We're not ;)
 

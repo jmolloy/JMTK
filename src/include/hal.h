@@ -53,13 +53,27 @@ typedef struct spinlock {
 
 /* Call to send the system into a panic. */
 void panic(const char *message) __attribute__((noreturn));
-void assert_fail(const char *cond, const char *file, int line) __attribute__((noreturn));
+void assert_fail(const char *cond, const char *file, int line)
+  __attribute__((noreturn));
 
 /**#3
 
    That said, the first thing we are going to do is write code to load modules,
    so let's look at a small part - the functions and structures that define the
-   interface between modules. {*/
+   interface between modules.
+
+   This interface defines a structure "init_fini_fn_t" that we can use to
+   define a function (for module initialisation or teardown) that must be run at
+   startup or shutdown. The "name" field gives the name of the module, and
+   "prerequisites" gives a (NULL-terminated) list of the functions this one
+   requires before it can run. "fn" is the actual function itself.
+
+   A module makes an instance of one of these structs, and marks it either
+   "run_on_startup" or "run_on_shutdown". You'll see that the definition of
+   these macros does some attribute magic - this forces the compiler to put the
+   struct in a different section to normal - see later. It also informs the
+   compiler that the definition is always used, even though it may look like it
+   is not. {*/
 
 /*******************************************************************************
  * Initialisation / finalisation function registration
@@ -85,20 +99,7 @@ typedef struct init_fini_fn {
      static init_fini_fn_t x run_on_shutdown = {"bar", NULL, &bar}; */
 #define run_on_shutdown __attribute__((__section__(".shutdown"),used))
 
-/**}
-   So this interface defines a structure "init_fini_fn_t" that we can use to
-   define a function (for module initialisation or teardown) that must be run at
-   startup or shutdown. The "name" field gives the name of the module, and
-   "prerequisites" gives a (NULL-terminated) list of the functions this one
-   requires before it can run. "fn" is the actual function itself.
-
-   A module makes an instance of one of these structs, and marks it either
-   "run_on_startup" or "run_on_shutdown". You'll see that the definition of
-   these macros does some attribute magic - this forces the compiler to put the
-   struct in a different section to normal - see later. It also informs the
-   compiler that the definition is always used, even though it may look like it
-   is not.
-**/
+/**#cut*/
 
 /*******************************************************************************
  * Console
