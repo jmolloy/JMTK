@@ -123,65 +123,93 @@ class SourceFragment:
         except:
             return '<pre>'+self.src+'</pre>'
 
-def reorder_fragments(frags):
-    ords = {}
-    this_ord = 0
-    max_ord = 0
-    for frag in frags:
-        if frag.ord:
-            this_ord = frag.ord
-            max_ord = max(max_ord, this_ord)
-        if this_ord not in ords:
-            ords[this_ord] = []
-        ords[this_ord].append(frag)
+class DocumentChapter:
 
-    out = []
-    for i in range(0, max_ord+1):
-        if i in ords:
-            out.extend(ords[i])
-    return out
+    def __init__(self, template, files):
+        source_files = [SourceFile(f) for f in files]
+        source_fragments = []
+        for sf in source_files:
+            source_fragments.extend(sf.fragments())
 
-def _make_table(fragments):
-    out = '<table>\n'
-    
-    for frag in fragments:
-        ds = frag.html_docstring()
-        src = frag.html_src()
+        source_fragments = self._reorder_fragments(source_fragments)
 
-        if not ds:
-            continue
+        t = Template(open(template).read())
+        self.html = t.safe_substitute(body = self._make_table(source_fragments),
+                                      highlight_style = HtmlFormatter().get_style_defs('.highlight'))
 
-        if src:
-            out += '''
-    <tr>
-      <td valign="top" class="doc-with-src">%s</td>
-      <td class="src">%s</td>
-    </tr>
-    ''' % (ds, src)
-        else:
-            out += '''
-    <tr>
-      <td valign="top" colspan="2" class="doc-without-src">%s</td>
-    </tr>
-    ''' % ds
+    def __str__(self):
+        return self.html
 
+    def _reorder_fragments(self, frags):
+        ords = {}
+        this_ord = 0
+        max_ord = 0
+        for frag in frags:
+            if frag.ord:
+                this_ord = frag.ord
+                max_ord = max(max_ord, this_ord)
+            if this_ord not in ords:
+                ords[this_ord] = []
+            ords[this_ord].append(frag)
 
-    out += '</table>\n'
-    return out;
+        out = []
+        for i in range(0, max_ord+1):
+            if i in ords:
+                out.extend(ords[i])
+        return out
+
+    def _make_table(self, fragments):
+        out = '<table>\n'
+
+        for frag in fragments:
+            ds = frag.html_docstring()
+            src = frag.html_src()
+
+            if not ds:
+                continue
+
+            if src:
+                out += '''
+        <tr>
+          <td valign="top" class="doc-with-src">%s</td>
+          <td class="src">%s</td>
+        </tr>
+        ''' % (ds, src)
+            else:
+                out += '''
+        <tr>
+          <td valign="top" colspan="2" class="doc-without-src">%s</td>
+        </tr>
+        ''' % ds
+
+        out += '</table>\n'
+        return out;
 
 if __name__ == '__main__':
-    template = sys.argv[1]
-    files = sys.argv[2:]
-    
-    source_files = [SourceFile(f) for f in files]
-    source_fragments = []
-    for sf in source_files:
-        source_fragments.extend(sf.fragments())
+    from optparse import OptionParser
+    from graph import Graph
 
-    source_fragments = reorder_fragments(source_fragments)
+    parser = OptionParser()
+    parser.add_option("--template", dest="template")
+    parser.add_option("--graph", dest="graph")
+    parser.add_option("--output-dir", dest="out_dir")
 
-    t = Template(open(template).read())
-    html = t.safe_substitute(body = _make_table(source_fragments),
-                             highlight_style = HtmlFormatter().get_style_defs('.highlight'))
+    options, args = parser.parse_args()
 
-    print html
+    if not options.graph:
+        chapter = DocumentChapter(options.template, args)
+        print str(chapter)
+        sys.exit(0)
+
+    os.makedirs(options.out_dir)
+
+    g = Graph(options.graph)
+
+    for node in g.nodes.values():
+        print "Generating documentation for '%s' from %s..." % (node.value, node.files)
+
+        chapter = DocumentChapter(options.template, node.files)
+
+        outfilename = "%s/%s.html" % (options.out_dir,
+                                      node.value.lower().replace(' ', '-'))
+        open(outfilename, 'w').write(str(chapter))

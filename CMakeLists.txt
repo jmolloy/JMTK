@@ -76,6 +76,12 @@ endif()
 configure_file("${CMAKE_SOURCE_DIR}/test/lit.site.cfg.in"
   "${CMAKE_BINARY_DIR}/test/lit.site.cfg"  @ONLY)
 
+add_custom_target(doc "${PYTHON_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/docs.py"
+  "--graph" "${CMAKE_SOURCE_DIR}/layout.graph"
+  "--template" "${CMAKE_SOURCE_DIR}/doc/template.html"
+  "--output-dir" "${CMAKE_BINARY_DIR}/doc"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
 include_directories(${INCLUDES})
 add_definitions(${DEFINITIONS})
 
