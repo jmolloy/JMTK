@@ -5,7 +5,20 @@ from docutils.core import publish_parts
 from pygments import highlight
 from pygments.lexers import get_lexer_for_filename
 from pygments.formatters import HtmlFormatter
+from pygments.style import Style
 from string import Template
+from pygments.token import Keyword, Name, Comment, String, Error, \
+     Number, Operator, Generic
+
+class DocStyle(Style):
+    default_style = ""
+    styles = {
+        Comment:                'italic #0b61a4',
+        Comment.Preproc:        'noitalic #FFAD40',
+        Keyword:                'bold #007241',
+        Name.Builtin:           '#61d7a4',
+        String:                 '#36d792'
+        }
 
 class SourceFile:
     def __init__(self, name):
@@ -135,7 +148,7 @@ class DocumentChapter:
 
         t = Template(open(template).read())
         self.html = t.safe_substitute(body = self._make_table(source_fragments),
-                                      highlight_style = HtmlFormatter().get_style_defs('.highlight'))
+                                      highlight_style = HtmlFormatter(style=DocStyle).get_style_defs('.highlight'))
 
     def __str__(self):
         return self.html
@@ -156,31 +169,45 @@ class DocumentChapter:
         for i in range(0, max_ord+1):
             if i in ords:
                 out.extend(ords[i])
+
+        # Now run another pass to set the "first"/"last" attributes on
+        # source fragments.
+        for i in range(0, len(out)):
+            out[i].src_first = False
+            out[i].src_last = False
+
+            if not out[i].src:
+                continue
+            if i == 0 or not out[i-1].src:
+                out[i].src_first = True
+            if (i == len(out)-1) or not out[i+1].src:
+                out[i].src_last = True
+
         return out
 
     def _make_table(self, fragments):
-        out = '<table>\n'
+        out = '<table class="body-table">\n'
 
         for frag in fragments:
             ds = frag.html_docstring()
             src = frag.html_src()
 
-            if not ds:
-                continue
-
+            src_first = "src-first" if frag.src_first else ""
+            src_last  = "src-last"  if frag.src_last else ""
             if src:
                 out += '''
         <tr>
           <td valign="top" class="doc-with-src">%s</td>
-          <td class="src">%s</td>
+          <td><div class="src %s %s">%s</div></td>
         </tr>
-        ''' % (ds, src)
+        ''' % (ds, src_first, src_last, src)
             else:
                 out += '''
         <tr>
           <td valign="top" colspan="2" class="doc-without-src">%s</td>
         </tr>
         ''' % ds
+
 
         out += '</table>\n'
         return out;
