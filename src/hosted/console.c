@@ -30,13 +30,21 @@ console_t c = {
   .data = NULL
 };
 
+static struct termios orig;
 int init_console() {
   struct termios t;
   tcgetattr(1, &t);
+  tcgetattr(1, &orig);
+
   t.c_lflag &= ~(ECHO|ECHOE|ECHOK|ECHONL|ICANON);
   tcsetattr(1, TCSANOW, &t);
 
   register_console(&c);
+  return 0;
+}
+
+int fini_console() {
+  tcsetattr(1, TCSANOW, &orig);
   return 0;
 }
 
@@ -45,4 +53,9 @@ static init_fini_fn_t run_on_startup x = {
   .name = "hosted/console",
   .prerequisites = p,
   .fn = &init_console
+};
+static init_fini_fn_t run_on_shutdown y = {
+  .name = "hosted/console",
+  .prerequisites = p,
+  .fn = &fini_console
 };

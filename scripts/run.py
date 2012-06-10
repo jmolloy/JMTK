@@ -1,7 +1,6 @@
 import os, sys, signal, subprocess, tempfile, threading, select, termios
 
 from image import Image
-3
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
