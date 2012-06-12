@@ -385,7 +385,7 @@ static void init_module(module_t *m) {
 }
 
 static void fini_module(module_t *m) {
-  if (m->state >= MODULE_FINI_RUN)
+  if (m->state != MODULE_INIT_RUN)
     return;
 
   if (m->required)

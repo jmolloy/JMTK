@@ -12,7 +12,7 @@ ifeq ($(TARGET),HOSTED)
     TARGET_LINKFLAGS := 
     CSOURCES := $(shell find src/hosted -type f -name "*.c") $(CSOURCES_TI)
     SSOURCES := $(shell find src/hosted -type f -name "*.s") $(SSOURCES_TI)
-    TESTS    := $(TESTS_TI)
+    TESTS    := $(shell find test/hosted -type f -name "*.c") #$(TESTS_TI)
 endif
 
 COBJECTS := $(patsubst %.c,$(BUILD)/%.c.o,$(CSOURCES))
@@ -55,3 +55,19 @@ setup_builddir:
 	@mkdir -p $(BUILD)/src/third_party
 	@mkdir -p $(BUILD)/test/x86
 	@mkdir -p $(BUILD)/test/hosted
+
+check: test
+
+test: $(TESTEXES)
+	-@fail=0; count=0; \
+	for file in $(TESTS); do \
+	    exe=`echo $$file | sed -e 's,\(.*\).c,$(BUILD)/\1,'`; \
+	    echo -n "TEST   $$file"; \
+	    bash $$file $$exe; \
+	    case "$$?" in \
+	        0) echo " -> OK" ;; \
+	        *) echo " -> FAIL"; fail=`expr $$fail + 1` ;; \
+	    esac; \
+	    count=`expr $$count + 1`; \
+	done; \
+	echo; echo "Tests executed: $$count ($$fail failures)"
