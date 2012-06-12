@@ -48,14 +48,11 @@ int fini_console() {
   return 0;
 }
 
-const char *p[] = {"console", NULL};
-static init_fini_fn_t run_on_startup x = {
+static prereq_t p[] = { {"console",NULL}, {NULL,NULL} };
+static module_t run_on_startup x = {
   .name = "hosted/console",
-  .prerequisites = p,
-  .fn = &init_console
-};
-static init_fini_fn_t run_on_shutdown y = {
-  .name = "hosted/console",
-  .prerequisites = p,
-  .fn = &fini_console
+  .required = p,
+  .load_after = NULL,
+  .init = &init_console,
+  .fini = &fini_console
 };

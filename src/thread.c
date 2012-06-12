@@ -215,9 +215,11 @@ static int threading_init() {
   return 0;
 }
 
-static const char *p[] = {"kmalloc", "scheduler", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p[] = { {"kmalloc",NULL}, {"scheduler",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "threading",
-  .prerequisites = p,
-  .fn = &threading_init
+  .required = p,
+  .load_after = NULL,
+  .init = &threading_init,
+  .fini = NULL
 };

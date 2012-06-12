@@ -53,7 +53,7 @@
    scheduling capabilities, but also importantly provide some sort of shell or
    interface with which a user can interact with the system.
 
-   The canonical shell on a Linux system is a command shell such as /bin/sh,
+   The canonical shell on a Linux system is a command shell such as ``/bin/sh``,
    along with the standard utilities such as ``mv``, ``cp``, ``grep``
    etc. Without these, even with ``/bin/sh`` a user could not effectively
    interact with the system. On windows, the shell is the Windows desktop and
@@ -67,7 +67,7 @@
    functionality that nonprivileged applications require to work.
 
    The rest of the operating system sits atop this layer, exposing more complex
-   functionality to the user and perhap decomposing it into simple calls to the
+   functionality to the user and perhaps decomposing it into simple calls to the
    kernel to actually do some work.
 
    For example, the command "mv a.txt b.txt" in a shell expands into several
@@ -75,7 +75,7 @@
  
    .. image:: doc/1.png
 
-   The shell first calls the ``fork()`` in order to create a new child
+   The shell first calls ``fork()`` in order to create a new child
    process. This process calls ``execve()`` to load the executable and start
    executing it. Once executing, ``mv`` will call ``stat()`` on both filenames
    to ensure the first exists and the second does not or exists and is not
@@ -147,11 +147,6 @@
    General project structure
    =========================
 
-   The rigorous use of modules allows each chapter of the tutorial to be self
-   standing, and ideally fully pluggable - you should be able to just take the
-   "threading.c" file, add it to the src/ directory and then end up with a
-   kernel that can multi-thread.
-
    Testing
    -------
 
@@ -208,18 +203,63 @@
    Build system
    ------------
 
-   For building the kernel I use CMake. No holy wars please, it's just a build
-   system! ;).
+   Provided with the code is a simple makefile. It takes as input a target - this
+   can be one of 'HOSTED', 'X86', 'X64' or 'ARM'::
 
-   The intended usage of the CMakeLists.txt provided is shown below - CMake can
-   be rather irritating to learn so if you plan to code along, I suggest just
-   for this tutorial you just download the skeleton provided at the end::
+       TARGET=HOSTED make
 
-       mkdir build
-       cd build
-       cmake .. -DTARGET=Hosted
+   Replace "HOSTED" with "X86", "X64" or "ARM" for your preferred target.
 
-   Replace "Hosted" with "X86", "X64" or "ARM" for your preferred target.
+   Modules
+   -------
+
+   The rigorous use of modules (theoretically) allows each chapter of the tutorial to be self
+   standing, and ideally fully pluggable - you should be able to just take the
+   "threading.c" file, add it to the src/ directory and then end up with a
+   kernel that can multi-thread.
+
+   This is achieved using a bit of ELF magic.
+
+   ELF stands for Executable and Linking Format, and is the object and
+   executable format for UNIX systems. At the object file stage, it has the
+   concept of "sections" - data normally ends up in the ".data" section for
+   example, and code ends up in the ".text" section.
+
+   Using compiler-specific attributes (GCC and Clang support them) we can
+   arrange for certain variables to end up in a different section, or a
+   completely new one.
+
+   For example, given the following code in ``a.c``::
+
+       int a __attribute__((section(".mysection"))) = 4;
+       int b __attribute__((section(".mysection"))) = 6;
+       int c = 8;
+
+   The symbols ``a`` and ``b`` will end up in the section called '.mysection',
+   and ``c`` will end up in the default section for data, which is called
+   ``.data`` (it is usual but not required to start a section name with a dot).
+
+   Interestingly however, if we name the section so it only contains letters,
+   numbers and underscores, the linker will automatically generate two symbols - 
+   ``__start_SECTION`` and ``__stop_SECTION`` - these symbols mark the start
+   and end of that section.
+
+   So let's assume we put ``a`` and ``b`` above into the section 'mysection'.
+   In ``b.c``, we could then reference ``__start_mysection`` and
+   ``__stop_mysection`` as external variables and use them to find ``b`` and
+   ``c``::
+
+       extern int __start_mysection, __stop_mysection;
+       printf("%d, %d, %d\n", &mysection_start[0], &mysection_start[1],
+                              &mysection_start[1]);
+
+   This is how we specify which modules to load. Each module has a descriptor
+   structure (called ``module_t``). One of these is made global and put in a
+   special section 'modules'. Code then reads this array of modules and loads
+   them in turn (depending on their dependencies, of course!).
+
+   The advantage of this over a global list is we can add new modules without
+   adapting ``main.c`` at all, which fits my personal goal of maintainability :)
 
    Code!
    =====
@@ -234,30 +274,6 @@
 #endif
 
 /**#4
-   The first real thing we should do is define a structure to hold the state of
-   running initialisation or finalisation functions. {*/
-typedef struct init_fini_state {
-  /* If non-null, only run functions in the transitive closure of prerequisites
-     rooted at this node. */
-  const char *only;
-
-  /* Set of functions that have been run. */
-  const char *run_fns[32];
-  unsigned num_run_fns;
-
-  /* Set of functions that are in the transitive closure of prerequisites
-     rooted at 'only', if 'only' is set. */
-  const char *needed_fns[32];
-  unsigned num_needed_fns;
-
-  /* First and last init_fini_fn_t */
-  init_fini_fn_t *begin, *end;
-
-  /* Explanatory text to show in the console - "Started" or "Stopped" */
-  const char *text;
-} init_fini_state_t;
-
-/**
    I should mention here that the kernel is designed to have two modes - to
    function as a full kernel (in which case all modules are loaded) and to
    function as a test harness, in which case we may specify just one module to
@@ -265,210 +281,210 @@ typedef struct init_fini_state {
    dependencies and so on - referred to as the "transitive closure" of the
    dependencies).
 
-   The structure has to hold the name of the specific module we're loading if in
-   test harness mode, the functions that have been run already (``run_fns``), and the set of
-   functions that we have discovered are required to be loaded (``needed_fns``).
-
-   With this in place, lets next define the entry point to the kernel
+   With that in mind let's next define the entry point to the kernel
    proper. Note that this is the target-agnostic entry point - there may (and
-   will) be target-dependent startup code before we get to this point. {*/
+   will) be target-dependent startup code before we get to this point. **/
 
-/* Symbols defined by the linker script, the address of which can be treated as
-   a init_fini_fn_t*. */
-extern int __startup_begin, __startup_end;
-extern int __shutdown_begin, __shutdown_end;
+/** The main function uses multiple helpers, which will be defined shortly.
 
-static int run_startup_shutdown_functions(init_fini_state_t *s);
+    You see that it uses the symbols ``__modules_begin`` and ``__end_modules`` - 
+    these are defined by the linker script as described in the example above.
+
+    It also defines a weak ``module_t*`` instance ``test_module`` - This defines
+    if the kernel is supposed to run in test harness mode. If a test defines
+    a global symbol ``test_module``, that will override this weak definition and
+    be used instead.
+    
+    In that case we only load the test module's dependencies. {*/
+    
+
+/* Symbols defined by the linker, the address of which can be treated as
+   a module_t*. */
+extern module_t __start_modules, __stop_modules;
+
+static void earlypanic(const char *msg, const char *msg2);
+static module_t *find_module(const char *name);
+static void resolve_module(module_t *m);
+static void init_module(module_t *m);
+static void fini_module(module_t *m);
+static void log_status(int status, const char *name, const char *text);
+
+/* If this variable is overridden by a strong global, we are in test harness
+   mode and must only run the hard prerequisites of this module. */
+module_t *test_module __attribute__((weak)) = (module_t*)NULL;
 
 int main(int argc, char **argv) {
-  const char *only = NULL;
-
-  /* To function as a test harness, we may be asked to only load in
-     functions that are (transitive) prerequisites of a particular
-     function. Otherwise, we should load all functions. */
-  if (argc >= 3 && !strcmp(argv[1], "only-run")) {
-    only = argv[2];
-  }
-
-  init_fini_state_t state;
-  state.begin = (init_fini_fn_t*)&__startup_begin;
-  state.end   = (init_fini_fn_t*)&__startup_end;
-  state.only  = only;
-  state.text  = "Started";
-
   /* Start by running the startup functions. */
-  int success = run_startup_shutdown_functions(&state);
-  (void)success;
-#if defined(HOSTED)
-  printf("Running startup functions, status = %d\n", success);
-#endif
+  for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
+    m->state = MODULE_NOT_INITIALISED;
 
-  if (!only)
-    debugger_trap(NULL);
-  
-  /* Finish by running the shutdown functions. */
-  state.begin = (init_fini_fn_t*)&__shutdown_begin;
-  state.end   = (init_fini_fn_t*)&__shutdown_end;
-  state.only  = only;
-  state.text  = "Stopped";
+  for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
+    resolve_module(m);
 
-  success = run_startup_shutdown_functions(&state);
-  (void)success;
-#if defined(HOSTED)
-  printf("Running shutdown functions, status = %d\n", success);
-#endif
-  return 0;
-}
+  /* Try and initialise the kernel console first in case we need to panic. */
+  module_t *m = find_module("console");
+  if (m)
+    init_module(m);
 
-/**
-   You may notice that this calls a few functions not yet defined.
-   
-     * ``run_startup_shutdown_functions`` will be defined shortly, and will walk
-       the dependency tree and start running functions for either startup or
-       shutdown.
-     * ``debugger_trap`` is declared in ``hal.h``, and will launch the kernel
-       debugger (or do nothing if the debugger is not implemented as it isn't at
-       the moment). This is called after all modules have finished loading - it
-       assumes that if we are not in test harness mode (``!only``) we don't want
-       to immediately shut down if all modules complete loading successfully,
-       and so traps to allow us to inspect the state of the kernel. **/
-
-/**
-   Lets define a few helper functions for use when implementing
-   ``run_startup_shutdown_functions``. {*/
-
-/* Has the function 'c' been run already? */
-static int fn_has_been_run(init_fini_state_t *s, const char *c) {
-  for (unsigned i = 0; i < s->num_run_fns; ++i)
-    if (!strcmp(c, s->run_fns[i]))
-      return 1;
-  return 0;
-}
-
-/* Do we need to load the function 'fn'? */
-static int need_fn(init_fini_state_t *s, const char *fn) {
-  /* If we're loading all functions, we need this one. */
-  if (!s->only) return 1;
-
-  /* Are we supposed to only load this function? */
-  if (!strcmp(s->only, fn)) return 1;
-
-  /* Else see if it is in the list of needed (prerequisite) functions. */
-  for (unsigned i = 0; i < s->num_needed_fns; ++i)
-    if (!strcmp(fn, s->needed_fns[i]))
-      return 1;
-  return 0;
-}
-
-/* Is the function 'c' available for loading? */
-static int has_fn(init_fini_state_t *s, const char *c) {
-  for (init_fini_fn_t *i = s->begin; i < s->end; ++i) {
-    if (!strcmp(i->name, c))
-      return 1;
+  if (test_module) {
+    init_module(test_module);
+  } else {
+    for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
+      init_module(m);
+    /* Then run the main function, unless we're in test harness mode. */
+    kmain();
   }
+
+  for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
+    fini_module(m);
+
   return 0;
 }
+
+/** Now we define helper functions. I'm not going to explain them much,
+    I should hope that you can find their purpose from reading them (else
+    I can't write code as well as I should!) and I can't add anything by
+    describing them. {*/
+
+static void resolve_module(module_t *m) {
+  if (m->state >= MODULE_PREREQS_RESOLVED)
+    return;
+
+  for (prereq_t *p = m->required; p != NULL && p->name != NULL; ++p)
+    p->module = find_module(p->name);
+
+  for (prereq_t *p = m->load_after; p != NULL && p->name != NULL; ++p)
+    p->module = find_module(p->name);
+
+  m->state = MODULE_PREREQS_RESOLVED;
+}
+
+static void init_module(module_t *m) {
+  if (m->state >= MODULE_INIT_RUN)
+    return;
+
+  if (m->required)
+    for (prereq_t *p = m->required; p != NULL && p->name != NULL; ++p) {
+      if (!p->module)
+        earlypanic("Module not found: ", p->name);
+      else
+        init_module(p->module);
+    }
+
+  if (m->load_after)
+    for (prereq_t *p = m->load_after; p != NULL && p->name != NULL; ++p) {
+      if (p->module)
+        init_module(p->module);
+    }
+
+  if (m->init) {
+    int ok = m->init();
+    log_status(ok, m->name, "Started");
+  }
+  m->state = MODULE_INIT_RUN;
+}
+
+static void fini_module(module_t *m) {
+  if (m->state >= MODULE_FINI_RUN)
+    return;
+
+  if (m->required)
+    for (prereq_t *p = m->required; p != NULL && p->name != NULL; ++p) {
+      if (!p->module)
+        earlypanic("Module not found: ", p->name);
+      else
+        fini_module(p->module);
+    }
+
+  if (m->load_after)
+    for (prereq_t *p = m->load_after; p != NULL && p->name != NULL; ++p) {
+      if (p->module)
+        fini_module(p->module);
+    }
+
+  if (m->fini) {
+    int ok = m->fini();
+    log_status(ok, m->name, "Stopped");
+  }
+  m->state = MODULE_FINI_RUN;
+}
+
+
+/** ... although I will explain where ``strcmp`` came from.
+
+    In a kernel, you don't have access to the C standard library. Which means
+    you have no strcmp/memcpy/memset. In ``stdlib.c``, I have implemented a few
+    functions that are pretty much required in any C program.
+
+    We also have access to a few standard headers. <stdint.h> comes with the
+    *compiler*, not the standard library implementation (glibc) and so we can
+    use it in baremetal mode without a problem. We just need to give the right
+    compile flag ("``--nostdlibinc``" instead of the more commonly known 
+    "``--nostdinc``"). {*/
+static module_t *find_module(const char *name) {
+  for (module_t *i = &__start_modules, *e = &__stop_modules; i < e; ++i) {
+    if (!strcmp(name, i->name)) return i;
+  }
+  return NULL;
+}
+
+/**
+   You may notice that this calls a function not yet defined.
+   ``kmain`` is declared in ``hal.h``, and is intended to be overridden by a
+   loaded module. Its default behaviour is to call ``debugger_trap``, which
+   if a kernel debugger is installed will launch the debugger, else will
+   loop forever. **/
+
+/** Building on the concept of using HAL functions before they are implemented,
+    the next few functions use the function ``write_console``, whose purpose
+    should be easy to understand! This again is declared in ``hal.h`` and allows
+    access to the kernel console. It takes a character array and a length. We'll
+    define it later. Until then, it'll be difficult to test this code unless we
+    are on a hosted platform (running as a hosted process under linux, with
+    TARGET=HOSTED and ``printf`` available!).
+
+    ``earlypanic()`` will attempt to panic the kernel at a very early stage.
+
+    Of course, at this point we don't have a console module, so this will fail
+    to show anything.
+    {*/
 
 /* Write a message to the console. */
-static void log_status(int status, const char *name, init_fini_state_t *s) {
+static void log_status(int status, const char *name, const char *text) {
   write_console("[", 1);
   if (status == 0)
     write_console("\033[32m OK \033[0m", 13);
   else
     write_console("\033[31mFAIL\033[0m", 13);
   write_console("] ", 2);
-  write_console(s->text, strlen(s->text));
+  write_console(text, strlen(text));
   write_console(" ", 1);
   write_console(name, strlen(name));
   write_console("\n", 1);
+#ifdef HOSTED
+  printf("main: %s %s with status %d\n", text, name, status);
+#endif
 }
 
-/**
-   This last function ``log_status`` uses another as-yet-undefined function
-   ``write_console``. This again is declared in ``hal.h`` and allows access to
-   the kernel console. It takes a character array and a length. We'll define it
-   later. Until then, it'll be difficult to test this code unless we are on a
-   hosted platform (running as a hosted process under linux, with -DHOSTED=1 and
-   ``printf`` available!).
+static void earlypanic(const char *msg, const char *msg2) {
+  write_console("PANIC! ", 7);
+  write_console(msg, strlen(msg));
+  if (msg2)
+    write_console(msg2, strlen(msg2));
+  write_console("\n", 1);
 
-   Now we can define the grunt function which will run all module
-   startup/shutdown functions in order. {*/
-
-/* Run through all known functions in 's' and run them.
-
-   If s->only is non-NULL, only run the function s->only and 
-   any of its prerequisities (transitively). */
-static int run_startup_shutdown_functions(init_fini_state_t *s) {
-  int ok = 0;
-  int cant_go = 0;
-  int made_progress = 1;
-
-  s->num_run_fns = 0;
-  s->num_needed_fns = 0;
-
-  /* Keep going while something changed. */
-  while (made_progress) {
-    made_progress = 0;
-
-    for (init_fini_fn_t *i = s->begin; i < s->end; ++i) {
-      if (fn_has_been_run(s, i->name) || !need_fn(s, i->name))
-        continue;
-
-      cant_go = 0;
-      /* If i has prerequisites, iterate through them. */
-      if (i->prerequisites) {
-        for (const char **prereq = i->prerequisites; *prereq != NULL; ++prereq) {
-          /* Has this function not already been run and do we have it? */
-          if (!fn_has_been_run(s, *prereq) && has_fn(s, *prereq)) {
-#if defined(HOSTED)
-            printf("%s requires %s\n", i->name, *prereq);
+#ifdef HOSTED
+  printf("main: PANIC! %s %s\n", msg, msg2);
 #endif
-            /* Prereq hasn't been run, so this function can't be run yet. */
-            cant_go = 1;
-            /* If we're only running one function and its prereqs, add this
-               function to its prereq list. */
-            if (s->only) {
-              if (!need_fn(s, *prereq))
-                s->needed_fns[s->num_needed_fns++] = *prereq;
-              made_progress = 1;
-            }
-            break;
-          }
-        }
-        /* Prerequisite has not been run yet, bail out. */
-        if (cant_go) continue;
-      }
 
-#if defined(HOSTED)
-      printf("Running %s...\n", i->name);
-#endif
-      /* Mark this function as having been run. */
-      s->run_fns[s->num_run_fns++] = i->name;
-      int status = 0;
-      /* The function may be NULL - handle that gracefully. */
-      if (i->fn)
-        status = i->fn();
-      ok |= status;
-
-      log_status(status, i->name, s);
-
-      made_progress = 1;
-    }
-  }
-
-  /* If we made no more progress, we either succeeded or failed to load a
-     prerequisite. */
-  if (cant_go) ok = -2;
-
-  return ok;
+  for (;;) ;
 }
 
 /**
    ... and that should be that. It can only be tested so far in hosted mode -
    configure with::
 
-       cmake -DTARGET=Hosted
-       make -j
+       TARGET=HOSTED make -j
 
    Then run ``./src/kernel``. In the next chapter we'll define startup code to
    allow booting natively baremetal. */

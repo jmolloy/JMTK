@@ -33,9 +33,11 @@ static int scheduler_init() {
   return 0;
 }
 
-static const char *p[] = {"x86/screen",NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p[] = { {"x86/screen",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "scheduler",
-  .prerequisites = p,
-  .fn = &scheduler_init
+  .load_after = p,
+  .required = NULL,
+  .init = &scheduler_init,
+  .fini = NULL
 };

@@ -79,9 +79,11 @@ static int kmalloc_init() {
   return r;
 }
 
-static const char *prereqs[] = {"x86/free_memory", "hosted/free_memory", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"x86/free_memory",NULL}, {"hosted/free_memory",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "kmalloc",
-  .prerequisites = prereqs,
-  .fn = &kmalloc_init
+  .required = NULL,
+  .load_after = prereqs,
+  .init = &kmalloc_init,
+  .fini = NULL
 };

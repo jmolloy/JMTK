@@ -49,12 +49,15 @@ typedef struct spinlock {
 # include "x86/hal.h"
 #elif defined(HOSTED)
 # include "hosted/hal.h"
+#else
+# error Unknown target!
 #endif
 
 /* Call to send the system into a panic. */
 void panic(const char *message) __attribute__((noreturn));
 void assert_fail(const char *cond, const char *file, int line)
   __attribute__((noreturn));
+void kmain();
 
 /**#3
 
@@ -62,42 +65,73 @@ void assert_fail(const char *cond, const char *file, int line)
    so let's look at a small part - the functions and structures that define the
    interface between modules.
 
-   This interface defines a structure "init_fini_fn_t" that we can use to
+   This interface defines a structure ``module_t`` that we can use to
    define a function (for module initialisation or teardown) that must be run at
    startup or shutdown. The "name" field gives the name of the module, and
-   "prerequisites" gives a (NULL-terminated) list of the functions this one
+   "required" gives a (NULL-terminated) list of the functions this one
    requires before it can run. "fn" is the actual function itself.
+   
+   "load_after" gives the concept of a soft dependency. Names in this list are not
+   required in order for this function to run, but if they are available to load
+   then they must be run before this module is run. An example of using this is the
+   console module - it does not require both the "screen" and "serial" modules but if
+   either is available they must be loaded before console.
 
-   A module makes an instance of one of these structs, and marks it either
-   "run_on_startup" or "run_on_shutdown". You'll see that the definition of
-   these macros does some attribute magic - this forces the compiler to put the
-   struct in a different section to normal - see later. It also informs the
-   compiler that the definition is always used, even though it may look like it
-   is not. {*/
+   A module makes an instance of one of these structs, and marks it 
+   "run_on_startup". You'll see that the definition of
+   this macro does some attribute magic - the same attribute magic I mentioned
+   earlier - the variable this gets applied to gets put in the special
+   '.modules' section.
+
+   A module has a name, which must be unique, and a list of modules it requires.
+   These are hard requirements - if a module in the required list is not
+   available then the module loader will panic. There is also a soft requirement
+   list, which will not cause a panic if it isn't available but if it *is*
+   available, it must be loaded *before* this module. It also has two function
+   pointers, one for the initialisation function and one for the termination
+   function. Both are optional. {*/
 
 /*******************************************************************************
  * Initialisation / finalisation function registration
  ******************************************************************************/
 
-/* Structure defining a function to be run either on startup or shutdown. */
-typedef struct init_fini_fn {
-  const char *name;           /* A unique identifier for this function.*/
-  const char **prerequisites; /* Either NULL or a NULL-terminated list of
-                                 function IDs that must have already run. */
-  int (*fn)(void);            /* The function to run. Returns zero on success. */
-  int padding;                /* Pad so the structure is 4 * sizeof(int) large. */
-} init_fini_fn_t;
+/* Module initialisation state - only really used by main.c */
+enum module_state {
+  MODULE_NOT_INITIALISED,
+  MODULE_PREREQS_RESOLVED,
+  MODULE_INIT_RUN,
+  MODULE_FINI_RUN
+};
 
-/* Mark an instance of an init_fini_fn_t object as 'run_on_startup' to
+/* A prerequisite of a module. A client should only fill in the 'name' member -
+   the 'module' member is filled in by main.c. */
+typedef struct prereq {
+  const char *name;
+  struct module *module;
+} prereq_t;
+
+/* Structure defining a function to be run either on startup or shutdown. */
+typedef struct module {
+  /* Members that should be initialised statically. */
+  const char *name;        /* A unique identifier for this function.*/
+  prereq_t *required;      /* Either NULL or a NULL-terminated list of
+                              module names that are prerequisites of this. */
+  prereq_t *load_after;    /* Either NULL or a NULL-terminated list of 
+                              module names that are not hard prerequisites
+                              but if available then this module must be loaded
+                              after them */
+  int (*init)(void);       /* The startup function to run. Returns 0 on success */
+  int (*fini)(void);       /* The shutdown function to run. Returns 0 on success */
+
+  uintptr_t state;
+  uintptr_t padding[2];    /* Ensure size is a multiple of pointer size. */
+} module_t;
+
+/* Mark an instance of a module_t object as 'run_on_startup' to
    have it run on startup, e.g.:
   
-     static init_fini_fn_t x run_on_startup = {"foo", NULL, &foo}; */
-#define run_on_startup __attribute__((__section__(".startup"),used))
-/* Mark an instance of an init_fini_fn_t object as 'run_on_shutdown' to
-   have it run on shutdown, e.g.:
- 
-     static init_fini_fn_t x run_on_shutdown = {"bar", NULL, &bar}; */
-#define run_on_shutdown __attribute__((__section__(".shutdown"),used))
+     static module_t x run_on_startup = {...}; */
+#define run_on_startup __attribute__((__section__("modules"),used))
 
 /**#cut*/
 

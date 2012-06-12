@@ -14,6 +14,11 @@ void assert_fail(const char *cond, const char *file, int line) {
   for(;;);
 }
 
+void kmain() weak;
+void kmain() {
+  trap();
+}
+
 int register_console(console_t *c) weak;
 int register_console(console_t *c) {
   return -1;

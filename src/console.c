@@ -103,15 +103,10 @@ static int shutdown_console() {
    We don't need to do anything on startup, but that is an implementation detail
    that other modules may not know about, so we register a NULL function anyway
    so they can mark us as a prerequisite. */
-static init_fini_fn_t x run_on_startup = {
+static module_t x run_on_startup = {
   .name = "console",
-  .prerequisites = NULL,
-  .fn = NULL
-};
-
-/* Register 'shutdown_console' for running on shutdown. */
-static init_fini_fn_t y run_on_shutdown = {
-  .name = "console",
-  .prerequisites = NULL,
-  .fn = &shutdown_console
+  .required = NULL,
+  .load_after = NULL,
+  .init = NULL,
+  .fini = &shutdown_console,
 };

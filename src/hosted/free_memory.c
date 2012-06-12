@@ -19,9 +19,11 @@ static int free_memory() {
   return 0;
 }
 
-static const char *prereqs[] = {"console", "hosted/console", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"console", NULL}, {"hosted/console",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "hosted/free_memory",
-  .prerequisites = prereqs,
-  .fn = &free_memory
+  .required = NULL,
+  .load_after = prereqs,
+  .init = &free_memory,
+  .fini = NULL
 };

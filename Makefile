@@ -9,17 +9,17 @@ ifndef TARGET
 endif
 ifeq ($(TARGET),HOSTED)
     TARGET_FLAGS := -DHOSTED=1
-    TARGET_LINKFLAGS := -Tsrc/hosted/link.ld
+    TARGET_LINKFLAGS := 
     CSOURCES := $(shell find src/hosted -type f -name "*.c") $(CSOURCES_TI)
     SSOURCES := $(shell find src/hosted -type f -name "*.s") $(SSOURCES_TI)
-    TESTS    := $(shell find test/hosted -type f -name "*.c") $(TESTS_TI)
+    TESTS    := $(TESTS_TI)
 endif
 
 COBJECTS := $(patsubst %.c,$(BUILD)/%.c.o,$(CSOURCES))
 SOBJECTS := $(patsubst %.s,$(BUILD)/%.s.o,$(SSOURCES))
 TESTEXES := $(patsubst %.c,$(BUILD)/%,$(TESTS))
 
-CDEPS := $(patsubst %.c,%.d,$(CSOURCES))
+CDEPS := $(patsubst %.c,$(BUILD)/%.c.d,$(CSOURCES))
 
 .PHONY: all clean dist check
 
@@ -28,23 +28,23 @@ DEFS := -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS)
 
 LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
 
-all: kernel $(TESTEXES)
+all: $(BUILD)/kernel $(TESTEXES)
 
-kernel: libk.a
-	@echo "LINK $(BUILD)/kernel"
-	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS)
+$(BUILD)/kernel: $(BUILD)/libk.a
+	@echo "LINK   $(BUILD)/kernel"
+	$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS)
 
-libk.a: $(COBJECTS) $(SOBJECTS)
+$(BUILD)/libk.a: $(COBJECTS) $(SOBJECTS)
 	@echo "AR   $(BUILD)/libk.a"
-	@ar cru $(BUILD)/libk.a $?
+	@ar cr $(BUILD)/libk.a $?
 
--include $(DEPFILES)
+-include $(CDEPS)
 
-$(BUILD)/%.c.o: %.c Makefile setup_builddir
+$(BUILD)/%.c.o: %.c Makefile | setup_builddir
 	@echo "CC   $<"
 	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP -c $< -o $@ -I ./src/include
 
-$(BUILD)/%: %.c Makefile setup_builddir
+$(BUILD)/%: %.c Makefile | setup_builddir
 	@echo "LINK   $@"
 	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP $< -o $@ -I ./src/include $(LINK_LIBK) $(TARGET_LINKFLAGS)
 

@@ -95,9 +95,11 @@ void assert_fail(const char *cond, const char *file, int line) {
   for(;;);
 }
 
-static const char *p[] = {"debugger", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p[] = { {"debugger",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "debugger-cmds",
-  .prerequisites = p,
-  .fn = &register_commands
+  .required = p,
+  .load_after = NULL,
+  .init = &register_commands,
+  .fini = NULL
 };

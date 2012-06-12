@@ -233,8 +233,10 @@ static int debugger_register() {
   return 0;
 }
 
-static init_fini_fn_t x run_on_startup = {
+static module_t x run_on_startup = {
   .name = "debugger",
-  .prerequisites = NULL,
-  .fn = &debugger_register
+  .required = NULL,
+  .load_after = NULL,
+  .init = &debugger_register,
+  .fini = NULL
 };
