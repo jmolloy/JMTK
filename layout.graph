@@ -59,7 +59,7 @@
 "multiple address spaces" -> "loading programs"
 "ELF loading" -> "loading programs"
 
-"skeleton": [src/CMakeLists.txt src/hal.c src/dummy.c src/main.c src/include/hal.h src/hosted/CMakeLists.txt src/x86/CMakeLists.txt src/hosted/link.ld src/x86/link.ld]
+"skeleton": [Makefile src/hal.c src/main.c src/include/hal.h src/include/stdlib.h]
 "bringup stage 1": [src/x86/bringup-1.s src/x86/bringup-2.c src/include/x86/multiboot.h src/include/x86/io.h]
 "keyboard": [src/x86/en_US.scantable src/x86/keyboard.c]
 "serial": [src/x86/serial.c]
