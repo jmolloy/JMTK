@@ -1,12 +1,19 @@
-// RUN: %compile %s -o %t && %run --trace --syms %t only-run xxx 2>&1 | %FileCheck %s
-// XFAIL: Hosted
-// XFAIL: X64
-
-#if !defined(X86)
-# error This test must be run on an x86 bare kernel!
+#if 0
+exit `$1 $2 --trace --symbols | ./test/FileCheck $0`
 #endif
+
+#include "hal.h"
 
 // CHECK: higherhalf:
 // CHECK: bringup:
 // CHECK: main:
 // CHECK: hlt
+
+static module_t x run_on_startup = {
+  .name = "X",
+  .required = NULL,
+  .load_after = NULL,
+  .init = NULL,
+  .fini = NULL
+};
+module_t *test_module = &x;

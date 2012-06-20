@@ -1,4 +1,6 @@
-// RUN: %compile -g %s -o %t && %run %t only-run xbitmap-test | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "adt/xbitmap.h"
@@ -74,9 +76,15 @@ static int test() {
   return 0;
 }
 
-static const char *p[] = {"hosted/free_memory", "x86/free_memory", NULL};
-static init_fini_fn_t run_on_startup x = {
+static prereq_t p[] = { {"hosted/free_memory",NULL},
+                        {"x86/free_memory",NULL},
+                        {"hosted/console", NULL}, {"x86/screen",NULL},
+                        {"x86/serial",NULL}, {"console",NULL}, {NULL,NULL} };
+static module_t run_on_startup x = {
   .name = "xbitmap-test",
-  .prerequisites = p,
-  .fn = &test
+  .required = NULL,
+  .load_after = p,
+  .init = &test,
+  .fini = NULL
 };
+module_t *test_module = &x;

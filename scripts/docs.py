@@ -72,6 +72,17 @@ class SourceFile:
         return False
 
     def fragments(self):
+        return self._fragments()
+
+    def has_documentation(self):
+        for frag in self.fragments():
+            if frag.docstring:
+                return True
+        return False
+
+    def _fragments(self):
+        if hasattr(self, 'frags'):
+            return self.frags
         frags = []
 
         while self.lines:
@@ -87,6 +98,7 @@ class SourceFile:
 
             frags.append(frag)
         
+        self.frags = frags
         return frags
 
 class SourceFragment:
@@ -138,20 +150,64 @@ class SourceFragment:
 
 class DocumentChapter:
 
-    def __init__(self, template, files):
+    def __init__(self, template, files, node):
         source_files = [SourceFile(f) for f in files]
         source_fragments = []
         for sf in source_files:
-            source_fragments.extend(sf.fragments())
+            if sf.has_documentation():
+                source_fragments.extend(sf.fragments())
 
         source_fragments = self._reorder_fragments(source_fragments)
 
+        self.node = node
+
+        preds = list(self._get_preds())
+        succs = list(self._get_succs())
+
+        nav = []
+        for p in preds:
+            s = '<span class="prev %s">%s<span class="line"></span></span>\n' % (
+                'prev2' if p != preds[-1] else '', p.value)
+            nav.append(s)
+
+        nav.append('<span class="this">%s</span>\n' % node.value)
+
+        for p in succs:
+            s = '<span class="next %s">%s<span class="line"></span></span>\n' % (
+                'next2' if p != succs[0] else '', p.value)
+            nav.append(s)
+            
         t = Template(open(template).read())
         self.html = t.safe_substitute(body = self._make_table(source_fragments),
+                                      nav = ''.join(nav),
                                       highlight_style = HtmlFormatter(style=DocStyle).get_style_defs('.highlight'))
 
     def __str__(self):
         return self.html
+
+    def _get_preds(self):
+        if not self.node:
+            return set()
+
+        preds = set()
+        for e in self.node.graph.edges:
+            if e[1] == self.node:
+                preds.add(e[0])
+        if self.node in preds:
+            preds.remove(self.node)
+        return preds
+
+    def _get_succs(self):
+        if not self.node:
+            return set()
+
+        succs = set()
+        for e in self.node.graph.edges:
+            if e[0] == self.node:
+                succs.add(e[1])
+        if self.node in succs:
+            succs.remove(self.node)
+        return succs
 
     def _reorder_fragments(self, frags):
         ords = {}
@@ -224,7 +280,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
 
     if not options.graph:
-        chapter = DocumentChapter(options.template, args)
+        chapter = DocumentChapter(options.template, args, None)
         print str(chapter)
         sys.exit(0)
 
@@ -235,7 +291,7 @@ if __name__ == '__main__':
     for node in g.nodes.values():
         print "Generating documentation for '%s' from %s..." % (node.value, node.files)
 
-        chapter = DocumentChapter(options.template, node.files)
+        chapter = DocumentChapter(options.template, node.files, node)
 
         outfilename = "%s/%s.html" % (options.out_dir,
                                       node.value.lower().replace(' ', '-'))

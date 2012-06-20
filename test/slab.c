@@ -1,4 +1,6 @@
-// RUN: %compile %s -o %t && %run %t only-run slab-test 2>&1 | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -28,11 +30,11 @@ int f () {
   kprintf("alloc5: %x\n", slab_cache_alloc(&c));
   kprintf("alloc6: %x\n", slab_cache_alloc(&c));
 
-  slab_cache_free(&c, 0xc10ec000);
-  slab_cache_free(&c, 0xc10ec400);
-  slab_cache_free(&c, 0xc10ec800);
-  slab_cache_free(&c, 0xc10ecc00);
-  slab_cache_free(&c, 0xc10ed000);
+  slab_cache_free(&c, (void*)0xc10ec000);
+  slab_cache_free(&c, (void*)0xc10ec400);
+  slab_cache_free(&c, (void*)0xc10ec800);
+  slab_cache_free(&c, (void*)0xc10ecc00);
+  slab_cache_free(&c, (void*)0xc10ed000);
 
   // alloc1: c10ec000
   // alloc2: c10ec400
@@ -50,11 +52,15 @@ int f () {
   return 0;
 }
 
-static const char *p[] = {"console", "x86/serial",
-                          "x86/free_memory", "hosted/free_memory", NULL};
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL},
+                        {"x86/free_memory",NULL},
+                        {"hosted/free_memory",NULL},
+                        {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "slab-test",
-  .prerequisites = p,
-  .fn = &f
+  .load_after = p,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;

@@ -212,9 +212,11 @@ static int register_screen() {
   return 0;
 }
 
-static const char *prereqs[] = {"console", NULL};
-static init_fini_fn_t run_on_startup x = {
+static prereq_t prereqs[] = { {"console",NULL}, {NULL,NULL} };
+static module_t run_on_startup x = {
   .name = "x86/screen",
-  .prerequisites = prereqs,
-  .fn = &register_screen
+  .required = prereqs,
+  .load_after = NULL,
+  .init = &register_screen,
+  .fini = NULL
 };

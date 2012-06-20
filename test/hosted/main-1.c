@@ -1,5 +1,5 @@
 #if 0
-exit `$1 | ./test/FileCheck $0`
+exit `$1 $2 | ./test/FileCheck $0`
 #endif
 
 #include "hal.h"

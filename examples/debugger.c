@@ -13,10 +13,15 @@ int f() {
   return 0;
 }
 
-static const char *p[] = {"x86/screen", "x86/keyboard", "x86/serial",
-                          "hosted/console", "debugger", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p2[] = { {"x86/screen",NULL}, {"x86/keyboard",NULL},
+                         {"x86/serial",NULL}, {"hosted/console",NULL},
+                         {NULL,NULL} };
+
+static prereq_t p[] = { {"debugger",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "debugger-example",
-  .prerequisites = p,
-  .fn = &f
+  .required = p,
+  .load_after = p2,
+  .init = &f,
+  .fini = NULL
 };

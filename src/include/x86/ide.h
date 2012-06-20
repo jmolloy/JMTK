@@ -83,8 +83,8 @@
 
 /* Bit definitions for sending to ATA_BUSMASTER_CMD */
 #define ATA_BUSMASTER_START 0x01
-#define ATA_BUSMASTER_WRITE 0x08
-#define ATA_BUSMASTER_READ  0x00
+#define ATA_BUSMASTER_READ  0x08
+#define ATA_BUSMASTER_WRITE 0x00
 
 /* Bit definitions for the status register ATA_BUSMASTER_STATUS */
 #define ATA_BUSMASTER_IRQ   0x04

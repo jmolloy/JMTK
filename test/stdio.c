@@ -1,4 +1,6 @@
-// RUN: %compile -g %s -o %t && %run %t only-run stdio-test 2>&1 | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "stdio.h"
 #include "hal.h"
@@ -16,10 +18,14 @@ static int test() {
   return 0;
 }
 
-static const char *p[] = {"console","x86/screen", "x86/serial",
-                          "hosted/console", NULL};
-static init_fini_fn_t run_on_startup x = {
+static prereq_t p[] = { {"console",NULL}, {"x86/screen",NULL},
+                        {"x86/serial",NULL}, {"hosted/console",NULL},
+                        {NULL,NULL} };
+static module_t run_on_startup x = {
   .name = "stdio-test",
-  .prerequisites = p,
-  .fn = &test
+  .load_after = p,
+  .required = NULL,
+  .init = &test,
+  .fini = NULL
 };
+module_t *test_module = &x;

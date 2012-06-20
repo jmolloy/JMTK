@@ -73,8 +73,10 @@ static int test() {
   return 0;
 }
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "stdlib-test",
-  .prerequisites = NULL,
-  .fn = &test
+  .required = NULL,
+  .load_after = NULL,
+  .init = &test,
+  .fini = NULL
 };

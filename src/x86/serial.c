@@ -190,9 +190,11 @@ static int register_serial() {
 }
 
 
-static const char *prereqs[] = {"console", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"console",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "x86/serial",
-  .prerequisites = prereqs,
-  .fn = &register_serial
+  .required = prereqs,
+  .load_after = NULL,
+  .init = &register_serial,
+  .fini = NULL
 };

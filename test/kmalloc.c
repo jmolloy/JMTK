@@ -1,10 +1,12 @@
-// RUN: %compile %s -o %t && %run %t only-run kmalloc-test 2>&1 | %FileCheck %s
-// XFAIL: X64
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
 #include "kmalloc.h"
 #include "x86/io.h"
+
 int f () {
   // CHECK: kmalloc(0x10): 0xfefd400{{4|8}}
   // CHECK: kmalloc(0x10): 0xfefd402{{4|8}}
@@ -40,9 +42,14 @@ int f () {
   return 0;
 }
 
-static const char *p[] = {"console", "x86/serial", "kmalloc", NULL};
-static init_fini_fn_t run_on_startup x = {
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL}, {NULL,NULL} };
+static prereq_t p2[] = { {"kmalloc",NULL}, {NULL,NULL} };
+
+static module_t run_on_startup x = {
   .name = "kmalloc-test",
-  .prerequisites = p,
-  .fn = &f
+  .load_after = p,
+  .required = p2,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;

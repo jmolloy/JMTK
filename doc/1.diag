@@ -1,0 +1,20 @@
+blockdiag {
+
+  A [label="fork()"];
+  B [label="execve(\"/bin/mv\",\n ...)"]
+  C [label="waitpid()",];
+  D [label="stat(\"a.txt\")"];
+  E [label="stat(\"b.txt\")"];
+  F [label="rename(\"a.txt\",\n \"b.txt\")"]
+
+  A -> B -> D -> E -> F;
+  F -> C [folded];
+
+  group {
+    orientation = portrait;
+    label = "Child process";
+
+    B; D; E; F;
+  }
+}
+  

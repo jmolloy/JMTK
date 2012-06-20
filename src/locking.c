@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "hal.h"
 #include "kmalloc.h"
 #include "stdlib.h"
@@ -34,6 +35,8 @@ semaphore_t *semaphore_new() {
 }
 
 void semaphore_wait(semaphore_t *s) {
+  assert(s && "NULL semaphore given!");
+
   while (1) {
     /* First, try and decrement the semaphore until it hits zero. */
     unsigned val;
@@ -56,6 +59,8 @@ void semaphore_wait(semaphore_t *s) {
 }
 
 void semaphore_signal(semaphore_t *s) {
+  assert(s && "NULL semaphore given!");
+
   /* FIXME: The current implementation is not FIFO, but LIFO, so
      thread starvation could occur. */
   __sync_fetch_and_add(&s->val, 1);
@@ -66,7 +71,7 @@ void semaphore_signal(semaphore_t *s) {
   if (t)
     s->queue_head = t->semaphore_next;
   spinlock_release(&s->queue_lock);
-
+  
   if (t)
     thread_wake(t);
 }

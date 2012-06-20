@@ -11,10 +11,14 @@ int rl() {
   return 0;
 }
 
-static const char *p[] = {"x86/screen", "x86/keyboard", "x86/serial",
-                          "hosted/console", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p[] = { {"x86/screen",NULL}, {"x86/keyboard",NULL},
+                        {"x86/serial",NULL}, {"hosted/console",NULL},
+                        {NULL,NULL} };
+
+static module_t x run_on_startup = {
   .name = "readline-example",
-  .prerequisites = p,
-  .fn = &rl
+  .load_after = p,
+  .required = NULL,
+  .init = &rl,
+  .fini = NULL
 };

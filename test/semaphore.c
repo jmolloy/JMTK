@@ -1,4 +1,6 @@
-// RUN: %compile %s -o %t && %run %t only-run semaphore-test 2>&1 | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -40,11 +42,15 @@ static int f () {
   return 0;
 }
 
-static const char *p[] = {"console", "x86/serial", "hosted/console",
-                          "threading", NULL};
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL},
+                        {"hosted/console",NULL}, {NULL,NULL} };
+static prereq_t p2[] = { {"threading",NULL}, {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "semaphore-test",
-  .prerequisites = p,
-  .fn = &f
+  .required = p2,
+  .load_after = p,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;

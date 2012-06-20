@@ -4,14 +4,10 @@
 // XFAIL: X64
 // XFAIL: ARM
 
-#if !defined(HOSTED)
-# error This test must be run on a hosted kernel!
-#endif
 #include "hal.h"
 #include "string.h"
 #include <stdio.h>
 
-#ifdef TEST1
 int written = 0;
 int _read = 0;
 int opened = 0;
@@ -60,54 +56,12 @@ static int test_end() {
   return 0;
 }
 
-static const char *p[] = {"console", NULL};
+static prereq_t p[] = { {"console",NULL}, {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "console-test",
-  .prerequisites = p,
-  .fn = &test
+  .required = p,
+  .load_after = NULL,
+  .init = &test,
+  .fini = &test_end
 };
-static init_fini_fn_t run_on_shutdown y = {
-  .name = "console-test",
-  .prerequisites = p,
-  .fn = &test_end
-};
-#endif
-
-#ifdef TEST2
-console_t c2 = {
-  .open = NULL,
-  .close = NULL,
-  .read = NULL,
-  .write = NULL,
-  .flush = NULL,
-  .data = NULL
-};
-
-static int test() {
-  // CHECK-T2: reg c: 0
-  printf("reg c: %d\n", register_console(&c2));
-  return 0;
-}
-static int test_end() {
-  unregister_console(&c2);
-  
-  // CHECK-T2: ok?
-  printf("ok?\n");
-  return 0;
-}
-
-static const char *p[] = {"console", NULL};
-
-static init_fini_fn_t run_on_startup x = {
-  .name = "console-test",
-  .prerequisites = p,
-  .fn = &test
-};
-static init_fini_fn_t run_on_shutdown y = {
-  .name = "console-test",
-  .prerequisites = p,
-  .fn = &test_end
-};
-
-#endif

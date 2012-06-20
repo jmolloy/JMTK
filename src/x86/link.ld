@@ -82,8 +82,9 @@ SECTIONS
   }
 
   /* Hack to silence warning when using GNU Gold as the linker. */
-  .extra 0x0 : {
+  .extra : {
     *(.note.gnu.gold-version)
+    *(.note.gnu.build-id)
   }
 
   /* Get rid of all other sections. */

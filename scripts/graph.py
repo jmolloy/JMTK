@@ -6,9 +6,10 @@ class Graph:
             Exception.__init__(self, msg)
 
     class Node:
-        def __init__(self, value):
+        def __init__(self, value, graph):
             self.value = value
             self.files = []
+            self.graph = graph
             
         def __str__(self):
             return str(self.value)
@@ -49,7 +50,7 @@ class Graph:
 
     def add_node(self, node):
         if node not in self.nodes:
-            self.nodes[node] = Graph.Node(node)
+            self.nodes[node] = Graph.Node(node, self)
         return self.nodes[node]
         
     def add_edge(self, node1, node2):

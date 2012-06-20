@@ -1,9 +1,6 @@
-// RUN: %compile -g %s -o %t && \
-// RUN: grep '^// IN:' %s | \
-// RUN: xargs echo -e | \
-// RUN: sed -e 's, \?// IN: ,,g' | \
-// RUN: %run %t only-run readline-test --timeout 4000 | \
-// RUN: %FileCheck %s
+#if 0
+exit `grep '^// IN:' $0 | xargs echo -e | sed -e 's, \?// IN: ,,g' | $1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -21,13 +18,17 @@ int rl() {
   return 0;
 }
 
-static const char *p[] = {"x86/screen", "x86/keyboard", "x86/serial",
-                          "hosted/console", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t p[] = { {"x86/screen",NULL}, {"x86/keyboard",NULL},
+                        {"x86/serial",NULL}, {"hosted/console",NULL},
+                        {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "readline-test",
-  .prerequisites = p,
-  .fn = &rl
+  .load_after = p,
+  .required = NULL,
+  .init = &rl,
+  .fini = NULL
 };
+module_t *test_module = &x;
 
 // IN: hello\\n
 // CHECK: ## 'hello'

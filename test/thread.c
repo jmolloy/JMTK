@@ -1,4 +1,6 @@
-// RUN: %compile %s -o %t && %run %t only-run thread-test 2>&1 | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -92,11 +94,15 @@ static void i(void *p) {
   kprintf("i: alive!\n");
 }
 
-static const char *p[] = {"console", "x86/serial", "hosted/console",
-                          "threading", NULL};
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL},
+                        {"hosted/console",NULL}, {NULL,NULL} };
+static prereq_t p2[] = { {"threading",NULL}, {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "thread-test",
-  .prerequisites = p,
-  .fn = &f
+  .load_after = p,
+  .required = p2,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;

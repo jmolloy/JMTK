@@ -149,9 +149,11 @@ static int pci_init() {
   return 0;
 }
 
-static const char *prereqs[] = {"kmalloc", "bringup", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"kmalloc",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "x86/pci",
-  .prerequisites = prereqs,
-  .fn = &pci_init
+  .required = prereqs,
+  .load_after = NULL,
+  .init = &pci_init,
+  .fini = NULL
 };

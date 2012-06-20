@@ -1,4 +1,6 @@
-// RUN: %compile %s -o %t && %run %t only-run vmm-test 2>&1 | %FileCheck %s
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
+#endif
 
 #include "hal.h"
 #include "stdio.h"
@@ -99,11 +101,15 @@ int f () {
   return 0;
 }
 
-static const char *p[] = {"console", "x86/serial",
-                          "x86/free_memory", "hosted/free_memory", NULL};
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL},
+                        {"x86/free_memory",NULL}, {"hosted/free_memory",NULL},
+                        {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "vmm-test",
-  .prerequisites = p,
-  .fn = &f
+  .required = NULL,
+  .load_after = p,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;

@@ -1,0 +1,18 @@
+Plan for chapter 1
+
+Aim: Introduce the tutorial series, get the user building and running something simple.
+
+Steps:
+
+* General intro - aims of this tutorial series and this chapter
+* TOC?
+* What is an operating system? What is a kernel?
+** Why UNIX?
+** Modularity
+
+* Environmental specifics
+** Layout - src, examples, test
+** CMake
+** Testing - lit/FileCheck
+
+* Code

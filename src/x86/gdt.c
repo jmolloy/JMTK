@@ -141,9 +141,11 @@ static int init_gdt() {
   return 0;
 }
 
-static const char *prereqs[] = {"console", "debugger", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"console",NULL}, {"debugger",NULL}, {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "x86/gdt",
-  .prerequisites = prereqs,
-  .fn = &init_gdt
+  .required = NULL,
+  .load_after = prereqs,
+  .init = &init_gdt,
+  .fini = NULL
 };

@@ -260,9 +260,13 @@ void interrupt_handler(x86_regs_t *regs) {
   }
 }
 
-static const char *prereqs[] = {"x86/gdt", "debugger", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"x86/gdt",NULL}, {NULL,NULL} };
+static prereq_t load_after[] = { {"debugger",NULL}, {NULL,NULL} };
+                                
+static module_t x run_on_startup = {
   .name = "interrupts",
-  .prerequisites = prereqs,
-  .fn = &init_idt
+  .required = prereqs,
+  .load_after = load_after,
+  .init = &init_idt,
+  .fini = NULL
 };

@@ -1,9 +1,5 @@
-// RUN: %compile %s -o %t && %run %t only-run irq-test 2>&1 | %FileCheck %s
-// XFAIL: Hosted
-// XFAIL: X64
-
-#if !defined(X86)
-# error This test must be run on an x86 bare kernel!
+#if 0
+exit `$1 $2 | ./test/FileCheck $0`
 #endif
 
 #include "hal.h"
@@ -36,11 +32,13 @@ int f () {
   return 0;
 }
 
-static const char *p[] = {"console", "x86/serial",
-                          "interrupts", NULL};
+static prereq_t p[] = { {"console",NULL}, {"x86/serial",NULL},
+                        {"interrupts",NULL}, {NULL,NULL} };
 
-static init_fini_fn_t run_on_startup x = {
+static module_t run_on_startup x = {
   .name = "irq-test",
-  .prerequisites = p,
-  .fn = &f
+  .required = p,
+  .init = &f,
+  .fini = NULL
 };
+module_t *test_module = &x;
