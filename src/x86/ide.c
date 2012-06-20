@@ -8,6 +8,11 @@
 #include "x86/io.h"
 #include "x86/pci.h"
 
+/* FIXME: This implementation only allows one 4k page per table entry due to the physical
+   memory manager not being able to dish out more than 4k at once. */
+
+#define dbg(args...) kprintf("ide: " args)
+
 static void ide_describe(block_device_t *bdev, char *buf, unsigned bufsz) {
   ide_dev_t *dev = (ide_dev_t*)bdev->data;
 
@@ -24,6 +29,8 @@ static void send_chip_select(uint16_t base, uint16_t cs) {
   if (last_cs == cs)
     return;
 
+  dbg("send_chip_select(%x, %d)\n", base, cs);
+
   /* Send device select command. */
   outb(base+ATA_REG_HDDEVSEL, cs ? 0xB0 : 0xA0);
 
@@ -36,8 +43,12 @@ static void send_chip_select(uint16_t base, uint16_t cs) {
   last_cs = cs;
 }
 
-static void send_lba_command(ide_dev_t *dev, uint64_t addr,
+static void send_lba_command(ide_dev_t *dev, uint64_t addr, uint8_t sectors,
                              uint8_t cmd28, uint8_t cmd48) {
+  dbg("send_lba_command(%x, %x, %x, %d)\n", (uint32_t)addr, cmd28, cmd48, sectors);
+
+  outb(dev->base+ATA_REG_SECCOUNT0, sectors);
+
   assert((addr & 0x3F) == 0 && "Addr must be a multiple of 512!");
   /* Convert addr into sectors. */
   addr >>= 10;
@@ -48,7 +59,7 @@ static void send_lba_command(ide_dev_t *dev, uint64_t addr,
     assert((dev->flags & IDE_FLAG_LBA28) && "Device doesn't support LBA28!");
     
     uint8_t head = ((addr>>24) & 0x0F) | ((dev->chip_select) << 4)
-      | 0x70;
+      | 0xE0;
     outb(dev->base+ATA_REG_HDDEVSEL, head);
     outb(dev->base+ATA_REG_LBA0, addr & 0xFF);
     outb(dev->base+ATA_REG_LBA1, (addr>>8) & 0xFF);
@@ -60,12 +71,15 @@ static void send_lba_command(ide_dev_t *dev, uint64_t addr,
 
 static void dma_setup(ide_dev_t *dev, uintptr_t buf,
                       unsigned size, unsigned write) {
+  dbg("dma_setup(%x, %d, %d)\n", buf, size, write);
+
   assert((size & 0xFFF) == 0 && "DMA read size must be a multiple of 4K!");
   assert((buf & 0xFFF) == 0 && "DMA read buffer must be page aligned!");
   assert(size <= 0x200000 && "DMA size of one operation cannot be > 2MB!");
 
-  send_chip_select(dev->base, dev->chip_select);
-  
+  /* First, stop DMA transfers */
+  outb(dev->busmaster+ATA_BUSMASTER_CMD, 0x00);
+
   unsigned flags;
   /* Set up the PRDT with descriptors for this operation. */
   unsigned i;
@@ -74,11 +88,11 @@ static void dma_setup(ide_dev_t *dev, uintptr_t buf,
     assert(phys != ~0ULL && "Page was not mapped!");
     assert(phys <= 0xFFFFFFFFU &&
            "DMA page must be in lower 4GB of phys memory!");
-    dev->prdt[i].addr = phys;
-    dev->prdt[i].nbytes = 4096;
-    dev->prdt[i].resvd = 0;
+    dev->prdt[i>>12].addr = phys;
+    dev->prdt[i>>12].nbytes = 4096;
+    dev->prdt[i>>12].resvd = 0;
   }
-  dev->prdt[i].resvd |= IDE_PRDT_LAST;
+  dev->prdt[(i-0x1000)>>12].resvd |= IDE_PRDT_LAST;
 
   /* Ensure interrupts are enabled. */
   /* FIXME: add #defines for this. */
@@ -87,7 +101,8 @@ static void dma_setup(ide_dev_t *dev, uintptr_t buf,
   /* Set the PRDT address. */
   uint64_t phys = get_mapping((uintptr_t)dev->prdt, &flags);
   assert(phys != ~0ULL && "Page was not mapped!");
-  assert(phys <= 0xFFFFFFFFU && "DMA page must be in lower 4GB of phys memory!");  dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
+  assert(phys <= 0xFFFFFFFFU && "DMA page must be in lower 4GB of phys memory!");
+  dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
   outl(dev->busmaster+ATA_BUSMASTER_PRDT_ADDR, (uint32_t)phys);
 
   outb(dev->busmaster+ATA_BUSMASTER_CMD, ATA_BUSMASTER_START |
@@ -97,21 +112,28 @@ static void dma_setup(ide_dev_t *dev, uintptr_t buf,
 static void dma_start_read(ide_dev_t *dev, uintptr_t buf,
                            unsigned size, uint64_t address,
                            semaphore_t *sema) {
+  dbg("dma_start_read(%x, %x, %d, %x)\n", dev, buf, size, (uint32_t)address);
+
+  send_chip_select(dev->base, dev->chip_select);
+
+  send_lba_command(dev, address, size/512, ATA_CMD_READ_DMA, ATA_CMD_READ_DMA_EXT);
+
   dma_setup(dev, buf, size, 0);
 
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
   dev->sema = sema;
-  kprintf("sema val init %d\n", dev->sema->val);
+
   dev->flags &= ~IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
   dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
-  send_lba_command(dev, address, ATA_CMD_READ_DMA, ATA_CMD_READ_DMA_EXT);
 }
 
 static void dma_start_write(ide_dev_t *dev, uintptr_t buf,
                             unsigned size, uint64_t address,
                             semaphore_t *sema) {
+  dbg("dma_start_write(%x, %d, %x)\n", buf, size, (uint32_t)address);
+
   dma_setup(dev, buf, size, 1);
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
@@ -119,10 +141,12 @@ static void dma_start_write(ide_dev_t *dev, uintptr_t buf,
   dev->flags |= IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
   dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
-  send_lba_command(dev, address, ATA_CMD_WRITE_DMA, ATA_CMD_WRITE_DMA_EXT);
+  send_lba_command(dev, address, size/512, ATA_CMD_WRITE_DMA, ATA_CMD_WRITE_DMA_EXT);
 }
 
 static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t len) {
+  dbg("ide_read(%x, %x, %x)\n", (uint32_t)offset, buf, (uint32_t)len);
+
   uintptr_t bufp = (uintptr_t)buf;
 
   assert((len & 0xFFF) == 0 && "Read length must be a multiple of 4096!");
@@ -134,20 +158,20 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
   semaphore_init(&sema);
 
   semaphore_wait(dev->lock);
-  kprintf("dma start read\n");
+
+  dev->sema = &sema;
+  
   dma_start_read(dev, bufp, len, offset, &sema);
 
-  kprintf("dma sema wait:  %d\n", sema.val);
   semaphore_wait(&sema);
-  kprintf("dma sama waited\n");
   unsigned error = dev->flags & IDE_FLAG_ERROR;
+
   semaphore_signal(dev->lock);
 
   return error ? -1 : (int)len;
 }
 
 static int dma_handle_irq(struct regs *r, void *p) {
-  kprintf("Handle irq!\n");
   ide_dev_t *dev = (ide_dev_t*)p;
   /* First, check if it was this device that caused the IRQ by checking
      the status bit. */
@@ -155,33 +179,42 @@ static int dma_handle_irq(struct regs *r, void *p) {
   if ((status & ATA_BUSMASTER_IRQ) == 0)
     return 0;
 
+  dbg("dma_handle_irq: status=%x\n", status);
+
+  /* Acknowledge IRQ, resetting the IRQ flag. */
+  outb(dev->busmaster+ATA_BUSMASTER_STATUS, ATA_BUSMASTER_IRQ);
+
   /* Second, check if an operation is actually in progress. */
   if ((dev->flags & IDE_FLAG_OP_IN_PROGRESS) == 0)
     return 0;
 
-  kprintf("was me\n");
+  dbg("dma_handle_irq: was intended for this device.\n");
+
   if (status & ATA_BUSMASTER_ERR) {
+    dbg("dma_handle_irq: error!\n");
     /* An error occurred :( */
     dev->flags = IDE_FLAG_ERROR;
+
     /* Operation complete - abort. */
     outb(dev->busmaster+ATA_BUSMASTER_CMD, 0);
     dev->flags &= ~IDE_FLAG_OP_IN_PROGRESS;
+
     semaphore_signal(dev->sema);
+
     return 0;
   }
-  kprintf("dev->n = %d\n", dev->n);
+
   if (dev->n == 0) {
     /* Operation complete. */
     outb(dev->busmaster+ATA_BUSMASTER_CMD, 0);
-    kprintf("sema_signal: %d\n", dev->sema->val);
     dev->flags &= ~IDE_FLAG_OP_IN_PROGRESS;
     semaphore_signal(dev->sema);
-    kprintf("sema_signalled: %d\n", dev->sema->val);
+
     return 0;
   }
 
   /* Send the next address to read. */
-  send_lba_command(dev, dev->next_addr,
+  send_lba_command(dev, dev->next_addr, 4096/512,
                    (dev->flags & IDE_FLAG_WRITE) ?
                    ATA_CMD_WRITE_DMA : ATA_CMD_READ_DMA,
                    (dev->flags & IDE_FLAG_WRITE) ?
@@ -201,6 +234,7 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
                                  semaphore_t *bus_lock) {
   /* First, select the device we want to access. */
   send_chip_select(base, chip_select);
+
   /* Set the sector count, and all lba registers to zero. */
   outb(base+ATA_REG_SECCOUNT0, 0);
   outb(base+ATA_REG_LBA0, 0);
@@ -262,6 +296,11 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
       dev->identify[i*2+0] = w & 0xFF;
       dev->identify[i*2+1] = (w>>8) & 0xFF;
     }
+  }
+
+  if (inb(base+ATA_REG_STATUS) & ATA_SR_ERR) {
+    kprintf("ide: Error after sending IDENTIFY packet!\n");
+    return NULL;
   }
 
   /* Bytes 200-208 contain the number of LBA48 addressable sectors. */
@@ -373,9 +412,12 @@ int ide_init() {
   return 0;
 }
 
-static const char *prereqs[] = {"x86/pci", NULL};
-static init_fini_fn_t x run_on_startup = {
+static prereq_t prereqs[] = { {"x86/pci",NULL}, {"threading",NULL},
+                              {NULL,NULL} };
+static module_t x run_on_startup = {
   .name = "x86/ide",
-  .prerequisites = prereqs,
-  .fn = &ide_init
+  .required = prereqs,
+  .load_after = NULL,
+  .init = &ide_init,
+  .fini = NULL
 };
