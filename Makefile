@@ -10,46 +10,11 @@ all:
 ifndef TARGET
     $(error TARGET is not set. Please set to one of HOSTED, X86 or X64.)
 endif
-ifeq ($(TARGET),HOSTED)
-    TARGET_FLAGS := -DHOSTED=1
-    TARGET_LINKFLAGS := 
-    CSOURCES := $(shell find src/hosted -type f -name "*.c") $(CSOURCES_TI)
-    SSOURCES := $(shell find src/hosted -type f -name "*.s") $(SSOURCES_TI)
-    TESTS    := $(shell find test/hosted -type f -name "*.c") #$(TESTS_TI)
-    EXAMPLES := $(EXAMPLES_TI)
-endif
-ifeq ($(TARGET),X86)
-    TARGET_FLAGS := -DX86=1 -m32 -ffreestanding -I$(BUILD)/src/x86 -nostdlib
-    TARGET_LINKFLAGS := -m32 -Tsrc/x86/link.ld -nostdlib -lgcc -n
-    CSOURCES := $(shell find src/x86 -type f -name "*.c") $(CSOURCES_TI)
-    SSOURCES := $(shell find src/x86 -type f -name "*.s") $(SSOURCES_TI)
-    TESTS    := $(shell find test/x86 -type f -name "*.c") $(TESTS_TI)
-    EXAMPLES := examples/ide.c  $(EXAMPLES_TI)
-    RUNNER   := scripts/run.py
 
-src/x86/keyboard.c: $(BUILD)/src/x86/scantable.inc
+TARGETL := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
+TARGETU := $(shell echo $(TARGET) | tr '[:lower:]' '[:upper:]')
 
-    ifndef SCANTABLE
-        SCANTABLE := src/x86/en_US.scantable
-    endif
-
-    EXAMPLEIMGS := $(patsubst %.c,$(BUILD)/%.img,$(EXAMPLES))
-
-    all: $(BUILD)/kernel.img $(EXAMPLEIMGS)
-
-$(BUILD)/src/x86/scantable.inc: scripts/scantable.py
-	@echo "\033[1mGEN\033[0m  $@"
-	@python scripts/scantable.py $(SCANTABLE) $@
-
-$(BUILD)/%.s.o: %.s Makefile | setup_builddir
-	@echo "\033[1mNASM\033[0m $<"
-	@nasm -felf $< -o $@
-
-$(BUILD)/%.img: $(BUILD)/% | setup_builddir
-	@echo "\033[1mGEN\033[0m  $@"
-	@python scripts/image.py src/ $< $@
-
-endif
+-include target-$(TARGETL).mk
 
 COBJECTS := $(patsubst %.c,$(BUILD)/%.c.o,$(CSOURCES))
 SOBJECTS := $(patsubst %.s,$(BUILD)/%.s.o,$(SSOURCES))
@@ -69,7 +34,7 @@ LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
 all: $(BUILD)/kernel $(TESTEXES) $(EXAMPLEEXES)
 
 $(BUILD)/kernel: $(BUILD)/libk.a
-	@echo "\033[1mLINK\033[0m   $(BUILD)/kernel"
+	@echo "\033[1mLINK\033[0m $(BUILD)/kernel"
 	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS)
 
 $(BUILD)/libk.a: $(COBJECTS) $(SOBJECTS)
@@ -83,7 +48,7 @@ $(BUILD)/%.c.o: %.c Makefile | setup_builddir
 	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP -c $< -o $@ -I ./src/include -I ./src/third_party/include
 
 $(BUILD)/%: %.c $(BUILD)/libk.a Makefile | setup_builddir
-	@echo "\033[1mLINK\033[0m   $@"
+	@echo "\033[1mLINK\033[0m $@"
 	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP $< -o $@ -I ./src/include $(LINK_LIBK) $(TARGET_LINKFLAGS)
 
 setup_builddir:
