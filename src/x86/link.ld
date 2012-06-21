@@ -72,6 +72,10 @@ SECTIONS
 
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
+
+    /* Hack to silence warning when using GNU Gold as the linker. */
+    *(.note.gnu.gold-version)
+    *(.note.gnu.build-id)
   }
 
   .bss ALIGN(4096) : AT(ADDR(.bss) - 0xC0000000)
@@ -79,12 +83,6 @@ SECTIONS
    *(.dynbss)
    *(.bss .bss.* .gnu.linkonce.b.*)
    *(COMMON)
-  }
-
-  /* Hack to silence warning when using GNU Gold as the linker. */
-  .extra : {
-    *(.note.gnu.gold-version)
-    *(.note.gnu.build-id)
   }
 
   /* Get rid of all other sections. */

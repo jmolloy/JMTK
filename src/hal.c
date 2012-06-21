@@ -224,7 +224,7 @@ block_device_t *get_block_device(dev_t id) weak;
 block_device_t *get_block_device(dev_t id) {
   return NULL;
 }
-
+#if 0
 int register_filesystem(const char *ident,
                         int (*probe)(dev_t dev, filesystem_t *fs)) weak;
 int register_filesystem(const char *ident,
@@ -235,7 +235,7 @@ int unregister_filesystem(const char *ident) weak;
 int unregister_filesystem(const char *ident) {
   return -1;
 }
-
+#endif
 int setjmp(jmp_buf buf) weak;
 int setjmp(jmp_buf buf) {
   return -1;
