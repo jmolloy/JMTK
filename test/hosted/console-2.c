@@ -1,3 +1,7 @@
+#if 0
+exit `$1 | ./test/FileCheck $0`
+#endif
+
 #include "hal.h"
 #include "string.h"
 #include <stdio.h>
@@ -33,3 +37,4 @@ static module_t run_on_startup x = {
   .init = &test,
   .fini = &test_end
 };
+module_t *test_module = &x;

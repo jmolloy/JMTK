@@ -1,10 +1,5 @@
-// RUN: %compile -g %s -o %t && %t only-run printf-test | %FileCheck %s
-// XFAIL: X86
-// XFAIL: X64
-// XFAIL: ARM
-
-#if !defined(HOSTED)
-# error This test must be run on a hosted kernel!
+#if 0
+exit `$1 | ./test/FileCheck $0`
 #endif
 
 #include "stdio.h"
@@ -219,3 +214,4 @@ static module_t run_on_startup x = {
   .init = &test,
   .fini = NULL
 };
+module_t *test_module = &x;
