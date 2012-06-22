@@ -2,6 +2,7 @@
 
 import sys,os,re
 from docutils.core import publish_parts
+from docutils.utils import SystemMessage
 from pygments import highlight
 from pygments.lexers import get_lexer_for_filename
 from pygments.formatters import HtmlFormatter
@@ -24,6 +25,7 @@ class SourceFile:
     def __init__(self, name):
         self.name = name
         self.lines = open(self.name).readlines()
+        self.linenum = 1
 
     def _is_asm_type(self, line):
         if re.match(r'\s*;;;',line):
@@ -32,15 +34,16 @@ class SourceFile:
 
     def _doc_fragment(self):
         docstr = []
+        is_asm = self._is_asm_type(self.lines[0])
 
         while self.lines:
             line = self.lines.pop(0)
-            is_asm = self._is_asm_type(line)
 
             if is_asm and not re.match(r'\s*;;;', line):
                 self.lines.insert(0, line)
                 break
             elif not is_asm and re.search(r'(^|[^*])\*?\*/', line):
+                self.linenum += 1
                 docstr.append(
                     line[:line.find('*/')] )
                 break
@@ -51,7 +54,7 @@ class SourceFile:
             src = self._src()
             docstr[-1] = re.sub(r'{', '', docstr[-1])
         
-        return SourceFragment(self, ''.join(docstr), src)
+        return SourceFragment(self, ''.join(docstr), src, self.linenum)
 
     def _src(self):
         src = []
@@ -61,6 +64,7 @@ class SourceFile:
             if self._is_docstring(line):
                 self.lines.insert(0, line)
                 break
+            self.linenum += 1
             src.append(line)
 
         return ''.join(src)
@@ -94,7 +98,7 @@ class SourceFile:
             if self._is_docstring(line):
                 frag = self._doc_fragment()
             else:
-                frag = SourceFragment(self, None, self._src())
+                frag = SourceFragment(self, None, self._src(), self.linenum)
 
             frags.append(frag)
         
@@ -102,11 +106,12 @@ class SourceFile:
         return frags
 
 class SourceFragment:
-    def __init__(self, file, docstring, src):
+    def __init__(self, file, docstring, src, linenum):
         self.file = file
         self.docstring = docstring
         self.src = src
         self.ord = None
+        self.linenum = linenum
         
         if self.docstring:
             firstline = self.docstring.split('\n')[0]
@@ -135,7 +140,11 @@ class SourceFragment:
             return ''
 
         ds = self._strip_prefix(self.docstring)
-        return publish_parts(ds, writer_name='html')['body']
+        try:
+            x = publish_parts(ds, writer_name='html', source_path=self.file.name)
+            return x['body']
+        except Exception as e:
+            pass
 
     def html_src(self):
         if not self.src:
@@ -143,7 +152,7 @@ class SourceFragment:
 
         try:
             return highlight(self.src,
-                             get_lexer_for_filename(self.file.name),
+                             get_lexer_for_filename(self.file.name.replace('.s','.asm')),
                              HtmlFormatter())
         except:
             return '<pre>'+self.src+'</pre>'
@@ -284,7 +293,10 @@ if __name__ == '__main__':
         print str(chapter)
         sys.exit(0)
 
-    os.makedirs(options.out_dir)
+    try:
+        os.makedirs(options.out_dir)
+    except:
+        pass
 
     g = Graph(options.graph)
 

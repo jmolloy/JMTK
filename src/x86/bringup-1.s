@@ -1,10 +1,13 @@
-;;;#1
+;;; #1
+;;; Machine bringup #1
+;;; ==================
+;;; 
 ;;; Now we need to write the code to get the machine to call ``main(argc, argv)``,
 ;;; and that means explaining a little about the way an x86 machine boots up.
 ;;; 
 ;;; .. note::
 ;;; 
-;;;     This explaination does not include EFI, the new BIOS replacement. But note
+;;;     This explanation does not include EFI, the new BIOS replacement. But note
 ;;;     that EFI has a BIOS emulation mode, so this is still valid.
 ;;; 
 ;;; On poweron, the first thing the processor does is set the program counter (EIP)
@@ -71,7 +74,7 @@
 ;;; as part of the multiboot info struct. More on that later.
 ;;; 
 ;;; Enough talk, let's begin...
-;;;         
+;;; 
 ;;; Firstly we need to inform the assembler (NASM in this case) that we
 ;;; are assembling for 32-bit mode. {
 bits 32

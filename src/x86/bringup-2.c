@@ -16,8 +16,7 @@
 
    For this, we need a memory allocator, ``earlyalloc``. This is a simple
    bump-pointer allocator, which merely increments a pointer by the size
-   requested and can never free memory. {
-*/
+   requested and can never free memory. { */
 
 #include "string.h"
 #include "types.h"
@@ -114,7 +113,7 @@ void bringup(multiboot_t *_mboot) {
      And then finally all we need to do is take the kernel command line and
      split it for passing to main() - to do this we use a helper function
      ``tokenize()``, defined slightly earlier, to split the string on every
-     space character. */
+     space character. { */
   static char *argv[256];
   int argc = tokenize(' ', (char*)mboot.cmdline, argv, 256);
 

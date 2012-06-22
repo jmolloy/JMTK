@@ -1,4 +1,4 @@
-/**#4
+/**#5
    You might think that we're done already, but we have yet to get our kernel to build!
 
    The next thing we have to do is tell the linker how to link our
@@ -100,7 +100,7 @@ SECTIONS
       the C standard library. Some tutorials recommend ``-nostdinc`` -
       ``-nostdlibinc`` is better as this removes the problems surrounding
       including C library headers but *still allows* headers required by the C
-      standard and defined by the compiler - notable ``<stdarg.h>`` and
+      standard and defined by the compiler - notably ``<stdarg.h>`` and
       ``<stdint.h>``, which allow us later to use ``uintptr_t`` and ``size_t``.
 
     ``-fno-builtin``
@@ -123,14 +123,11 @@ SECTIONS
 
     We require some options for the linker too::
 
-        -Tsrc/x86/link.ld -Xlinker --build-id=none -lgcc -n
+        -Tsrc/x86/link.ld -lgcc -n
 
     ``-Tsrc/x86/link.ld``
       This tells the linker to use the linker script "src/x86/link.ld" that we
       just defined instead of its default.
-
-    ``-Xlinker --build-id=none``
-      This is required to silence a warning with GNU Gold.
 
     ``-lgcc``
       Forces the linking in of libgcc, which contains definitions for 64-bit
@@ -138,16 +135,13 @@ SECTIONS
 
     ``-n``
       Works around a "feature" of GNU Gold. If you're really interested, see the
-      comment in CMakeLists.txt.
+      comment in the Makefile.
 
     This should now compile and link the kernel. All that's left is to squirt
     the built ELF image into a floppy disc image with GRUB preinstalled. This is
     all handled by the kernel's build system, so you just need to type::
 
-        mkdir build
-        cd build
-        cmake -DTARGET=X86 ..
-        make
-        qemu -fda src/kernel.img
+        make TARGET=x86 -j3
+        qemu -fda build/kernel.img
 
 */

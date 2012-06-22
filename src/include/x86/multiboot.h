@@ -30,8 +30,8 @@
      Valid if ``flags & MBOOT_MODULES`` is nonzero - this points to a list of
      kernel modules loaded via the "module" command in GRUB.
 
-   ``num``,``size``,``addr``,``shndx``
-     Valid is ``flags && MBOOT_ELF_SYMS`` is nonzero, these describe the
+   ``num``, ``size``, ``addr``, ``shndx``
+     Valid if ``flags & MBOOT_ELF_SYMS`` is nonzero, these describe the
      location and size of the ELF symbol table that the bootloader has
      loaded. ``addr`` refers to the address of an array of ``num`` ELF section headers,
      each of which is ``size`` large, and of which the ``shndx``'th is the
@@ -44,8 +44,7 @@
      array of structures that describe how the physical memory space is layed
      out - in particular this can tell you where exactly RAM (which has type
      '1') is located, because it's often not contiguous from zero, as you might
-     have expected! {
- */
+     have expected! { */
 
 #define MBOOT_MEM      (1<<0)
 #define MBOOT_BOOT_DEV (1<<1)

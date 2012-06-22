@@ -78,3 +78,6 @@ test: $(TESTEXES)
 	    count=`expr $$count + 1`; \
 	done; \
 	echo; echo "Tests executed: $$count ($$fail failures)"
+
+doc: doc/template.html layout.graph $(CSOURCES) $(SSOURCES) src/x86/link.ld
+	python scripts/docs.py --template doc/template.html --graph layout.graph --output-dir build/doc
