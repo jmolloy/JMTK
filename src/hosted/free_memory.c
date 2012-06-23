@@ -13,8 +13,8 @@ static int free_memory() {
 
   init_virtual_memory(NULL);
 
-  for (uint64_t i = MMAP_PHYS_BASE; i < MMAP_PHYS_END; i += 0x1000)
-    free_page(i-MMAP_PHYS_BASE);
+  range_t r = {MMAP_PHYS_BASE, MMAP_PHYS_END - MMAP_PHYS_BASE};
+  init_physical_memory(&r, 1, MMAP_PHYS_END);
 
   return 0;
 }

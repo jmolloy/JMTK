@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "hal.h"
 #include "mmap.h"
 #include "stdio.h"
@@ -63,6 +64,8 @@ int switch_address_space(address_space_t *dest) {
 }
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
+  assert(p != ~0ULL && "Invalid physical address given to map(): ~0ULL!");
+
   /* Sanity check - if CoW, disable write access. */
   if (flags & PAGE_COW)
     flags &= ~PAGE_WRITE;
@@ -89,7 +92,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
       (void*)v)
     panic("mmap() failed!");
 
-  memcpy((uint8_t*)v, (uint8_t*)(p+MMAP_PHYS_BASE), 0x1000);
+  memcpy((uint8_t*)v, (uint8_t*)p, 0x1000);
 
   /* Now unmap and map again with the correct permissions! */
   if (munmap((void*)v, 0x1000) == -1)
@@ -202,7 +205,7 @@ static void segv(int sig, siginfo_t *si, void *unused) {
   abort();
 }
 
-int init_virtual_memory(uintptr_t *pages) {
+int init_virtual_memory(range_t *ranges, unsigned nranges) {
   void *malloc(unsigned);
   address_space_t *a = malloc(sizeof(address_space_t));
   spinlock_init(&a->lock);

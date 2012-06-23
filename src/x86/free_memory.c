@@ -4,37 +4,35 @@
 
 extern multiboot_t mboot;
 
-static void maybe_init_vmm(uint64_t page) {
-  static uintptr_t initial_pages[NUM_INITIAL_PAGES];
-  static int num_initial_pages = 0;
-
-  if (num_initial_pages < NUM_INITIAL_PAGES) {
-    initial_pages[num_initial_pages++] = (uintptr_t)page;
-    if (num_initial_pages == NUM_INITIAL_PAGES)
-      init_virtual_memory(initial_pages);
-    return;
-  }
-
-  free_page(page);
-}
-
 static int free_memory() {
   if ((mboot.flags & MBOOT_MMAP) == 0)
     panic("Bootloader did not provide memory map info!");
 
+  range_t ranges[128];
+
   uint32_t i = mboot.mmap_addr;
+  unsigned n = 0;
+  uint64_t extent = 0;
   while (i < mboot.mmap_addr+mboot.mmap_length) {
+    if (n >= 128) break;
+
     multiboot_mmap_entry_t *entry = (multiboot_mmap_entry_t*)i;
 
     if (MBOOT_IS_MMAP_TYPE_RAM(entry->type)) {
-      for (uint32_t j = entry->base_addr; j < entry->base_addr+entry->length; j += 0x1000) {
-        maybe_init_vmm(j);
-      }
+      ranges[n].start = entry->base_addr;
+      ranges[n++].extent = entry->length;
+
+      if (entry->base_addr + entry->length > extent)
+        extent = entry->base_addr + entry->length;
     }
-    kprintf("e: sz %x addr %x len %x ty %x\n", entry->size, entry->base_addr, entry->length, entry->type);
+    kprintf("e: sz %x addr %x len %x ty %x\n", entry->size, (uint32_t)entry->base_addr, (uint32_t)entry->length, entry->type);
 
     i += entry->size + 4;
   }
+
+  init_virtual_memory(ranges, n);
+  init_physical_memory(ranges, n, extent);
+
   return 0;
 }
 

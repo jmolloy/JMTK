@@ -199,8 +199,13 @@ int is_mapped(uintptr_t v) {
   return -1;
 }
 
-int init_virtual_memory(uintptr_t *pages) weak;
-int init_virtual_memory(uintptr_t *pages) {
+int init_virtual_memory(range_t *ranges, unsigned nranges) weak;
+int init_virtual_memory(range_t *ranges, unsigned nranges) {
+  return -1;
+}
+
+int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent) weak;
+int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent) {
   return -1;
 }
 

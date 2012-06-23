@@ -99,14 +99,16 @@ address_space_t *get_current_address_space() {
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   spinlock_acquire(&current->lock);
-
+  //  kprintf("map_one_page: %x %x %x\n", v, (uint32_t)p, flags);
   /* Quick sanity check - a page with CoW must not be writable. */
   if (flags & PAGE_COW)
     flags &= ~PAGE_WRITE;
 
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0) {
+    //  kprintf("Done3?\n");
     uint64_t p = alloc_page(PAGE_REQ_UNDER4GB);
+    //kprintf("Done4?\n");
     if (p == ~0ULL)
       panic("alloc_page failed in map()!");
 
@@ -114,13 +116,13 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
 
     memset((uint8_t*) (MMAP_PAGE_TABLES + PAGE_DIR_IDX(v)*0x1000), 0, 0x1000);
   }
-
+  //kprintf("Done2?\n");
   uint32_t *page_table_entry = (uint32_t*) (MMAP_PAGE_TABLES + PAGE_TABLE_IDX(v)*4);
   if (*page_table_entry & X86_PRESENT)
     panic("Tried to map a page that was already mapped!");
 
   *page_table_entry = (p & 0xFFFFF000) | (to_x86_flags(flags) | X86_PRESENT);
-
+  //kprintf("Done?\n");
   spinlock_release(&current->lock);
   return 0;
 }
@@ -232,9 +234,23 @@ static int page_fault(x86_regs_t *regs, void *ptr) {
   return 0;
 }
 
-int init_virtual_memory(uintptr_t *pages) {
-  int n = 0;
+static uint32_t page_from_ranges(range_t *ranges, unsigned nranges) {
+  for (unsigned i = 0; i < nranges; ++i) {
+    if (ranges[i].extent <= 0x1000 || ranges[i].start >= 0x100000000ULL)
+      /* Discard any pages over 4GB physical or less than 4K in size. */
+      continue;
+    
+    uint32_t ret = (uint32_t)ranges[i].start;
+    ranges[i].start += 0x1000;
+    ranges[i].extent -= 0x1000;
 
+    kprintf("Returning %x\n", ret);
+    return ret;
+  }
+  panic("init_virtual_memory couldn't find any pages to use!");
+}
+
+int init_virtual_memory(range_t *ranges, unsigned nranges) {
   /* Initialise the initial address space object. */
   static address_space_t a;
   uint32_t d = read_cr3();
@@ -253,24 +269,19 @@ int init_virtual_memory(uintptr_t *pages) {
 
   /* Recursive page directory trick stage 2 - map a new page table and 
      map the directory again in the last entry of the page table. */
-  a.directory[1022] = pages[n] | X86_PRESENT | X86_WRITE;
+  a.directory[1022] = page_from_ranges(ranges, nranges) | X86_PRESENT | X86_WRITE;
 
   memset((uint8_t*) (MMAP_PAGE_TABLES + 1022*0x1000), 0, 0x1000);
   uint32_t *page_table_entry = (uint32_t*) (MMAP_PAGE_TABLES + PAGE_TABLE_IDX(MMAP_PAGE_DIR) * 4);
   *page_table_entry = (uint32_t)a.directory | X86_PRESENT | X86_WRITE;
 
-  ++n;
-
   /* Ensure the page table is mapped for the area required by the PMM. */
   unsigned last_table = ~0U;
-  for (uintptr_t addr = MMAP_PMM_STACK2; addr <= MMAP_PMM_STACKEND; addr += 0x1000) {
+  for (uintptr_t addr = MMAP_PMM_BITMAP; addr <= MMAP_PMM_BITMAP_END; addr += 0x1000) {
     if (PAGE_DIR_IDX(addr) != last_table) {
-      if (n >= NUM_INITIAL_PAGES)
-        panic("init_virtual_memory() required more than NUM_INITIAL_PAGES!");
-
       uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(addr) * 4);
       if ((*page_dir_entry & X86_PRESENT) == 0) {
-        *page_dir_entry = pages[n++] | X86_PRESENT | X86_WRITE;
+        *page_dir_entry = page_from_ranges(ranges, nranges) | X86_PRESENT | X86_WRITE;
 
         memset((uint8_t*) (MMAP_PAGE_TABLES + PAGE_DIR_IDX(addr)*0x1000), 0, 0x1000);
       }

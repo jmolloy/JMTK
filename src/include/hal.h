@@ -376,6 +376,9 @@ uint64_t alloc_page(int req);
 /* Mark a physical page as free. Returns -1 on failure. */
 int free_page(uint64_t page);
 
+uint64_t alloc_pages(int req, size_t num);
+int free_pages(uint64_t pages, size_t num);
+
 /* Creates a new address space based on the current one and stores it in
    'dest'. If 'make_cow' is nonzero, all pages marked WRITE are modified so
    that they are copy-on-write. */
@@ -409,6 +412,12 @@ uint64_t get_mapping(uintptr_t v, unsigned *flags);
 /* Return 1 if 'v' is mapped, else 0, or -1 if not implemented. */
 int is_mapped(uintptr_t v);
 
+/* A range of memory, with a start and a size. */
+typedef struct range {
+  uint64_t start;
+  uint64_t extent;
+} range_t;
+
 /* Initialise the virtual memory manager. 'pages' is an array of
    NUM_INITIAL_PAGES physical pages, which the VMM can use to
    bootstrap itself into a state where it can map more pages in the
@@ -416,7 +425,15 @@ int is_mapped(uintptr_t v);
    (MMAP_PMM_STACK2..MMAP_PMM_STACKEND).
    
    Returns 0 on success or -1 on failure. */
-int init_virtual_memory(uintptr_t *pages);
+int init_virtual_memory(range_t *ranges, unsigned nranges);
+
+/* Initialise the physical memory manager, passing in a set of ranges and
+   the maximum extent of physical memory (highest address + 1).
+
+   The set of ranges will be mutated to remove enough memory to initialise
+   the PMM. */
+int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent);
+
 #define NUM_INITIAL_PAGES 8
 
 /*******************************************************************************
