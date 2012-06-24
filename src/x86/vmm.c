@@ -108,6 +108,8 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   if ((*page_dir_entry & X86_PRESENT) == 0) {
     //  kprintf("Done3?\n");
     uint64_t p = alloc_page(PAGE_REQ_UNDER4GB);
+    kprintf("map: alloc_page returned %x\n", (uint32_t)p);
+    
     //kprintf("Done4?\n");
     if (p == ~0ULL)
       panic("alloc_page failed in map()!");

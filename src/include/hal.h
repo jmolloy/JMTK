@@ -366,6 +366,9 @@ int unregister_callback(void (*cb)(void*));
    (large pages etc.) */
 unsigned get_page_size();
 
+/* Rounds an address up so that it is page-aligned. */
+uintptr_t round_to_page_size(uintptr_t x);
+
 /* Allocate a physical page of the size returned by get_page_size(), returning
    the address of the page in the physical address space. Returns ~0ULL on
    failure.

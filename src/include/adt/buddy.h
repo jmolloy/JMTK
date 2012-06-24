@@ -16,7 +16,8 @@ typedef struct buddy {
   xbitmap_t orders[NUM_BUDDY_BUCKETS];
 } buddy_t;
 
-int buddy_init(buddy_t *bd, alloc_fn_t alloc, free_fn_t free, void *p,
+size_t buddy_calc_overhead(range_t r);
+int buddy_init(buddy_t *bd, uint8_t *overhead_storage,
                range_t r, int start_freed);
 uint64_t buddy_alloc(buddy_t *bd, unsigned sz);
 void buddy_free_range(buddy_t *bd, range_t range);

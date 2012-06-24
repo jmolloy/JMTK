@@ -11,9 +11,9 @@ static int free_memory() {
       (void*)MMAP_PHYS_BASE)
     panic("mmap() failed in free_memory()!");
 
-  init_virtual_memory(NULL);
-
   range_t r = {MMAP_PHYS_BASE, MMAP_PHYS_END - MMAP_PHYS_BASE};
+
+  init_virtual_memory(&r, 1);
   init_physical_memory(&r, 1, MMAP_PHYS_END);
 
   return 0;

@@ -2,17 +2,12 @@
 #define VMSPACE_H
 
 #include "stdint.h"
-#include "adt/xbitmap.h"
-
-/* log2 of the maximum buddy node size. */
-#define MAX_BUDDY_SZ_LOG2 28 /* 2^28 = 256MB */
-/* log2 of the minimum buddy node size. */
-#define MIN_BUDDY_SZ_LOG2 12 /* 2^12 = 4KB */
+#include "adt/buddy.h"
 
 typedef struct vmspace {
-  uintptr_t start, size;
-  xbitmap_t orders[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
-  uintptr_t order_alloc_ptrs[MAX_BUDDY_SZ_LOG2-MIN_BUDDY_SZ_LOG2+1];
+  uintptr_t start;
+  uintptr_t size;
+  buddy_t allocator;
   spinlock_t lock;
 } vmspace_t;
 

@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "hal.h"
 #include "math.h"
 #include "adt/buddy.h"
@@ -6,19 +7,22 @@
 #define INC_ORDER(x) (x << 1)
 #define DEC_ORDER(x) (x >> 1)
 
-int buddy_init(buddy_t *bd, alloc_fn_t alloc, free_fn_t free, void *p,
+size_t buddy_calc_overhead(range_t r) {
+  size_t accum = 0;
+  for (unsigned i = MIN_BUDDY_SZ_LOG2; i <= MAX_BUDDY_SZ_LOG2; ++i)
+    accum += (r.extent >> i) / 8 + 1;
+  return accum;
+}
+
+int buddy_init(buddy_t *bd, uint8_t *overhead_storage,
                range_t r, int start_freed) {
   bd->start = r.start;
   bd->size  = r.extent;
-  kprintf("extent: %x %x\n", (uint32_t)bd->start, (uint32_t)bd->size);
+
   for (unsigned i = 0; i < NUM_BUDDY_BUCKETS; ++i) {
-    xbitmap_init(&bd->orders[i], get_page_size(), alloc, free, p);
-
     unsigned idx = bd->size >> (MIN_BUDDY_SZ_LOG2 + i);
-    kprintf("Setting %x idx %x\n", (uint32_t)bd->size, idx);
-
-    xbitmap_set(&bd->orders[i], idx);
-    xbitmap_clear(&bd->orders[i], idx);
+    xbitmap_init(&bd->orders[i], overhead_storage, idx);
+    overhead_storage += idx / 8 + 1;
   }
 
   if (start_freed != 0)
@@ -37,17 +41,19 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
 
   /* Search for a free block - we may have to increase the size of the
      block to find a free one. */
-  unsigned idx;
+  int64_t idx;
   while (log_sz <= MAX_BUDDY_SZ_LOG2) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
     
     idx = xbitmap_first_set(&bd->orders[order_idx]);
-    if (idx != ~0U)
+
+    if (idx != -1)
       break;
+
     ++log_sz;
   }
 
-  if (idx == ~0U)
+  if (idx == -1)
     /* No free blocks :( */
     return ~0ULL;
 
@@ -69,7 +75,7 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
   xbitmap_clear(&bd->orders[order_idx], idx);
 
   uint64_t addr = bd->start + ((uint64_t)idx << log_sz);
-
+  
   return addr;  
 }
 
@@ -80,7 +86,7 @@ static int aligned_for(uint64_t addr, uintptr_t lg2) {
 
 void buddy_free_range(buddy_t *bd, range_t range) {
   uintptr_t min_sz = 1 << MIN_BUDDY_SZ_LOG2;
-  kprintf("buddy_free_range: %x, %x\n", (uint32_t)range.start, (uint32_t)range.extent);
+  //  kprintf("buddy_free_range(%x, %x)\n", (uint32_t)range.start, (uint32_t)range.extent);
   /* Ensure the range start address is at least aligned to MIN_BUDDY_SZ_LOG2. */
   if (aligned_for(range.start, MIN_BUDDY_SZ_LOG2) == 0) {
     if (range.extent < min_sz)
@@ -98,7 +104,7 @@ void buddy_free_range(buddy_t *bd, range_t range) {
 
       if (sz > range.extent || aligned_for(start, i) == 0)
         continue;
-
+      
       range.extent -= sz;
       range.start += sz;
       buddy_free(bd, start + bd->start, sz);
@@ -119,8 +125,12 @@ void buddy_free(buddy_t *bd, uint64_t addr, unsigned sz) {
     /* Mark this node free. */
     xbitmap_set(&bd->orders[order_idx], idx);
 
+    /* Can we coalesce up another level? */
+    if (log_sz == MAX_BUDDY_SZ_LOG2)
+      break;
+
     /* Is this node's buddy also free? */
-    if (xbitmap_isclear(&bd->orders[order_idx], BUDDY(idx)))
+    if (xbitmap_isset(&bd->orders[order_idx], BUDDY(idx)) == 0)
       /* no :( */
       break;
 
