@@ -8,36 +8,32 @@ exit `$1 $2 | ./test/FileCheck $0`
 #include "x86/io.h"
 
 int f () {
-  // CHECK: kmalloc(0x10): 0xfefd400{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefd402{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefd404{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefd406{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfefe000{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfefe002{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfefe004{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfefe006{{4|8}}
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
 
-  // CHECK: kmalloc(0x8): 0xfefd000{{4|8}}
-  // CHECK: kmalloc(0x8): 0xfefd001{{4|8}}
-  // CHECK: kmalloc(0x8): 0xfefd002{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfefe200{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfefe201{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfefe202{{4|8}}
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
 
-  kfree((void*)0xfefd0010 + sizeof(uintptr_t));
-  // CHECK: kmalloc(0x8): 0xfefd001{{4|8}}
+  kfree((void*)0xfefe2010 + sizeof(uintptr_t));
+  // CHECK: kmalloc(0x8): 0xfefe201{{4|8}}
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
 
-  // CHECK: kmalloc(0x400): 0xfefd600{{4|8}}
-  // CHECK: kmalloc(0x400): 0xfefd200{{4|8}}
+  // CHECK: kmalloc(0x400): 0xfefc000{{4|8}}
+  // CHECK: kmalloc(0x400): 0xfefc100{{4|8}}
   kprintf("kmalloc(0x400): %p\n", kmalloc(0x400));
   kprintf("kmalloc(0x400): %p\n", kmalloc(0x400));
 
-  kfree((void*)0xfefd6004);
-
-  kprintf("ismapped: %d\n", is_mapped(0xfefd6000));
-
-  kprintf("kmalloc(0x400): %p\n", kmalloc(0x400));
+  kfree((void*)0xfefc0004);
 
   return 0;
 }
