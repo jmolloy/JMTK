@@ -49,7 +49,10 @@ $(BUILD)/%.c.o: %.c Makefile | setup_builddir
 
 $(BUILD)/%: %.c $(BUILD)/libk.a Makefile | setup_builddir
 	@echo "\033[1mLINK\033[0m $@"
-	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP $< -o $@ -I ./src/include $(LINK_LIBK) $(TARGET_LINKFLAGS)
+	@$(CC) $(WARNINGS) $(DEFS) -MMD -MP $< -o $@ -I ./src/include $(LINK_LIBK) $(TARGET_LINKFLAGS)
+
+$(BUILD)/filecheck: utils/filecheck.c Makefile | setup_builddir
+	$(CC) -g -std=c99 $(WARNINGS) -DHOSTED -DSTANDALONE -MMD -MP utils/filecheck.c -o $@ -I ./src/include
 
 setup_builddir:
 	@mkdir -p $(BUILD)/src/x86
