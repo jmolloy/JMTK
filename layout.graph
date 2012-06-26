@@ -2,30 +2,23 @@
 
 "skeleton" -> "bringup stage 1"
 
-"bringup stage 1" -> "screen printing"
-"bringup stage 1" -> "keyboard"
-"bringup stage 1" -> "serial"
+"bringup stage 1" -> "console"
 
-"screen printing" -> "console"
+"console" -> "screen printing"
+"console" -> "keyboard"
+"console" -> "serial"
 
-"keyboard" -> "console"
-
-"serial" -> "console"
+"screen printing" -> "bringup stage 2"
+"keyboard" -> "bringup stage 2"
+"serial" -> "bringup stage 2"
 
 "bringup stage 2" -> "interrupt handling"
-
-"interrupt handling" -> "keyboard"
-
-"interrupt handling" -> "real time clock"
-
-"interrupt handling" -> "interval timer"
-
-"interrupt handling" -> "serial input"
-
-"console" -> "bringup stage 2"
-
 "bringup stage 2" -> "physical memory management"
 
+"interrupt handling" -> "keyboard"
+"interrupt handling" -> "real time clock"
+"interrupt handling" -> "interval timer"
+"interrupt handling" -> "serial input"
 
 "physical memory management" -> "virtual memory management"
 

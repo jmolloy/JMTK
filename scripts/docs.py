@@ -50,7 +50,10 @@ class SourceFile:
             docstr.append(line)
 
         src = ''
-        if docstr[-1].find('{') != -1:
+        if docstr[-1].find('}') != -1:
+            src = self._embed_src(docstr[-1])
+            docstr[-1] = re.sub(r'{.*}', '' ,docstr[-1])
+        elif docstr[-1].find('{') != -1:
             src = self._src()
             docstr[-1] = re.sub(r'{', '', docstr[-1])
         
@@ -68,6 +71,33 @@ class SourceFile:
             src.append(line)
 
         return ''.join(src)
+
+    def _embed_src(self, line):
+        m = re.search(r'{(.*),"(.*)","(.*)"}', line)
+        assert m
+        
+        file = m.group(1)
+        search_from = m.group(2)
+        search_to = m.group(3)
+
+        ls = open(file, 'r').readlines()
+
+        srcls = []
+        state = 'skipping'
+        for l in ls:
+            if state == 'skipping' and l.find(search_from) != -1:
+                state = 'adding'
+            if l.find(search_to) != -1:
+                state = 'done'
+
+            if state != 'skipping':
+                srcls.append(l)
+
+            if state == 'done':
+                break
+
+        return ''.join(srcls)
+
 
     def _is_docstring(self, line):
         if re.match(r'\s*/\*\*($|[^*])', line) or \
