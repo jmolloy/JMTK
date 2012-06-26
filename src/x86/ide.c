@@ -23,11 +23,17 @@ static void ide_describe(block_device_t *bdev, char *buf, unsigned bufsz) {
     ksnprintf(buf, bufsz, "%s (%dMB)", model, (dev->nsectors/(2*1024)));
 }
 
+static uint64_t ide_length(block_device_t *bdev) {
+  ide_dev_t *dev = (ide_dev_t*)bdev->data;
+
+  return (uint64_t)dev->nsectors * 512ULL;
+}
+
 static void send_chip_select(uint16_t base, uint16_t cs) {
   static uint16_t last_cs = 2;
 
-  if (last_cs == cs)
-    return;
+  /* if (last_cs == cs) */
+  /*   return; */
 
   dbg("send_chip_select(%x, %d)\n", base, cs);
 
@@ -332,6 +338,7 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
   bdev->read = &ide_read;
   bdev->write = NULL;
   bdev->flush = NULL;
+  bdev->length = &ide_length;
   bdev->describe = &ide_describe;
   bdev->data = (void*)dev;
 
@@ -346,6 +353,8 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
    devices and the documentation about how to deal with them appears to be
    spread about the internet. */
 int ide_init() {
+  enable_interrupts();
+
   for (pci_dev_t **devs = pci_get_devices(); *devs != NULL; ++devs) {
     pci_dev_t *dev = *devs;
 

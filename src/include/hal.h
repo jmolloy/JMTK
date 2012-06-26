@@ -487,6 +487,9 @@ typedef struct block_device {
   /* Flush the write buffer, if applicable. */
   void (*flush)(struct block_device *obj);
 
+  /* Return the size of the device, in bytes. */
+  uint64_t (*length)(struct block_device *obj);
+
   /* Return a string describing the device. */
   void (*describe)(struct block_device *obj, char *buf, unsigned bufsz);
 
@@ -531,8 +534,8 @@ void *unregister_device(dev_t id);
 /* Returns a character device object for the given id. If 'id' is not a
    registered character device, it returns NULL. */
 char_device_t *get_char_device(dev_t id);
-/* Returns a blockacter device object for the given id. If 'id' is not a
-   registered blockacter device, it returns NULL. */
+/* Returns a block device object for the given id. If 'id' is not a
+   registered block device, it returns NULL. */
 block_device_t *get_block_device(dev_t id);
 
 /********************************************************************************
