@@ -538,6 +538,10 @@ char_device_t *get_char_device(dev_t id);
    registered block device, it returns NULL. */
 block_device_t *get_block_device(dev_t id);
 
+/* Registers a function which will be called whenever a new block device
+   is registered. Returns 0 on success, 1 on failure. */
+int register_block_device_listener(void (*callback)(dev_t));
+
 /********************************************************************************
  * Threading
  *******************************************************************************/

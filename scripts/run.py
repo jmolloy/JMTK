@@ -49,7 +49,7 @@ class Qemu:
             t = threading.Timer(float(timeout) / 1000.0, _alarm)
             t.start()
 
-        extra = []
+        extra = self.args + ['-boot','a']
 
         # Pty for communicating with qemu's monitor.
         master, slave = os.openpty()
@@ -138,13 +138,14 @@ class Qemu:
 class Runner:
     def __init__(self, image, trace=False, syms=False, timeout=None,
                  preformatted_image=os.path.join('..','floppy.img.zip'),
-                 argv=None, keep_temps=False):
+                 argv=None, keep_temps=False, qemu_opts=[]):
         self.image = image
         self.trace = trace
         self.syms = syms
         self.timeout = timeout
         self.argv = argv
         self.keep_temps = keep_temps
+        self.qemu_opts = qemu_opts
 
         assert os.path.exists(self.image)
         
@@ -166,7 +167,7 @@ class Runner:
                         self.symbols[sym['st_value']] = sym.name
 
         if self.arch == 'X86':
-            self.model = Qemu('qemu-system-i386', [])
+            self.model = Qemu('qemu-system-i386', self.qemu_opts)
         else:
             raise RuntimeError("Unknown architecture: %s" % self.arch)
 
@@ -215,6 +216,7 @@ if __name__ == "__main__":
                  default=os.path.join('src','floppy.img.zip'),
                  help='Path to the preformatted floppy disk image to splat the kernel onto')
     p.add_option('--keep-temps', action='store_true', dest='keep_temps')
+    p.add_option('--hda', dest='hda')
     opts, args = p.parse_args()
 
     if not args:
@@ -226,7 +228,11 @@ if __name__ == "__main__":
     except:
         argv = None
 
-    r = Runner(args[0], trace=opts.trace, syms=opts.syms,
+    qemu_opts = []
+    if opts.hda:
+        qemu_opts += ['-hda', opts.hda]
+
+    r = Runner(args[0], trace=opts.trace, syms=opts.syms, qemu_opts=qemu_opts,
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv,
                keep_temps=opts.keep_temps)
 

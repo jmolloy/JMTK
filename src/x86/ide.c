@@ -10,8 +10,11 @@
 
 /* FIXME: This implementation only allows one 4k page per table entry due to the physical
    memory manager not being able to dish out more than 4k at once. */
-
+#if 0
 #define dbg(args...) kprintf("ide: " args)
+#else
+#define dbg(args...)
+#endif
 
 static void ide_describe(block_device_t *bdev, char *buf, unsigned bufsz) {
   ide_dev_t *dev = (ide_dev_t*)bdev->data;
@@ -57,7 +60,7 @@ static void send_lba_command(ide_dev_t *dev, uint64_t addr, uint8_t sectors,
 
   assert((addr & 0x3F) == 0 && "Addr must be a multiple of 512!");
   /* Convert addr into sectors. */
-  addr >>= 10;
+  addr >>= 9;
   if (addr >= (1ULL<<28)) {
     assert((dev->flags & IDE_FLAG_LBA48) && "Device doesn't support LBA48!");
     assert(0 && "LBA48 not implemented!");
