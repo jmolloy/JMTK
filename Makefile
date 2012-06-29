@@ -21,13 +21,15 @@ SOBJECTS := $(patsubst %.s,$(BUILD)/%.s.o,$(SSOURCES))
 TESTEXES := $(patsubst %.c,$(BUILD)/%,$(TESTS))
 EXAMPLEEXES := $(patsubst %.c,$(BUILD)/%,$(EXAMPLES))
 
+DEBUG_DEFS := $(shell echo $(DEBUG) | sed -e 's/^\|,/ -DDEBUG_/g')
+
 CDEPS := $(patsubst %.c,$(BUILD)/%.c.d,$(CSOURCES))
 
 .PHONY: all clean dist check
 
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 LINK_FLAGS := -Xlinker -n
-DEFS := -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS)
+DEFS := -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
 
 LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
 

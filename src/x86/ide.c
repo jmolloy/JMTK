@@ -10,7 +10,7 @@
 
 /* FIXME: This implementation only allows one 4k page per table entry due to the physical
    memory manager not being able to dish out more than 4k at once. */
-#if 0
+#ifdef DEBUG_ide
 #define dbg(args...) kprintf("ide: " args)
 #else
 #define dbg(args...)

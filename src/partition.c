@@ -5,7 +5,11 @@
 #include "string.h"
 #include "vmspace.h"
 
-#define dbg(args...) kprintf("part: " args)
+#ifdef DEBUG_part
+# define dbg(args...) kprintf("part: " args)
+#else
+# define dbg(args...)
+#endif
 
 #define PARTITION_BOOTABLE 0x80
 #define PARTITION_EXTENDED1 0xf
