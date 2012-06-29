@@ -67,6 +67,16 @@ static uint64_t part_length(block_device_t *obj) {
   return pdata->length;
 }
 
+static void part_describe(block_device_t *obj, char *buf, unsigned bufsz) {
+  partdata_t *pdata = (partdata_t*)obj->data;
+  return pdata->bdev->describe(pdata->bdev, buf, bufsz);
+}
+
+static void part_flush(block_device_t *obj) {
+  partdata_t *pdata = (partdata_t*)obj->data;
+  return pdata->bdev->flush(pdata->bdev);
+}
+
 static void register_partition(dev_t dev, block_device_t *bdev, partdesc_t *pd, int minor) {
   dev = makedev(major(dev), minor+1);
 
@@ -75,9 +85,9 @@ static void register_partition(dev_t dev, block_device_t *bdev, partdesc_t *pd, 
 
   bd->read = &part_read;
   bd->write = &part_write;
-  bd->flush = bdev->flush;
+  bd->flush = &part_flush;
   bd->length = &part_length;
-  bd->describe = bdev->describe;
+  bd->describe = &part_describe;
   bd->id = dev;
   bd->data = (void*)pdata;
 
@@ -199,7 +209,7 @@ static int partition() {
   return 0;
 }
 
-static prereq_t load_after[] = { {"ide",NULL}, {NULL,NULL} };
+static prereq_t load_after[] = { {"x86/ide",NULL}, {NULL,NULL} };
 static module_t x run_on_startup = {
   .name = "partition",
   .required = NULL,

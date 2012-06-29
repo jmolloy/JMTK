@@ -513,5 +513,5 @@ int kvsnprintf(char *str, size_t size, const char *format, va_list ap) {
     }
   }
   *str = '\0';
-  return n+1;
+  return n;
 }

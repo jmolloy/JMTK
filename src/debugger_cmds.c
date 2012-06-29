@@ -91,6 +91,7 @@ void panic(const char *message) {
 
 void assert_fail(const char *cond, const char *file, int line) {
   kprintf("*** Assertion failed: %s\n***   @ %s:%d\n", cond, file, line);
+  trap();
   abort();
   for(;;);
 }

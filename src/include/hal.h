@@ -32,7 +32,7 @@
 
 typedef struct spinlock {
   volatile unsigned val;
-  unsigned interrupts;
+  volatile unsigned interrupts;
 } spinlock_t;
 
 /* Platform specific hal.h's are required to define the following:

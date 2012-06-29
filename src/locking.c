@@ -10,14 +10,18 @@ void spinlock_init(spinlock_t *lock) {
 }
 
 void spinlock_acquire(spinlock_t *lock) {
-  lock->interrupts = get_interrupt_state();
+  int interrupts = get_interrupt_state();
+
   disable_interrupts();
   while (__sync_bool_compare_and_swap(&lock->val, 0, 1) == 0)
     ;
+
+  lock->interrupts = interrupts;
 }
 
 void spinlock_release(spinlock_t *lock) {
-  lock->val = 0;
+  while (__sync_bool_compare_and_swap(&lock->val, 1, 0) == 0)
+    ;
   set_interrupt_state(lock->interrupts);
 }
 
