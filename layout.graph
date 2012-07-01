@@ -26,11 +26,13 @@
 
 "kernel heap" -> "virtual file system"
 
-"IDE driver" -> "Simple tarball filesystem"
+"IDE driver" -> "Partitions"
 
-"IDE driver" -> "FAT filesystem"
+"Partitions" -> "Simple tarball filesystem"
 
-"IDE driver" -> "EXT2 filesystem"
+"Partitions" -> "FAT filesystem"
+
+"Partitions" -> "EXT2 filesystem"
 
 "cooperative threading" -> "IDE driver"
 
@@ -58,3 +60,4 @@
 "serial": [src/x86/serial.c]
 "console": [src/console.c src/hosted/console.c]
 "screen printing": [src/x86/screen.c]
+"Partitions": [src/partition.c]

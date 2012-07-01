@@ -4,12 +4,10 @@ exit `$1 $2 --hda test/inputs/partition-test.img | ./test/FileCheck $0`
 
 #include "hal.h"
 
-// CHECK: Primary partition 0 @ 0x1 size 0MB type 131
-// CHECK: Primary partition 1 @ 0x0 size 0MB type 0
-// CHECK: Primary partition 2 @ 0x12 size 0MB type 131
-// CHECK: Primary partition 3 @ 0x23 size 0MB type 5
-// CHECK: Extended partition 0 @ 0x24 size 0MB type 131
-// CHECK: Extended partition 1 @ 0x2a size 0MB type 131
+// CHECK: Partition 0 @ 0x1 size 0MB type 131
+// CHECK: Partition 2 @ 0x12 size 0MB type 131
+// CHECK: Partition 4 @ 0x24 size 0MB type 131
+// CHECK: Partition 5 @ 0x2a size 0MB type 131
 
 static prereq_t p[] = { {"partition",NULL}, {"x86/ide",NULL},
                         {"interrupts",NULL}, {NULL,NULL} };
