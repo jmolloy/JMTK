@@ -29,12 +29,12 @@
    friends. {src/include/hal.h,"typedef struct console","int read_console"} */
 
 /** So let's start defining our console multiplexer. The ``console_t`` structure
-   is a doubly-linked-list, so to register a new console all we have to do is
-   push the given object onto the front of that list.
+    is a doubly-linked-list, so to register a new console all we have to do is
+    push the given object onto the front of that list.
 
-   Note we also follow our usual practice of using stuff before we've defined it
-   - in this case spinlocks, which will be used once we have multithreading to
-   synchronise calls to the console functions. { */
+    Note we also follow our usual practice of using stuff before we've defined it -
+    in this case spinlocks, which will be used once we have multithreading to
+    synchronise calls to the console functions. { */
 
 #include "hal.h"
 

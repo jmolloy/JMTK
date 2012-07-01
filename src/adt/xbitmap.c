@@ -52,7 +52,7 @@ int xbitmap_isclear(xbitmap_t *xb, unsigned idx) {
 int64_t xbitmap_first_set(xbitmap_t *xb) {
   uintptr_t *d = (uintptr_t*)xb->data;
 
-  for (uint64_t i = 0; i < xb->max_extent / 8 + 1; i ++) {
+  for (uint64_t i = 0; i < (xb->max_extent >> 3) + 1ULL; i ++) {
     if (xb->data[i] == 0) continue;
 
     int64_t idx = i * 8 + lsb_set(xb->data[i]);
