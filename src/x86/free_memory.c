@@ -4,6 +4,15 @@
 
 extern multiboot_t mboot;
 
+static void remove_range(range_t *r, uint64_t start, uint64_t extent) {
+  /* FIXME: Assumes that a range exists that actually starts at 'start' and
+     has extent greater than or equal to 'extent'. */
+  if (r->start == start) {
+    r->start += extent;
+    r->extent -= extent;
+  }
+}
+
 static int free_memory() {
   if ((mboot.flags & MBOOT_MMAP) == 0)
     panic("Bootloader did not provide memory map info!");
@@ -28,6 +37,16 @@ static int free_memory() {
     kprintf("e: sz %x addr %x len %x ty %x\n", entry->size, (uint32_t)entry->base_addr, (uint32_t)entry->length, entry->type);
 
     i += entry->size + 4;
+  }
+
+  extern int __start, __end;
+  uintptr_t end = (((uintptr_t)&__end) & ~get_page_mask()) + get_page_size();
+  
+  for (i = 0; i < n; ++i)
+    remove_range(&ranges[i], (uintptr_t)&__start, end);
+
+  for (i = 0; i < n; ++i) {
+    kprintf("r: %x ext %x\n", (uint32_t)ranges[i].start, (uint32_t)ranges[i].extent);
   }
 
   init_virtual_memory(ranges, n);

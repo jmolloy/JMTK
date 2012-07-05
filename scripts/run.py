@@ -6,25 +6,98 @@ from image import Image
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
+def _setup_terminal(t):
+    iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(t)
+
+    # Emulate cfmakeraw(3)
+    iflag &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK |
+               termios.ISTRIP | termios.INLCR | termios.IGNCR |
+               termios.ICRNL | termios.IXON)
+    oflag &= ~termios.OPOST;
+    lflag &= ~(termios.ECHO | termios.ECHONL | termios.ICANON |
+               termios.ISIG | termios.IEXTEN)
+    cflag &= ~(termios.CSIZE | termios.PARENB)
+    cflag |= termios.CS8;
+
+    termios.tcsetattr(t, termios.TCSANOW, [iflag, oflag, cflag, lflag, ispeed, ospeed, cc])
+
+
+class Bochs:
+    def __init__(self, exe_name='bochs', args=None):
+        self.exe_name = exe_name
+        self.args = args
+        self.stop = False
+
+    def run(self, floppy_image, trace, timeout):        
+        if trace:
+            return "Unable to trace with Bochs."
+
+        if timeout:
+            # Bochs is slow.
+            timeout *= 3;
+            def _alarm():
+                try:
+                    child.send_signal(signal.SIGTERM);
+                except:
+                    pass
+                self.stop = True
+            t = threading.Timer(float(timeout) / 1000.0, _alarm)
+            t.start()
+
+        imaster, islave = os.openpty()
+
+        # Put the terminal in raw mode.
+        _setup_terminal(imaster)
+
+        o = open('/tmp/x','w')
+        
+        args = ['floppya: 1_44=%s,status=inserted' % floppy_image,
+                'boot: floppy',
+                'com1: enabled=1, mode=term, dev=%s' % os.ttyname(islave)]
+        child = subprocess.Popen([self.exe_name] + args, stderr=o, stdout=o)
+
+        out = ""
+        while not self.stop:
+            r,w,x = select.select([0,imaster],[],[],0.05)
+
+            # stdin ready for reading?
+            if 0 in r:
+                os.write(imaster, os.read(0, 128))
+
+            # pty ready for reading?
+            if imaster in r:
+                out += os.read(imaster, 128)
+
+        try:
+            # Kill qemu.
+            child.send_signal(signal.SIGTERM)
+
+            # Ensure all data is read from the child before reaping it.
+            while True:
+                r,w,x = select.select([imaster],[],[],0.05)
+                if imaster in r:
+                    out += os.read(imaster, 1024)
+                    continue
+                break
+        except:
+            
+            pass
+        code = child.wait()
+
+        os.close(imaster)
+        os.close(islave)
+        t.cancel()
+
+        out = ''.join([chr(ord(x) + 96) for x in out])
+
+        print "LENGTH: %d" % len(out)
+        return out.splitlines()
+
+
 class Qemu:
     def __init__(self, exe_name='qemu', args=None):
         self.exe_name = exe_name
         self.args = args
-
-    def _setup_terminal(self, t):
-        iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(t)
-        
-        # Emulate cfmakeraw(3)
-        iflag &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK |
-                   termios.ISTRIP | termios.INLCR | termios.IGNCR |
-                   termios.ICRNL | termios.IXON)
-        oflag &= ~termios.OPOST;
-        lflag &= ~(termios.ECHO | termios.ECHONL | termios.ICANON |
-                   termios.ISIG | termios.IEXTEN)
-        cflag &= ~(termios.CSIZE | termios.PARENB)
-        cflag |= termios.CS8;
-
-        termios.tcsetattr(t, termios.TCSANOW, [iflag, oflag, cflag, lflag, ispeed, ospeed, cc])
 
     def _check_finished(self, fd):
         os.write(fd, "info registers\n");
@@ -64,7 +137,7 @@ class Qemu:
         imaster, islave = os.openpty()
 
         # Put the terminal in raw mode.
-        self._setup_terminal(imaster)
+        _setup_terminal(imaster)
 
         extra += ["-serial", os.ttyname(islave)]
 
@@ -108,7 +181,6 @@ class Qemu:
             pass
 
         code = child.wait()
-
         os.close(master)
         os.close(slave)
 
@@ -168,6 +240,7 @@ class Runner:
 
         if self.arch == 'X86':
             self.model = Qemu('qemu-system-i386', self.qemu_opts)
+#            self.model = Bochs('bochs', [])
         else:
             raise RuntimeError("Unknown architecture: %s" % self.arch)
 

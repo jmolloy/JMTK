@@ -1,7 +1,6 @@
 #include "hal.h"
 #include "assert.h"
 #include "stdio.h"
-#include "math.h"
 #include "mmap.h"
 #include "adt/buddy.h"
 
@@ -32,15 +31,6 @@ static range_t split_range(range_t *r, uint64_t loc) {
   return ret;
 }
 
-static void *pmm_alloc_internal(unsigned sz, void *p) {
-  static uintptr_t virt = MMAP_PMM_BITMAP;
-
-  void *ret = (void*)virt;
-  virt += sz;
-
-  return ret;
-}
-
 uint64_t alloc_page(int req) {
   return alloc_pages(req, 1);
 }
@@ -53,6 +43,8 @@ uint64_t alloc_pages(int req, size_t num) {
   if (val == ~0ULL && req == PAGE_REQ_NONE)
     val = buddy_alloc(&allocators[PAGE_REQ_UNDER4GB], num * get_page_size());
 
+  kprintf("alloc_pages: %x\n", (uint32_t)val);
+  
   spinlock_release(&lock);
   return val;
 }
@@ -106,7 +98,11 @@ int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t max_extent)
   }
   assert(range != NULL && "Unable to find a memory range large enough!");
 
-  int ok = map(MMAP_PMM_BITMAP, range->start, bitmap_sz >> log2_roundup(get_page_size()), PAGE_WRITE);
+  size_t bitmap_sz_pages = bitmap_sz >> get_page_shift();
+  if (bitmap_sz & get_page_mask())
+    ++bitmap_sz_pages;
+
+  int ok = map(MMAP_PMM_BITMAP, range->start, bitmap_sz_pages, PAGE_WRITE);
   assert(ok == 0 && "map() failed in init_physical_memory!");
 
   range->start += bitmap_sz;

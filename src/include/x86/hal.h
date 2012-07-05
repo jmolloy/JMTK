@@ -18,6 +18,10 @@ static inline unsigned get_page_shift() {
   return 12;
 }
 
+static inline unsigned get_page_mask() {
+  return 0xFFF;
+}
+
 static inline uintptr_t round_to_page_size(uintptr_t x) {
   if ((x & 0xFFF) != 0)
     return ((x >> 12) + 1) << 12;

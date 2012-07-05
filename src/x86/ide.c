@@ -158,6 +158,7 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
 
   uintptr_t bufp = (uintptr_t)buf;
 
+  //  assert((offset & 0xFFF) == 0 && "Read length must be a multiple of 4096!");
   assert((len & 0xFFF) == 0 && "Read length must be a multiple of 4096!");
   assert((bufp & 0xFFF) == 0 && "Buffer must be a multiple of 4096!");
 

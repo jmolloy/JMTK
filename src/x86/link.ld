@@ -28,6 +28,7 @@ SECTIONS
 {
   .init 0x100000 :
   {
+    PROVIDE(__start = .);
     *(.init)
   }
   .init.bss ALIGN(4096) :
@@ -83,6 +84,7 @@ SECTIONS
    *(.dynbss)
    *(.bss .bss.* .gnu.linkonce.b.*)
    *(COMMON)
+    PROVIDE(__end = . - 0xC0000000);
   }
 
   /* Get rid of all other sections. */

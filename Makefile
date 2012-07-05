@@ -3,7 +3,7 @@ BUILD := build
 CSOURCES_TI := $(shell find src src/adt -maxdepth 1 -type f -name "*.c")
 SSOURCES_TI := $(shell find src src/adt -maxdepth 1 -type f -name "*.s")
 TESTS_TI    := $(shell find test -maxdepth 1 -type f -name "*.c")
-EXAMPLES_TI := examples/debugger.c examples/readline.c
+EXAMPLES_TI := examples/debugger.c examples/readline.c examples/mount.c
 
 all:
 

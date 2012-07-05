@@ -60,6 +60,7 @@ void kfree(void *p) {
 }
 
 static int kmalloc_init() {
+  kprintf("kmalloc_init\n");
   /* FIXME: Make vmspace_init deal with addresses that aren't initially
      maximally aligned so we can give it 0xC0400000 as the starting
      address (first address after first 4MB identity map (x86)) */
@@ -69,11 +70,14 @@ static int kmalloc_init() {
     assert(0 && "kernel_vmspace init failed!");
     return -1;
   }
-
+  kprintf("kmalloc_init23\n");
   int r = 0;
-  for (unsigned i = 0; i <= MAX_CACHESZ_LOG2-MIN_CACHESZ_LOG2; ++i)
+  for (unsigned i = 0; i <= MAX_CACHESZ_LOG2-MIN_CACHESZ_LOG2; ++i) {
+  kprintf("kmalloc_init2\n");
+    kprintf("*\n");
     r |= slab_cache_create(&caches[i], &kernel_vmspace, 1U<<(i+MIN_CACHESZ_LOG2), NULL);
-
+  }
+  kprintf("kmalloc_init3\n");
   assert(r == 0  && "slab cache creation failed!");
 
   return r;

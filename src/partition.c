@@ -311,14 +311,18 @@ static void register_partition(dev_t dev, block_device_t *bdev, partdesc_t *pd,
 /** Then finally we can pull it all together by iterating through all major
     devices, looking for partition tables! { */
 
-static int partition() {
-  for (int maj = DEV_MAJ_HDA; maj <= DEV_MAJ_SDD; ++maj) {
-    dev_t dev = makedev(maj, 0);
+static void part_callback(dev_t dev) {
+  if (minor(dev) != 0)
+    return;
 
-    block_device_t *bdev = get_block_device(dev);
-    if (bdev)
-      detect_partitions(dev);
-  }
+  block_device_t *bdev = get_block_device(dev);
+  if (bdev)
+    detect_partitions(dev);
+}
+
+static int partition() {
+  register_block_device_listener(&part_callback);
+  
   return 0;
 }
 

@@ -86,7 +86,7 @@ static int aligned_for(uint64_t addr, uintptr_t lg2) {
 
 void buddy_free_range(buddy_t *bd, range_t range) {
   uintptr_t min_sz = 1 << MIN_BUDDY_SZ_LOG2;
-  //  kprintf("buddy_free_range(%x, %x)\n", (uint32_t)range.start, (uint32_t)range.extent);
+
   /* Ensure the range start address is at least aligned to MIN_BUDDY_SZ_LOG2. */
   if (aligned_for(range.start, MIN_BUDDY_SZ_LOG2) == 0) {
     if (range.extent < min_sz)

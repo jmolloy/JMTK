@@ -4,12 +4,17 @@
 #if !defined(HOSTED)
 
 // Copy len bytes from src to dest.
-void memcpy(uint8_t *dest, const uint8_t *src, uint32_t len)
+void memcpy(void *dest_, const void *src_, uint32_t len)
 {
+  uint8_t *dest = dest_;
+  const uint8_t *src = src_;
   for(; len != 0; len--) *dest++ = *src++;
 }
 
-void memmove(uint8_t *dest, const uint8_t *src, uint32_t len) {
+void memmove(void *dest_, const void *src_, uint32_t len) {
+  uint8_t *dest = dest_;
+  const uint8_t *src = src_;
+
   if (dest < src) {
     memcpy(dest, src, len);
   } else {
@@ -20,13 +25,17 @@ void memmove(uint8_t *dest, const uint8_t *src, uint32_t len) {
 }
 
 // Write len copies of val into dest.
-void memset(uint8_t *dest, uint8_t val, uint32_t len)
+void memset(void *dest_, uint8_t val, uint32_t len)
 {
+  uint8_t *dest = dest_;
+
   for ( ; len != 0; len--) *dest++ = val;
 }
 
-void memsetw(uint16_t *dest, uint16_t val, uint32_t len)
+void memsetw(void *dest_, uint16_t val, uint32_t len)
 {
+  uint16_t *dest = dest_;
+
   for ( ; len != 0; len--) *dest++ = val;
 }
 

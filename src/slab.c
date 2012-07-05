@@ -84,20 +84,22 @@ void *slab_cache_alloc(slab_cache_t *c) {
 void slab_cache_free(slab_cache_t *c, void *obj) {
   spinlock_acquire(&c->lock);
   slab_footer_t *f = FOOTER_FOR_PTR(obj);
-
+  kprintf("footer: %x, %x\n", c, f);
   mark_unused(c, f, obj);
+  kprintf("wooby\n");
   if (!c->empty || c->empty > obj)
     c->empty = obj;
-
+  kprintf("unuseddone\n");
   if (!f->next && all_unused(c, f)) {
+  kprintf("wap\n");
     slab_footer_t *f2 = c->first;
     while (f2->next != f)
       f2 = f2->next;
-
+  kprintf("greaseball\n");
     f2->next = f->next;
     destroy(c, f);
   }
-
+  kprintf("cunty\n");
   spinlock_release(&c->lock);
 }
 

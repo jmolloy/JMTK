@@ -8,6 +8,10 @@
 static block_device_t *block_devs[MAX_DEVS];
 static unsigned num_block_devs = 0;
 
+typedef void (*block_device_callback)(dev_t);
+static block_device_callback callbacks[MAX_DEVS];
+static unsigned num_callbacks = 0;
+
 static const char *major_strs[] = {
   "null",
   "zero",
@@ -38,13 +42,24 @@ int register_block_device(dev_t id, block_device_t *dev) {
 
   kprintf("dev: %s = %s\n", identifier, buf);
 
+  for (unsigned i = 0; i < num_callbacks; ++i)
+    callbacks[i](id);
+
   return 0;
 }
 
 block_device_t *get_block_device(dev_t id) {
+  /* FIXME: Must make this constant time. */
   for (unsigned i = 0; i < num_block_devs; ++i) {
     if (block_devs[i]->id == id)
       return block_devs[i];
   }
   return NULL;
+}
+
+int register_block_device_listener(void (*callback)(dev_t)) {
+  /* Call the listener for all known block devices first. */
+  for (unsigned i = 0; i < num_block_devs; ++i)
+    callback(block_devs[i]->id);
+  callbacks[num_callbacks++] = callback;
 }

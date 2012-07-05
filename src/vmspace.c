@@ -35,7 +35,7 @@ uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
   spinlock_acquire(&vms->lock);
 
   uint64_t addr = buddy_alloc(&vms->allocator, sz);
- 
+
   if (alloc_phys && addr != ~0ULL) {
     size_t npages = sz >> get_page_shift();
     int ok = map(addr, alloc_pages(PAGE_REQ_NONE, npages), npages, alloc_phys);

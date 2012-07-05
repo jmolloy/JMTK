@@ -73,7 +73,6 @@ static void yield() {
     assert(0 && "Unreachable!");
     return;
   }
-
   t->state = THREAD_RUN;
   longjmp(t->jmpbuf, 1);
 }
