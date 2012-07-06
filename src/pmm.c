@@ -130,8 +130,6 @@ int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t max_extent)
     if (r.extent > 0)
       buddy_free_range(&allocators[PAGE_REQ_UNDER1MB], r);
 
-    split_range(&ranges[i], 0x110000);
-
     r = split_range(&ranges[i], 0x100000000ULL);
     if (r.extent > 0)
       buddy_free_range(&allocators[PAGE_REQ_UNDER4GB], r);

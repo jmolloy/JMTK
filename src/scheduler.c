@@ -23,7 +23,8 @@ thread_t *scheduler_next() {
   spinlock_acquire(&ready_lock);
 
   thread_t *t = ready_s;
-  ready_s = t->scheduler_next;
+  if (t)
+    ready_s = t->scheduler_next;
 
   spinlock_release(&ready_lock);
   return t;

@@ -154,6 +154,7 @@ void thread_destroy(thread_t *t) {
 
 void thread_sleep() {
   thread_t *t = thread_current();
+
   t->state = THREAD_SLEEP;
   if (setjmp(t->jmpbuf) == 0) {
     if (t->request_kill)
@@ -172,6 +173,7 @@ int thread_wake(thread_t *t) {
 
 void thread_yield() {
   thread_t *t = thread_current();
+
   if (setjmp(t->jmpbuf) == 0) {
     if (t->request_kill)
       t->state = THREAD_DEAD;
@@ -210,7 +212,7 @@ static int threading_init() {
   thread_list_head = t;
 
   register_debugger_handler("threads", "List all thread states", &inspect_threads);
-  
+
   return 0;
 }
 

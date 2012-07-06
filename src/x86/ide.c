@@ -170,7 +170,7 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
   semaphore_wait(dev->lock);
 
   dev->sema = &sema;
-  
+
   dma_start_read(dev, bufp, len, offset, &sema);
 
   semaphore_wait(&sema);

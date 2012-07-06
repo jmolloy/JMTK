@@ -75,7 +75,6 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
   xbitmap_clear(&bd->orders[order_idx], idx);
 
   uint64_t addr = bd->start + ((uint64_t)idx << log_sz);
-  
   return addr;  
 }
 

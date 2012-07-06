@@ -41,7 +41,7 @@ static int free_memory() {
 
   extern int __start, __end;
   uintptr_t end = (((uintptr_t)&__end) & ~get_page_mask()) + get_page_size();
-  
+
   for (i = 0; i < n; ++i)
     remove_range(&ranges[i], (uintptr_t)&__start, end);
 
