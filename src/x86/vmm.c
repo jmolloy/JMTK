@@ -99,7 +99,7 @@ address_space_t *get_current_address_space() {
 
 static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   spinlock_acquire(&current->lock);
-  //  kprintf("map_one_page: %x %x %x\n", v, (uint32_t)p, flags);
+
   /* Quick sanity check - a page with CoW must not be writable. */
   if (flags & PAGE_COW)
     flags &= ~PAGE_WRITE;
@@ -108,9 +108,7 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   if ((*page_dir_entry & X86_PRESENT) == 0) {
     //  kprintf("Done3?\n");
     uint64_t p = alloc_page(PAGE_REQ_UNDER4GB);
-    kprintf("map: alloc_page returned %x\n", (uint32_t)p);
     
-    //kprintf("Done4?\n");
     if (p == ~0ULL)
       panic("alloc_page failed in map()!");
 
@@ -118,13 +116,13 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
 
     memset((uint8_t*) (MMAP_PAGE_TABLES + PAGE_DIR_IDX(v)*0x1000), 0, 0x1000);
   }
-  //kprintf("Done2?\n");
+
   uint32_t *page_table_entry = (uint32_t*) (MMAP_PAGE_TABLES + PAGE_TABLE_IDX(v)*4);
   if (*page_table_entry & X86_PRESENT)
     panic("Tried to map a page that was already mapped!");
 
   *page_table_entry = (p & 0xFFFFF000) | (to_x86_flags(flags) | X86_PRESENT);
-  //kprintf("Done?\n");
+
   spinlock_release(&current->lock);
   return 0;
 }

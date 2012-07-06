@@ -43,8 +43,6 @@ uint64_t alloc_pages(int req, size_t num) {
   if (val == ~0ULL && req == PAGE_REQ_NONE)
     val = buddy_alloc(&allocators[PAGE_REQ_UNDER4GB], num * get_page_size());
 
-  kprintf("alloc_pages: %x\n", (uint32_t)val);
-  
   spinlock_release(&lock);
   return val;
 }
