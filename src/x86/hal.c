@@ -48,27 +48,27 @@ uintptr_t backtrace(uintptr_t *data, x86_regs_t *regs) {
 
 int describe_regs(x86_regs_t *regs, int max, const char **names,
                   uintptr_t *values) {
-  if (max < 15)
+  if (max < 16)
     return -1;
   if (!regs)
     panic("describe_regs(NULL)!");
 
   static const char *_names[] = {"eax", "ecx", "edx", "ebx", "esi", "edi",
-                                 "eip", "esp", "eflags", "cs", "U-esp",
+                                 "eip", "ebp", "esp", "eflags", "cs", "U-esp",
                                  "cr0", "cr2", "cr3", "cr4"};
-  memcpy((uint8_t*)names, (uint8_t*)_names, sizeof(const char*)*15);
+  memcpy((uint8_t*)names, (uint8_t*)_names, sizeof(const char*)*16);
 
   values[0] = regs->eax; values[1]  = regs->ecx; values[2] = regs->edx;
   values[3] = regs->ebx; values[4]  = regs->esi; values[5] = regs->edi;
-  values[6] = regs->eip; values[7]  = regs->esp; values[8] = regs->eflags;
-  values[9] = regs->cs;  values[10] = regs->useresp;
+  values[6] = regs->eip; values[7]  = regs->esp; values[8] = regs->esp;
+  values[9] = regs->eflags; values[10] = regs->cs; values[11] = regs->useresp;
 
-  __asm__ volatile("mov %%cr0, %0" : "=r" (values[11]));
-  __asm__ volatile("mov %%cr2, %0" : "=r" (values[12]));
-  __asm__ volatile("mov %%cr3, %0" : "=r" (values[13]));
-  __asm__ volatile("mov %%cr4, %0" : "=r" (values[14]));
+  __asm__ volatile("mov %%cr0, %0" : "=r" (values[12]));
+  __asm__ volatile("mov %%cr2, %0" : "=r" (values[13]));
+  __asm__ volatile("mov %%cr3, %0" : "=r" (values[14]));
+  __asm__ volatile("mov %%cr4, %0" : "=r" (values[15]));
 
-  return 15;
+  return 16;
 }
 
 typedef struct {
