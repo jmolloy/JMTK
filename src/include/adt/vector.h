@@ -9,6 +9,7 @@ typedef struct vector {
 } vector_t;
 
 vector_t vector_new(unsigned itemsz, unsigned nitems);
+vector_t vector_clone(vector_t other);
 void vector_drop(vector_t *vec);
 void vector_destroy(vector_t *vec);
 

@@ -180,10 +180,8 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
   vector_t entries = vector_new(sizeof(inode_t*), 4);
   dbg("read_directory: %x\n", cluster);
   while (cluster) {
-    dbg("woof\n");
-    dbg("cluster size: %x (get clus %d)\n", fs->cluster_size, cluster);
     unsigned char *data = get_cluster(fs, cluster);
-    dbg("HERE\n");
+
     vector_t name = vector_new(1, 16);
     for (unsigned idx = 0; idx < fs->cluster_size; idx += sizeof(vfat_dir_t)) {
       vfat_dir_t *dir = (vfat_dir_t*) &data[idx];
@@ -194,18 +192,15 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       if (dir->attributes == ATTR_LFN) {
         /* Long filename entry. */
         vfat_lfn_t *lfn = (vfat_lfn_t*) dir;
-      dbg("2\n");
+        
         vector_add_multiple(&name, lfn->name_1, 5);
         vector_add_multiple(&name, lfn->name_2, 6);
         vector_add_multiple(&name, lfn->name_3, 2);
-        dbg("3\n");
         continue;
       }
-      dbg("1\n");
 
       vector_add_multiple(&name, dir->name, 11);
-           vector_add(&name, "x");
-            dbg("dir->name %s\n", vector_get_data(&name));
+      
       /* FIXME: Use a slab. */
       inode_t *ino = kmalloc(sizeof(inode_t));
 
@@ -221,24 +216,28 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       ino->ctime = to_unix_time(dir->cdate, dir->ctime);
       ino->mtime = to_unix_time(dir->mdate, dir->mtime);
 
-      dbg("%s ty %d data %#x\n", "kk", ino->type, ino->data);
-      vector_add(&entries, ino);
+      dbg("%x %s ty %d data %#x\n", ino, ino->name, ino->type, ino->data);
+      vector_add(&entries, &ino);
       
       vector_drop(&name);
 
     }
+  inode_t *i = vector_get(&entries, 0);
+  dbg("%x entries[0]->type = %d\n", i, i->type);
+
     dbg("end!\n");
     vector_destroy(&name);
 
     cluster = get_next_cluster(fs, cluster);
   }
-  assert(0 && "impl, bitch.");
+
+  inode_t *i = vector_get(&entries, 0);
+  dbg("entries[0]->type = %d\n", i->type);
   return entries;
 }
 
 static vfat_filesystem_t *probe(block_device_t *dev) {
   vfat_header_t hdr;
-  dbg("attempting probe\n");
   
   if (!read_bpb(dev, &hdr))
     return NULL;

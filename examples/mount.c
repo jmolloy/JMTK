@@ -4,7 +4,15 @@
 
 int f() {
   /* mount("/dev/hda1", "/") */
-  mount(makedev(DEV_MAJ_HDA, 0), get_root(), NULL);
+  vfs_mount(makedev(DEV_MAJ_HDA, 0), get_root(), NULL);
+
+  vector_t dirs = vfs_readdir(vfs_get_root());
+  kprintf("len(dirs) = %d\n", vector_length(&dirs));
+
+  inode_t *a = vector_get(&dirs, 0);
+  kprintf("a name %s type %d\n", a->name, a->type);
+  vector_t adirs = vfs_readdir(a);
+  kprintf("len(adirs) = %d\n", vector_length(&adirs));
 
   return 0;
 }

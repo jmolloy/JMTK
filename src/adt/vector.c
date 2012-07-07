@@ -9,8 +9,20 @@ vector_t vector_new(unsigned itemsz, unsigned nitems) {
   v.itemsz = itemsz;
   v.nitems = 0;
   v.data = 0;
+  v.sz = 0;
 
   vector_reserve(&v, nitems);
+  return v;
+}
+
+vector_t vector_clone(vector_t other) {
+  vector_t v;
+  v.itemsz = other.itemsz;
+  v.nitems = other.nitems;
+  v.sz = other.sz;
+  v.data = kmalloc(v.sz * v.itemsz);
+  memcpy(v.data, other.data, v.sz * v.itemsz);
+
   return v;
 }
 

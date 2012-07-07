@@ -44,20 +44,6 @@ typedef struct filesystem {
   dev_t dev;
 } filesystem_t;
 
-/* Registers a filesystem with name "ident", and a probe function that
-   will attempt to find a filesystem of this kind on the given device.
-
-   If it succeeds, it should fill in the 'fs' structure and return zero.
-   Else, it should return nonzero.
-
-   This function returns zero if the FS was successfully registered,
-   nonzero otherwise. */
-int register_filesystem(const char *ident,
-                        int (*probe)(dev_t dev, filesystem_t *fs));
-/* Unregisters a filesystem previously registered by register_filesystem.
-   Returns zero on success, nonzero on failure. */
-int unregister_filesystem(const char *ident);
-
 /* A mount point. This has a device that has been mounted, a location,
    and a filesystem to handle requests. */
 typedef struct mountpoint {
@@ -101,26 +87,49 @@ typedef struct inode {
   void *data;
 } inode_t;
 
+/* Registers a filesystem with name "ident", and a probe function that
+   will attempt to find a filesystem of this kind on the given device.
+
+   If it succeeds, it should fill in the 'fs' structure and return zero.
+   Else, it should return nonzero.
+
+   This function returns zero if the FS was successfully registered,
+   nonzero otherwise. */
+int register_filesystem(const char *ident,
+                        int (*probe)(dev_t dev, filesystem_t *fs));
+/* Unregisters a filesystem previously registered by register_filesystem.
+   Returns zero on success, nonzero on failure. */
+int unregister_filesystem(const char *ident);
+
 /* Mounts a filesystem on the directory 'node'. If 'fs' is NULL, all known
    filesystems are probed. If not, only the filesystem specified is probed.
    
    Returns zero on success, -errno on failure. */
-int mount(dev_t dev, inode_t *node, const char *fs);
+int vfs_mount(dev_t dev, inode_t *node, const char *fs);
 /* Unmounts. If the device is given (isn't 0), the mountpoint
    associated with it is unmounted. If not, the inode is expected to be
    valid and is unmounted. */
-int umount(dev_t dev, inode_t *inode);
+int vfs_umount(dev_t dev, inode_t *inode);
 
-/* Returns an inode_t for the given path and increments its open count. */
-inode_t *open(const char *path);
+typedef bool (*access_fn_t)(int mode);
+
+/* Returns an inode_t for the given path and increments its open count.
+
+   If given, the function 'access' is called when open() is uncertain if
+   a directory is searchable (+x) for the current user. It is called with
+   the mode of the directory, and should return true if the user is allowed
+   to search the directory. */
+inode_t *vfs_open(const char *path, access_fn_t access);
 /* Performs a read of sz bytes into buf at offset. */
-int64_t read(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
+int64_t vfs_read(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
 /* Performs a write of sz bytes from buf at offset. */
-int64_t write(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
+int64_t vfs_write(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
 /* Decrements the open count of inode. */
-void close(inode_t *inode);
+void vfs_close(inode_t *inode);
+/* Returns the inodes contained in this directory. */
+vector_t vfs_readdir(inode_t *inode);
 
 /* Returns the root inode. */
-inode_t *get_root();
+inode_t *vfs_get_root();
 
 #endif /* VFS_H */
