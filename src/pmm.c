@@ -96,9 +96,7 @@ int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t max_extent)
   }
   assert(range != NULL && "Unable to find a memory range large enough!");
 
-  size_t bitmap_sz_pages = bitmap_sz >> get_page_shift();
-  if (bitmap_sz & get_page_mask())
-    ++bitmap_sz_pages;
+  size_t bitmap_sz_pages = round_to_page_size(bitmap_sz) >> get_page_shift();
 
   int ok = map(MMAP_PMM_BITMAP, range->start, bitmap_sz_pages, PAGE_WRITE);
   assert(ok == 0 && "map() failed in init_physical_memory!");
