@@ -4,7 +4,7 @@
 
 int f() {
   /* mount("/dev/hda1", "/") */
-  vfs_mount(makedev(DEV_MAJ_HDA, 0), get_root(), NULL);
+  vfs_mount(makedev(DEV_MAJ_HDA, 0), vfs_get_root(), NULL);
 
   vector_t dirs = vfs_readdir(vfs_get_root());
   kprintf("len(dirs) = %d\n", vector_length(&dirs));

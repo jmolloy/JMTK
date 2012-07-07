@@ -8,8 +8,6 @@
 #define THREAD_SLEEP 2
 #define THREAD_DEAD  3
 
-#define THREAD_STACK_SZ 0x2000  /* 8KB of kernel stack. */
-
 #define TLS_SLOT_TCB 0    /* TLS slot index for the thread control block (thread_t*) */
 #define TLS_SLOT_LAST 8   /* Final valid TLS slot entry. */
 #define TLS_SLOT_CANARY 9 /* Used internally to detect stack overrun. */

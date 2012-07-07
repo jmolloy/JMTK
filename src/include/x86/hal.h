@@ -1,6 +1,8 @@
 #ifndef X86_HAL_H
 #define X86_HAL_H
 
+#define THREAD_STACK_SZ 0x2000  /* 8KB of kernel stack. */
+
 typedef struct address_space {
   uint32_t *directory;
   spinlock_t lock;

@@ -4,6 +4,7 @@
 #include "assert.h"
 #include "scheduler.h"
 #include "stdio.h"
+#include "string.h"
 
 /* The slab cache for thread_t objects. */
 static slab_cache_t thread_cache;
@@ -110,6 +111,8 @@ thread_t *thread_current() {
 thread_t *thread_spawn(void (*fn)(void*), void *p, uint8_t auto_free) {
   thread_t *t = (thread_t*)slab_cache_alloc(&thread_cache);
 
+  memset(t, 0, sizeof(thread_t));
+
   t->auto_free = auto_free;
   t->stack = alloc_stack_and_tls();
  
@@ -144,8 +147,13 @@ thread_t *thread_spawn(void (*fn)(void*), void *p, uint8_t auto_free) {
 
 void thread_destroy(thread_t *t) {
   spinlock_acquire(&thread_list_lock);
-  t->next->prev = t->prev;
-  t->prev->next = t->next;
+  if (t->next)
+    t->next->prev = t->prev;
+
+  if (t->prev)
+    t->prev->next = t->next;
+  else
+    thread_list_head = t->next;
   spinlock_release(&thread_list_lock);
 
   free_stack_and_tls(t->stack);
@@ -173,6 +181,7 @@ int thread_wake(thread_t *t) {
 
 void thread_yield() {
   thread_t *t = thread_current();
+  assert(*tls_slot(TLS_SLOT_CANARY, t->stack) == CANARY_VAL);
 
   if (setjmp(t->jmpbuf) == 0) {
     if (t->request_kill)
@@ -208,6 +217,10 @@ static int threading_init() {
 
   *tls_slot(TLS_SLOT_TCB, t->stack) = (uintptr_t)t;
   *tls_slot(TLS_SLOT_CANARY, t->stack) = CANARY_VAL;
+
+  assert(*tls_slot(TLS_SLOT_TCB, t->stack) == (uintptr_t)t);
+
+  assert(*tls_slot(TLS_SLOT_CANARY, t->stack) == CANARY_VAL);
 
   thread_list_head = t;
 

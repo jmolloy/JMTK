@@ -1,6 +1,8 @@
 #ifndef HOSTED_HAL_H
 #define HOSTED_HAL_H
 
+#define THREAD_STACK_SZ 0x8000  /* 64KB of kernel stack. */
+
 typedef struct address_space {
   uint32_t a[1<<20];
   spinlock_t lock;
@@ -32,7 +34,8 @@ struct regs {
 };
 
 struct jmp_buf_impl {
-  uint32_t rsp, rbp, rip, rbx, rsi, rdi, rflags;
+  uint64_t rsp, rbp, rip, rbx, rsi, rdi, rflags,
+    r8, r9, r10, r11, r12, r13, r14, r15;
 };
 
 typedef struct jmp_buf_impl jmp_buf[1];
