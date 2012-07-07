@@ -5,6 +5,7 @@
 #include "string.h"
 #include "kmalloc.h"
 #include "vmspace.h"
+#include "adt/hashtable.h"
 
 #ifdef DEBUG_vfat
 # define dbg(args...) kprintf("vfat: " args)
@@ -106,6 +107,8 @@ typedef struct vfat_filesystem {
   uint32_t num_data_sectors;
   uint32_t num_clusters;
   block_device_t *dev;
+
+  hashtable_t known_inos;
 } vfat_filesystem_t;
 
 static unsigned char *read_data(vfat_filesystem_t *fs, uint32_t sect) {
@@ -201,12 +204,23 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
 
       vector_add_multiple(&name, dir->name, 11);
       
+      uint32_t data_cluster = dir->cluster_lo | (dir->cluster_hi << 16);
+      
+      /* Have we seen this cluster before? */
+      inode_t *ino;
+      if (ino = hashtable_get(&fs->known_inos, (void*)data_cluster)) {
+        /* FIXME: name?! */
+        vector_destroy(&name);
+        vector_add(&entries, &ino);
+        continue;
+      }
+
       /* FIXME: Use a slab. */
-      inode_t *ino = kmalloc(sizeof(inode_t));
+      ino = kmalloc(sizeof(inode_t));
 
       ino->name = (char*) vector_get_data(&name);
       ino->type = (dir->attributes == ATTR_DIRECTORY) ? it_dir : it_file;
-      ino->data = (void*) (dir->cluster_lo | (dir->cluster_hi << 16));
+      ino->data = (void*) data_cluster;
       ino->mode = 0777;
       ino->nlink = 1;
       ino->uid = ino->gid = ino->handles = 0;
@@ -219,20 +233,16 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       dbg("%x %s ty %d data %#x\n", ino, ino->name, ino->type, ino->data);
       vector_add(&entries, &ino);
       
+      hashtable_set(&fs->known_inos, (void*)data_cluster, ino);
+
       vector_drop(&name);
 
     }
-    inode_t *i = *(inode_t**)vector_get(&entries, 0);
-  dbg("%x entries[0]->type = %d\n", i, i->type);
-
-    dbg("end!\n");
     vector_destroy(&name);
 
     cluster = get_next_cluster(fs, cluster);
   }
 
-  inode_t *i = *(inode_t**)vector_get(&entries, 0);
-  dbg("entries[0]->type = %d\n", i->type);
   return entries;
 }
 
@@ -248,9 +258,7 @@ static vfat_filesystem_t *probe(block_device_t *dev) {
   fs->sectors_per_fat = (hdr.sectors_per_fat16) ? hdr.sectors_per_fat16 :
     hdr.u.h32.sectors_per_fat32;
   fs->first_data_sector = hdr.reserved_sectors + (hdr.num_fats * fs->sectors_per_fat);
-
   fs->num_data_sectors = fs->num_sectors - fs->first_data_sector;
-
   fs->cluster_size = hdr.sectors_per_cluster * 512;
 
   if (fs->cluster_size == 0) {
@@ -258,7 +266,7 @@ static vfat_filesystem_t *probe(block_device_t *dev) {
     kfree(fs);
     return NULL;
   }
-   
+
   fs->num_clusters = fs->num_data_sectors / hdr.sectors_per_cluster;
   if (fs->num_clusters < 4085)
     fs->ty = 12;
@@ -272,6 +280,7 @@ static vfat_filesystem_t *probe(block_device_t *dev) {
   memcpy((uint8_t*)&fs->hdr, (uint8_t*)&hdr, sizeof(vfat_header_t));
 
   fs->dev = dev;
+  fs->known_inos = hashtable_new(257);
 
   return fs;
 }
@@ -308,6 +317,8 @@ static int vfat_get_root(filesystem_t *fs, inode_t *ino) {
   ino->nlink = 1;
   ino->uid = ino->gid = ino->handles = 0;
   ino->u.dir_cache = 0;
+
+  hashtable_set(&vfs->known_inos, (void*)cluster, ino);
 
   return 0;
 }

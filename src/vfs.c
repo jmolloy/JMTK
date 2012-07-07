@@ -1,6 +1,7 @@
 #include "assert.h"
 #include "directory_cache.h"
 #include "errno.h"
+#include "kmalloc.h"
 #include "stdio.h"
 #include "string.h"
 #include "vfs.h"
@@ -48,21 +49,20 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
   assert(node->type == it_dir && "mount() called on non-directory inode!");
 
   dbg("mount() dev %x fs %s\n", dev, fs);
-  mountpoint_t mp;
+  mountpoint_t *mp = kmalloc(sizeof(mountpoint_t));
   for (unsigned i = 0; i < vector_length(&filesystems); ++i) {
     fs_info_t *fsi = vector_get(&filesystems, i);
 
     if (fs == NULL || !strcmp(fs, fsi->ident)) {
       dbg("considering FS '%s'\n", fsi->ident);
-      if (fsi->probe(dev, &mp.fs) == 0) {
-        mp.dev = dev;
-        mp.node = node;
+      if (fsi->probe(dev, &mp->fs) == 0) {
+        mp->dev = dev;
+        mp->node = node;
 
+        node->mountpoint = mp;
         vector_add(&mountpoints, &mp);
-        node->mountpoint = vector_get(&mountpoints,
-                                      vector_length(&mountpoints) - 1);
 
-        mp.fs.get_root(&node->mountpoint->fs, node);
+        mp->fs.get_root(&node->mountpoint->fs, node);
         node->u.dir_cache = NULL;
 
         dbg("mount() succeeded\n");
@@ -71,11 +71,13 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
 
       if (fs != NULL) {
         dbg("mount() failed\n");
+        kfree(mp);
         return 1;
       }
     }
   }
   dbg("mount() failed\n");
+  kfree(mp);
   return 1;
 }
 
@@ -87,8 +89,16 @@ vector_t vfs_readdir(inode_t *node) {
   if (!node->u.dir_cache) {
     dbg("... generating directory cache ...\n");
     vector_t v = node->mountpoint->fs.readdir(&node->mountpoint->fs, node);
-    inode_t *i = *(inode_t**)vector_get(&v, 0);
-    kprintf("v[0]->name %s v[0]->type %d\n", i->name, i->type);
+    
+    for (unsigned i = 0; i < vector_length(&v); ++i) {
+      inode_t *ino = *(inode_t**)vector_get(&v, i);
+
+      ino->mountpoint = node->mountpoint;
+      ino->parent = node;
+      ino->write_buffer = NULL;
+      ino->handles = 0;
+    }
+
     node->u.dir_cache = directory_cache_new(v);
     assert(node->u.dir_cache);
   }
@@ -164,7 +174,7 @@ void vfs_close(inode_t *node) {
 
 static int vfs_init() {
   filesystems = vector_new(sizeof(fs_info_t), 4);
-  mountpoints = vector_new(sizeof(mountpoint_t), 4);
+  mountpoints = vector_new(sizeof(mountpoint_t*), 4);
 
   root.name = "";
   root.mountpoint = NULL;
