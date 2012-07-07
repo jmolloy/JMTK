@@ -222,7 +222,7 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       vector_drop(&name);
 
     }
-  inode_t *i = vector_get(&entries, 0);
+    inode_t *i = *(inode_t**)vector_get(&entries, 0);
   dbg("%x entries[0]->type = %d\n", i, i->type);
 
     dbg("end!\n");
@@ -231,7 +231,7 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
     cluster = get_next_cluster(fs, cluster);
   }
 
-  inode_t *i = vector_get(&entries, 0);
+  inode_t *i = *(inode_t**)vector_get(&entries, 0);
   dbg("entries[0]->type = %d\n", i->type);
   return entries;
 }

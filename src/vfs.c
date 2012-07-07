@@ -87,7 +87,7 @@ vector_t vfs_readdir(inode_t *node) {
   if (!node->u.dir_cache) {
     dbg("... generating directory cache ...\n");
     vector_t v = node->mountpoint->fs.readdir(&node->mountpoint->fs, node);
-    inode_t *i = vector_get(&v, 0);
+    inode_t *i = *(inode_t**)vector_get(&v, 0);
     kprintf("v[0]->name %s v[0]->type %d\n", i->name, i->type);
     node->u.dir_cache = directory_cache_new(v);
     assert(node->u.dir_cache);

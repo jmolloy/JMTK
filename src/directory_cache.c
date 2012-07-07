@@ -14,7 +14,7 @@ directory_cache_t *directory_cache_new(vector_t entries) {
 inode_t *directory_cache_get(directory_cache_t *cache, const char *path) {
   assert(cache);
   for (unsigned i = 0; i < vector_length(&cache->write_buf); ++i) {
-    inode_t *node = vector_get(&cache->write_buf, i);
+    inode_t *node = *(inode_t**)vector_get(&cache->write_buf, i);
     if (!strcmp(node->name, path)) return node;
   }
   return NULL;

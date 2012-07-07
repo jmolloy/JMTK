@@ -20,7 +20,6 @@ void vector_add(vector_t *vec, void *item);
 void vector_add_multiple(vector_t *vec, void *items, unsigned nitems);
 
 void vector_reserve(vector_t *vec, unsigned nitems);
-void vector_destroy(vector_t *vec);
 
 void *vector_get_data(vector_t *vec);
 

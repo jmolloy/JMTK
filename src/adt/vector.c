@@ -37,6 +37,7 @@ void vector_destroy(vector_t *vec) {
     kfree(vec->data);
   vec->data = 0;
   vec->sz = 0;
+  vec->nitems = 0;
 }
 
 void *vector_get(vector_t *vec, unsigned n) {
