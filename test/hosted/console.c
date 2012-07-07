@@ -6,17 +6,17 @@ exit `$1 | ./test/FileCheck $0`
 #include "string.h"
 #include <stdio.h>
 
-int written = 0;
-int _read = 0;
-int opened = 0;
-int closed = 0;
-int flushed = 0;
-int open(console_t *obj) {opened++; return 0;}
-int close(console_t *obj) {closed++; return 0;}
-int read(console_t *obj, char *buf, int len) {_read++; return 1;}
-int read2(console_t *obj, char *buf, int len) {return 1;}
-int write(console_t *obj, const char *buf, int len) {written++; return 0;}
-void flush(console_t *obj) {flushed++;}
+static int written = 0;
+static int _read = 0;
+static int opened = 0;
+static int closed = 0;
+static int flushed = 0;
+static int open(console_t *obj) {opened++; return 0;}
+static int close(console_t *obj) {closed++; return 0;}
+static int read(console_t *obj, char *buf, int len) {_read++; return 1;}
+static int read2(console_t *obj, char *buf, int len) {return 1;}
+static int write(console_t *obj, const char *buf, int len) {written++; return 0;}
+static void flush(console_t *obj) {flushed++;}
 
 console_t c1 = {
   .open = &open,
