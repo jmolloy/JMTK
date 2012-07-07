@@ -180,8 +180,8 @@ static bool read_bpb(block_device_t *dev, vfat_header_t *hdr) {
 }
 
 static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
-  vector_t entries = vector_new(sizeof(inode_t*), 4);
-  dbg("read_directory: %x\n", cluster);
+  vector_t entries = vector_new(sizeof(dirent_t), 4);
+
   while (cluster) {
     unsigned char *data = get_cluster(fs, cluster);
 
@@ -205,20 +205,28 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       vector_add_multiple(&name, dir->name, 11);
       
       uint32_t data_cluster = dir->cluster_lo | (dir->cluster_hi << 16);
-      
+
+      char *n = (char*) vector_get_data(&name);
+      vector_drop(&name);
+
+      /* The name may be right-padded with spaces. */
+      while (n[strlen(n) - 1] == ' ')
+        n[strlen(n) - 1] = '\0';
+
+      dirent_t dent;
+      dent.name = n;
+
       /* Have we seen this cluster before? */
-      inode_t *ino;
-      if (ino = hashtable_get(&fs->known_inos, (void*)data_cluster)) {
-        /* FIXME: name?! */
-        vector_destroy(&name);
-        vector_add(&entries, &ino);
+      inode_t *ino = hashtable_get(&fs->known_inos, (void*)data_cluster);
+      if (ino) {
+        dent.ino = ino;
+        vector_add(&entries, &dent);
         continue;
       }
 
       /* FIXME: Use a slab. */
       ino = kmalloc(sizeof(inode_t));
 
-      ino->name = (char*) vector_get_data(&name);
       ino->type = (dir->attributes == ATTR_DIRECTORY) ? it_dir : it_file;
       ino->data = (void*) data_cluster;
       ino->mode = 0777;
@@ -231,11 +239,10 @@ static vector_t read_directory(vfat_filesystem_t *fs, uint32_t cluster) {
       ino->mtime = to_unix_time(dir->mdate, dir->mtime);
 
       dbg("%x %s ty %d data %#x\n", ino, ino->name, ino->type, ino->data);
-      vector_add(&entries, &ino);
-      
-      hashtable_set(&fs->known_inos, (void*)data_cluster, ino);
+      dent.ino = ino;
+      vector_add(&entries, &dent);
 
-      vector_drop(&name);
+      hashtable_set(&fs->known_inos, (void*)data_cluster, ino);
 
     }
     vector_destroy(&name);

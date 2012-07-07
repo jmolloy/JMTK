@@ -91,7 +91,8 @@ vector_t vfs_readdir(inode_t *node) {
     vector_t v = node->mountpoint->fs.readdir(&node->mountpoint->fs, node);
     
     for (unsigned i = 0; i < vector_length(&v); ++i) {
-      inode_t *ino = *(inode_t**)vector_get(&v, i);
+      dirent_t *dent = vector_get(&v, i);
+      inode_t *ino = dent->ino;
 
       ino->mountpoint = node->mountpoint;
       ino->parent = node;
@@ -176,7 +177,6 @@ static int vfs_init() {
   filesystems = vector_new(sizeof(fs_info_t), 4);
   mountpoints = vector_new(sizeof(mountpoint_t*), 4);
 
-  root.name = "";
   root.mountpoint = NULL;
   root.type = it_dir;
   root.parent = NULL;

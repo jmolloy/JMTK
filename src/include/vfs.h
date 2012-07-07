@@ -60,7 +60,6 @@ typedef enum inode_type {
 
 /* A VFS node, commonly known as an "inode". */
 typedef struct inode {
-  const char   *name;
   mountpoint_t *mountpoint;
   inode_type_t  type;
   struct inode *parent;
@@ -86,6 +85,11 @@ typedef struct inode {
   /* Implementation dependent data passed to the filesystem. */
   void *data;
 } inode_t;
+
+typedef struct dirent {
+  const char *name;
+  inode_t *ino;
+} dirent_t;
 
 /* Registers a filesystem with name "ident", and a probe function that
    will attempt to find a filesystem of this kind on the given device.

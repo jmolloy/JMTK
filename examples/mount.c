@@ -7,7 +7,7 @@ void emit_indent(int indent) {
     kprintf(" ");
 }
 
-void emit_tree(inode_t *ino, int indent, vector_t *done) {
+void emit_tree(const char *name, inode_t *ino, int indent, vector_t *done) {
   for (unsigned i = 0; i < vector_length(done); ++i)
     if (ino == *(inode_t**)vector_get(done, i))
       return;
@@ -15,14 +15,16 @@ void emit_tree(inode_t *ino, int indent, vector_t *done) {
   vector_add(done, &ino);
 
   emit_indent(indent);
-  kprintf("'%s' %s (size %d)\n", ino->name,
+  kprintf("'%s' %s (size %d)\n", name,
           ((ino->type == it_dir) ? "DIR" : ""),
           ino->size);
 
   if (ino->type == it_dir) {
     vector_t files = vfs_readdir(ino);
-    for (unsigned i = 0; i < vector_length(&files); ++i)
-      emit_tree(*(inode_t**)vector_get(&files, i), indent + 2, done);
+    for (unsigned i = 0; i < vector_length(&files); ++i) {
+      dirent_t *dent = vector_get(&files, i);
+      emit_tree(dent->name, dent->ino, indent + 2, done);
+    }
   }
 }
 
@@ -32,7 +34,7 @@ int f() {
 
   vector_t done = vector_new(sizeof(inode_t*), 16);
 
-  emit_tree(vfs_get_root(), 0, &done);
+  emit_tree("", vfs_get_root(), 0, &done);
   /* vector_t dirs = vfs_readdir(vfs_get_root()); */
   /* kprintf("len(dirs) = %d\n", vector_length(&dirs)); */
 
