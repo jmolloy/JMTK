@@ -114,17 +114,14 @@ typedef struct vfat_filesystem {
 static unsigned char *read_data(vfat_filesystem_t *fs, uint32_t sect) {
   uint8_t *sector = (uint8_t*)vmspace_alloc(&kernel_vmspace, 0x1000, 1);
 
-  uintptr_t offs = 0 ;//sect % 8;
-  
-  assert(get_interrupt_state() != 0);
-  int nbytes = fs->dev->read(fs->dev, (sect - offs) * 512, (void*)sector, 0x1000);
+  int nbytes = fs->dev->read(fs->dev, sect * 512, (void*)sector, 0x1000);
 
   if (nbytes != 0x1000) {
     dbg("unable to read from device (read returned %d)\n", nbytes);
     return NULL;
   }
 
-  return sector + (offs * 512);
+  return sector;
 }
 
 static uint64_t to_unix_time(uint16_t date, uint16_t time) {

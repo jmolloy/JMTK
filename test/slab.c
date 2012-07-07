@@ -17,12 +17,12 @@ int f () {
   // CHECK: create: 0
   kprintf("create: %d\n", slab_cache_create(&c, &vms, 1024, NULL));
 
-  // alloc1: c10ec000
-  // alloc2: c10ec400
-  // alloc3: c10ec800
-  // alloc4: c10ecc00
-  // alloc5: c10ed000
-  // alloc6: c10ed400
+  // CHECK: alloc1: c10fc000
+  // CHECK: alloc2: c10fc400
+  // CHECK: alloc3: c10fc800
+  // CHECK: alloc4: c10fcc00
+  // CHECK: alloc5: c10fd000
+  // CHECK: alloc6: c10fd400
   kprintf("alloc1: %x\n", slab_cache_alloc(&c));
   kprintf("alloc2: %x\n", slab_cache_alloc(&c));
   kprintf("alloc3: %x\n", slab_cache_alloc(&c));
@@ -30,18 +30,18 @@ int f () {
   kprintf("alloc5: %x\n", slab_cache_alloc(&c));
   kprintf("alloc6: %x\n", slab_cache_alloc(&c));
 
-  slab_cache_free(&c, (void*)0xc10ec000);
-  slab_cache_free(&c, (void*)0xc10ec400);
-  slab_cache_free(&c, (void*)0xc10ec800);
-  slab_cache_free(&c, (void*)0xc10ecc00);
-  slab_cache_free(&c, (void*)0xc10ed000);
+  slab_cache_free(&c, (void*)0xc10fc000);
+  slab_cache_free(&c, (void*)0xc10fc400);
+  slab_cache_free(&c, (void*)0xc10fc800);
+  slab_cache_free(&c, (void*)0xc10fcc00);
+  slab_cache_free(&c, (void*)0xc10fd000);
 
-  // alloc1: c10ec000
-  // alloc2: c10ec400
-  // alloc3: c10ec800
-  // alloc4: c10ecc00
-  // alloc5: c10ed000
-  // alloc6: c10ed800
+  // CHECK: alloc1: c10fc000
+  // CHECK: alloc2: c10fc400
+  // CHECK: alloc3: c10fc800
+  // CHECK: alloc4: c10fcc00
+  // CHECK: alloc5: c10fd000
+  // CHECK: alloc6: c10fd800
   kprintf("alloc1: %x\n", slab_cache_alloc(&c));
   kprintf("alloc2: %x\n", slab_cache_alloc(&c));
   kprintf("alloc3: %x\n", slab_cache_alloc(&c));
