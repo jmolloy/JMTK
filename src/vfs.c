@@ -326,11 +326,10 @@ int64_t vfs_write(inode_t *node, uint64_t offset, void *buf, uint64_t sz) {
 
 void vfs_close(inode_t *node) {
   assert(node->handles > 0 && "close() called on inode with no handles!");
-  rwlock_read_release(&node->rwlock);
+
   rwlock_write_acquire(&node->rwlock);
   --node->handles;
   rwlock_write_release(&node->rwlock);
-  rwlock_read_acquire(&node->rwlock);
 }
 
 static int vfs_init() {
