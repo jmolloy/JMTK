@@ -63,6 +63,9 @@ typedef struct inode {
   int mode, nlink, uid, gid, size;
   uint64_t atime, mtime, ctime;
 
+  /* Readers/writers lock for mutation. */
+  rwlock_t rwlock;
+
   /* Write buffer */
   void *write_buffer;
 

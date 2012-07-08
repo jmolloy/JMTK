@@ -79,3 +79,43 @@ void semaphore_signal(semaphore_t *s) {
   if (t)
     thread_wake(t);
 }
+
+void rwlock_init(rwlock_t *l) {
+  semaphore_init(&l->r);
+  semaphore_init(&l->w);
+  semaphore_signal(&l->r);
+  semaphore_signal(&l->w);
+  spinlock_init(&l->lock);
+  l->readcount = l->writecount = 0;
+}
+
+void rwlock_read_acquire(rwlock_t *l) {
+  assert(l);
+
+  spinlock_acquire(&l->lock);
+  semaphore_wait(&l->r);
+  if (__sync_fetch_and_add(&l->readcount, 1) == 0)
+    semaphore_signal(&l->w);
+  semaphore_signal(&l->r);
+  spinlock_release(&l->lock);
+}
+
+void rwlock_read_release(rwlock_t *l) {
+  assert(l);
+  if (__sync_fetch_and_sub(&l->readcount, 1) == 1)
+    semaphore_signal(&l->w);
+}
+
+void rwlock_write_acquire(rwlock_t *l) {
+  if (__sync_fetch_and_add(&l->writecount, 1) == 0)
+    semaphore_wait(&l->r);
+
+  semaphore_wait(&l->w);
+}
+
+void rwlock_write_release(rwlock_t *l) {
+  semaphore_signal(&l->w);
+
+  if (__sync_fetch_and_sub(&l->writecount, 1) == 1)
+    semaphore_signal(&l->r);
+}

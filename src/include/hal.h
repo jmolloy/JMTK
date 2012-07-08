@@ -577,14 +577,43 @@ void semaphore_signal(semaphore_t *s);
 
 typedef semaphore_t mutex_t;
 
-/* Initialise a mutex to the value zero. */
-void mutex_init(mutex_t *s);
-/* Returns a new mutex, initialised to the value zero. */
-mutex_t *mutex_new();
+/* Initialise a mutex to released. */
+static inline void mutex_init(mutex_t *s) {
+  semaphore_init(s);
+  semaphore_signal(s);
+}
+/* Returns a new mutex, initialised to released. */
+static inline mutex_t *mutex_new() {
+  mutex_t *m = semaphore_new();
+  semaphore_signal(m);
+  return m;
+}
 /* Acquire the mutex. Blocking operation. */
-void mutex_acquire(mutex_t *s);
+static inline void mutex_acquire(mutex_t *s) {
+  semaphore_wait(s);
+}
 /* Release the mutex. */
-void mutex_release(mutex_t *s);
+static inline void mutex_release(mutex_t *s) {
+  semaphore_signal(s);
+}
+
+/* A readers-writers lock: multiple readers, one writer. */
+typedef struct rwlock {
+  semaphore_t r, w;
+  spinlock_t lock;
+  volatile unsigned readcount, writecount;
+} rwlock_t;
+
+/* Initialise a readers-writers lock. */
+void rwlock_init(rwlock_t *l);
+/* Acquires a rwlock for reading. */
+void rwlock_read_acquire(rwlock_t *l);
+/* Releases a rwlock from reading. */
+void rwlock_read_release(rwlock_t *l);
+/* Acquires a rwlock for writing. */
+void rwlock_write_acquire(rwlock_t *l);
+/* Releases a rwlock from writing. */
+void rwlock_write_release(rwlock_t *l);
 
 /* Saves the current location and register state for jumping back to
    with longjmp(). It returns 0 if returning directly, and nonzero

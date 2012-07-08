@@ -15,6 +15,7 @@
 #define MAX_SYMLINKS_TO_FOLLOW 10
 
 static vector_t filesystems, mountpoints;
+static mutex_t filesystem_lock, mountpoint_lock;
 static inode_t root;
 
 typedef struct fs_info {
@@ -28,18 +29,23 @@ int register_filesystem(const char *ident,
   fsi.ident = ident;
   fsi.probe = probe;
 
+  mutex_acquire(&filesystem_lock);
   vector_add(&filesystems, &fsi);
+  mutex_release(&filesystem_lock);
   return 0;
 }
 
 int unregister_filesystem(const char *ident) {
+  mutex_acquire(&filesystem_lock);
   for (unsigned i = 0; i < vector_length(&filesystems); ++i) {
     fs_info_t *fsi = vector_get(&filesystems, i);
     if (!strcmp(fsi->ident, ident)) {
       vector_erase(&filesystems, i);
+      mutex_release(&filesystem_lock);
       return 0;
     }
   }
+  mutex_release(&filesystem_lock);
   return 1;
 }
 
@@ -53,11 +59,13 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
   dbg("mount: mount dev %x fs %s\n", dev, fs);
 
   /* Is the device or inode already mounted? */
+  mutex_acquire(&mountpoint_lock);
   for (unsigned i = 0; i < vector_length(&mountpoints); ++i) {
     mountpoint_t *mp = *(mountpoint_t**)vector_get(&mountpoints, i);
     if (mp->dev == dev || mp->node == node) {
       dbg("mount: device or inode already mounted!\n");
       set_errno(EBUSY);
+      mutex_release(&mountpoint_lock);
       return 1;
     }
   }
@@ -81,17 +89,20 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
         node->u.dir_cache = NULL;
 
         dbg("mount() succeeded\n");
+        mutex_release(&mountpoint_lock);
         return 0;
       }
 
       if (fs != NULL) {
         dbg("mount() failed\n");
+        mutex_release(&mountpoint_lock);
         kfree(mp);
         return 1;
       }
     }
   }
   dbg("mount() failed\n");
+  mutex_release(&mountpoint_lock);
   kfree(mp);
   return 1;
 }
@@ -99,6 +110,7 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
 int vfs_umount(dev_t dev, inode_t *node) {
  dbg("umount: umount dev %x node %x\n", dev, node);
 
+  mutex_acquire(&mountpoint_lock);
   /* Is the device or inode already mounted? */
   for (unsigned i = 0; i < vector_length(&mountpoints); ++i) {
     mountpoint_t *mp = *(mountpoint_t**)vector_get(&mountpoints, i);
@@ -109,21 +121,25 @@ int vfs_umount(dev_t dev, inode_t *node) {
 
       /* Restore the inode as it was before it was mounted. */
       memcpy(mp->node, &mp->orig_inode_data, sizeof(inode_t));
+      mutex_release(&mountpoint_lock);
       return 0;
     }
   }
 
   dbg("umount: target was not a mountpoint!\n");
   set_errno(EINVAL);
+  mutex_release(&mountpoint_lock);
   return 1;
 }
 
-vector_t vfs_readdir(inode_t *node) {
-  dbg("readdir(%x)\n", node);
-  assert(node->type == it_dir && "readdir() called on non-directory inode!");
-
-  /* Generate the directory cache if needs be. */
+static void maybe_generate_dircache(inode_t *node) {
+  /* Generate the directory cache if needed. */
   if (!node->u.dir_cache) {
+    rwlock_read_release(&node->rwlock);
+    rwlock_write_acquire(&node->rwlock);
+
+    if (node->u.dir_cache) return;
+    /* FIXME: Factor out dir cache generation from here and traverse_node() */
     dbg("... generating directory cache ...\n");
     vector_t v = node->mountpoint->fs.readdir(&node->mountpoint->fs, node);
     
@@ -135,22 +151,42 @@ vector_t vfs_readdir(inode_t *node) {
       ino->parent = node;
       ino->write_buffer = NULL;
       ino->handles = 0;
+      rwlock_init(&ino->rwlock);
     }
 
     node->u.dir_cache = directory_cache_new(v);
     assert(node->u.dir_cache);
-  }
 
-  return directory_cache_get_all(node->u.dir_cache);
+    rwlock_write_release(&node->rwlock);
+    rwlock_read_acquire(&node->rwlock);
+  }
 }
 
-/* Attempt to traverse from 'parent' to its child in 'path'. */
+vector_t vfs_readdir(inode_t *node) {
+  dbg("readdir(%x)\n", node);
+
+  assert(node->type == it_dir && "readdir() called on non-directory inode!");
+
+  rwlock_read_acquire(&node->rwlock);
+  maybe_generate_dircache(node);
+
+  vector_t v = directory_cache_get_all(node->u.dir_cache);
+  rwlock_read_release(&node->rwlock);
+
+  return v;
+}
+
+/* Attempt to traverse from 'parent' to its child in 'path', assuming we hold a read lock
+   on 'parent'.
+
+   Return an inode with a read lock held. */
 static inode_t *traverse_node(inode_t *parent,
                               const char *path, access_fn_t access) {
   dbg("_traverse: parent %x path '%s'\n", parent, path);
   if (parent->type != it_dir) {
     dbg("_traverse: parent was not a directory!\n");
     set_errno(ENOENT);
+    rwlock_read_release(&parent->rwlock);
     return NULL;
   }
 
@@ -163,22 +199,23 @@ static inode_t *traverse_node(inode_t *parent,
   if (! ((parent->mode & 1) == 1 || access(parent->mode)) ) {
     dbg("_traverse: search access denied!\n");
     set_errno(EACCES);
+    rwlock_read_release(&parent->rwlock);
     return NULL;
   }
 
   /* Generate the directory cache if needed. */
-  if (!parent->u.dir_cache) {
-    vector_t v = parent->mountpoint->fs.readdir(&parent->mountpoint->fs, parent);
-    parent->u.dir_cache = directory_cache_new(v);
-    assert(parent->u.dir_cache);
-  }
+  maybe_generate_dircache(parent);
 
   inode_t *child = directory_cache_get(parent->u.dir_cache, path);
   if (!child) {
     dbg("_traverse: no such file or directory!\n");
     set_errno(ENOENT);
+    rwlock_read_release(&parent->rwlock);
     return NULL;
   }
+
+  rwlock_read_acquire(&child->rwlock);
+  rwlock_read_release(&parent->rwlock);
 
   return child;
 }
@@ -197,6 +234,7 @@ static inode_t *traverse_path(inode_t *inode,
     while (inode->type == it_symlink) {
       if (++nloop >= MAX_SYMLINKS_TO_FOLLOW) {
         set_errno(ELOOP);
+        rwlock_read_release(&inode->rwlock);
         return NULL;
       }
 
@@ -204,8 +242,11 @@ static inode_t *traverse_path(inode_t *inode,
       assert(nbuf > 0 && "Symlink read failed!");
       buf[nbuf] = '\0';
 
-      inode = traverse_path( (buf[0] == '/') ? &root : inode->parent,
-                             buf, access );
+      inode_t *parent = (buf[0] == '/') ? &root : inode->parent;
+      rwlock_read_acquire(&parent->rwlock);
+      rwlock_read_release(&inode->rwlock);
+
+      inode = traverse_path( parent, buf, access );
       if (!inode) return NULL;
     }
 
@@ -222,12 +263,16 @@ static inode_t *traverse_path(inode_t *inode,
 inode_t *vfs_lopen(const char *path, access_fn_t access) {
   inode_t *inode = &root;
 
+  rwlock_read_acquire(&inode->rwlock);
   dbg("lopen: '%s'\n", path);
 
   inode = traverse_path(inode, path, access);
 
   if (inode)
     ++inode->handles;
+
+  rwlock_read_release(&inode->rwlock);
+
   return inode;
 }
 
@@ -235,6 +280,8 @@ inode_t *vfs_open(const char *path, access_fn_t access) {
   inode_t *inode = &root;
   char buf[512];
   int nbuf;
+
+  rwlock_read_acquire(&inode->rwlock);
 
   dbg("open: '%s'\n", path);
 
@@ -245,6 +292,7 @@ inode_t *vfs_open(const char *path, access_fn_t access) {
   while (inode && inode->type == it_symlink) {
     if (++nloop >= MAX_SYMLINKS_TO_FOLLOW) {
       set_errno(ELOOP);
+      rwlock_read_release(&inode->rwlock);
       return NULL;
     }
 
@@ -256,8 +304,11 @@ inode_t *vfs_open(const char *path, access_fn_t access) {
                            buf, access );
   }
 
-  if (inode)
+  if (inode) {
     ++inode->handles;
+    rwlock_read_release(&inode->rwlock);
+  }
+
   return inode;
 }
 
@@ -275,12 +326,19 @@ int64_t vfs_write(inode_t *node, uint64_t offset, void *buf, uint64_t sz) {
 
 void vfs_close(inode_t *node) {
   assert(node->handles > 0 && "close() called on inode with no handles!");
+  rwlock_read_release(&node->rwlock);
+  rwlock_write_acquire(&node->rwlock);
   --node->handles;
+  rwlock_write_release(&node->rwlock);
+  rwlock_read_acquire(&node->rwlock);
 }
 
 static int vfs_init() {
   filesystems = vector_new(sizeof(fs_info_t), 4);
   mountpoints = vector_new(sizeof(mountpoint_t*), 4);
+
+  mutex_init(&filesystem_lock);
+  mutex_init(&mountpoint_lock);
 
   root.mountpoint = NULL;
   root.type = it_dir;
@@ -295,6 +353,7 @@ static int vfs_init() {
   root.handles = 0;
   root.u.dir_cache = NULL;
   root.data = NULL;
+  rwlock_init(&root.rwlock);
 
   return 0;
 }
