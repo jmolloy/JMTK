@@ -48,7 +48,18 @@ inode_t *vfs_get_root() {
 int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
   assert(node->type == it_dir && "mount() called on non-directory inode!");
 
-  dbg("mount() dev %x fs %s\n", dev, fs);
+  dbg("mount: mount dev %x fs %s\n", dev, fs);
+
+  /* Is the device or inode already mounted? */
+  for (unsigned i = 0; i < vector_length(&mountpoints); ++i) {
+    mountpoint_t *mp = *(mountpoint_t**)vector_get(&mountpoints, i);
+    if (mp->dev == dev || mp->node == node) {
+      dbg("mount: device or inode already mounted!\n");
+      set_errno(EBUSY);
+      return 1;
+    }
+  }
+
   mountpoint_t *mp = kmalloc(sizeof(mountpoint_t));
   for (unsigned i = 0; i < vector_length(&filesystems); ++i) {
     fs_info_t *fsi = vector_get(&filesystems, i);
@@ -82,7 +93,7 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
 }
 
 vector_t vfs_readdir(inode_t *node) {
-  dbg("readdir('%s')\n", node->name);
+  dbg("readdir(%x)\n", node);
   assert(node->type == it_dir && "readdir() called on non-directory inode!");
 
   /* Generate the directory cache if needs be. */
@@ -157,13 +168,13 @@ inode_t *vfs_open(const char *path, access_fn_t access) {
 }
 
 int64_t vfs_read(inode_t *node, uint64_t offset, void *buf, uint64_t sz) {
-  dbg("read('%s')\n", node->name);
+  dbg("read(%x)\n", node);
   assert(node->type != it_dir && "read() called on a directory!");
   return node->mountpoint->fs.read(&node->mountpoint->fs, node, offset, buf, sz);
 }
 
 int64_t vfs_write(inode_t *node, uint64_t offset, void *buf, uint64_t sz) {
-  dbg("write('%s')\n", node->name);
+  dbg("write(%x)\n", node);
   assert(node->type != it_dir && "write() called on a directory!");
   return node->mountpoint->fs.write(&node->mountpoint->fs, node, offset, buf, sz);
 }

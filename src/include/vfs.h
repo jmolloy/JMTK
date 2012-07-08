@@ -15,12 +15,12 @@ struct inode;
 typedef struct filesystem {
   /* Reads from node 'node_data' 'sz' bytes from the given offset.
      Requires 'node_data' to be a normal file. Returns the number of
-     bytes written or -errno on error. */
+     bytes written or -1 on error. */
   int64_t (*read)(struct filesystem *fs,
                   struct inode *inode, uint64_t offset, void *buf, uint64_t sz);
   /* Writes to node 'node_data', 'sz' bytes from the given offset.
      Requires 'node_data' to be a normal file. Returns the number of
-     bytes written or -errno on error. */
+     bytes written or -1 on error. */
   int64_t (*write)(struct filesystem *fs,
                    struct inode *inode, uint64_t offset, void *buf, uint64_t sz);
   /* Returns a vector of inode_t's that are the children of directory 'dir'. */
@@ -34,7 +34,8 @@ typedef struct filesystem {
   int (*mknod)(struct filesystem *fs,
                struct inode *dir_inode, struct inode *dest_inode);
 
-  /* Populates 'inode' with information for the root directory. */
+  /* Populates 'inode' with information for the root directory.
+     Returns 0 on success, nonzero on failure. */
   int (*get_root)(struct filesystem *fs, struct inode *inode);
 
   /* Filesystem-specific data. */

@@ -46,8 +46,8 @@ int f() {
   return 0;
 }
 
-static prereq_t r[] = { {"vfs",NULL} };
-static prereq_t la[] = { {"x86/ide",NULL}, {"partition",NULL}, {"fs_vfat",NULL} };
+static prereq_t r[] = { {"vfs",NULL}, {NULL,NULL} };
+static prereq_t la[] = { {"x86/ide",NULL}, {"partition",NULL}, {"fs_vfat",NULL}, {NULL,NULL} };
 static module_t x run_on_startup = {
   .name = "mount-example",
   .required = r,

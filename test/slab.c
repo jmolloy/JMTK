@@ -49,6 +49,20 @@ int f () {
   kprintf("alloc5: %x\n", slab_cache_alloc(&c));
   kprintf("alloc6: %x\n", slab_cache_alloc(&c));
 
+  // Test destroying an entire cache (by freeing all objects) then allocing
+  // again.
+
+  slab_cache_free(&c, (void*)0xc10fc000);
+  slab_cache_free(&c, (void*)0xc10fc400);
+  slab_cache_free(&c, (void*)0xc10fc800);
+  slab_cache_free(&c, (void*)0xc10fcc00);
+  slab_cache_free(&c, (void*)0xc10fd000);
+  slab_cache_free(&c, (void*)0xc10fd400);
+  slab_cache_free(&c, (void*)0xc10fd800);
+
+  // CHECK: alloc1: c10fc000
+  kprintf("alloc1: %x\n", slab_cache_alloc(&c));
+
   return 0;
 }
 

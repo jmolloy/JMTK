@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "hal.h"
 #include "slab.h"
 #include "string.h"
@@ -83,6 +84,8 @@ void *slab_cache_alloc(slab_cache_t *c) {
 
 void slab_cache_free(slab_cache_t *c, void *obj) {
   spinlock_acquire(&c->lock);
+  assert(c->first && "Trying to free from an empty cache!");
+  
   slab_footer_t *f = FOOTER_FOR_PTR(obj);
 
   mark_unused(c, f, obj);
@@ -92,10 +95,15 @@ void slab_cache_free(slab_cache_t *c, void *obj) {
 
   if (!f->next && all_unused(c, f)) {
     slab_footer_t *f2 = c->first;
-    while (f2->next != f)
-      f2 = f2->next;
-
-    f2->next = f->next;
+    if (f2 == f) {
+      c->first = NULL;
+    } else {
+      while (f2->next != f)
+        f2 = f2->next;
+      f2->next = NULL;
+    }
+    if (FOOTER_FOR_PTR(c->empty) == f)
+      c->empty = NULL;
     destroy(c, f);
   }
   spinlock_release(&c->lock);

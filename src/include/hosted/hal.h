@@ -1,7 +1,7 @@
 #ifndef HOSTED_HAL_H
 #define HOSTED_HAL_H
 
-#define THREAD_STACK_SZ 0x8000  /* 64KB of kernel stack. */
+#define THREAD_STACK_SZ 0x10000  /* 64KB of kernel stack. */
 
 typedef struct address_space {
   uint32_t a[1<<20];
