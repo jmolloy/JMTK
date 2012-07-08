@@ -36,6 +36,30 @@
 #define EDOM        33  /* Math argument out of domain of func */
 #define ERANGE      34  /* Math result not representable */
 
+#define	EDEADLK		35	/* Resource deadlock would occur */
+#define	ENAMETOOLONG	36	/* File name too long */
+#define	ENOLCK		37	/* No record locks available */
+#define	ENOSYS		38	/* Function not implemented */
+#define	ENOTEMPTY	39	/* Directory not empty */
+#define	ELOOP		40	/* Too many symbolic links encountered */
+#define	EWOULDBLOCK	EAGAIN	/* Operation would block */
+#define	ENOMSG		42	/* No message of desired type */
+#define	EIDRM		43	/* Identifier removed */
+#define	ECHRNG		44	/* Channel number out of range */
+#define	EL2NSYNC	45	/* Level 2 not synchronized */
+#define	EL3HLT		46	/* Level 3 halted */
+#define	EL3RST		47	/* Level 3 reset */
+#define	ELNRNG		48	/* Link number out of range */
+#define	EUNATCH		49	/* Protocol driver not attached */
+#define	ENOCSI		50	/* No CSI structure available */
+#define	EL2HLT		51	/* Level 2 halted */
+#define	EBADE		52	/* Invalid exchange */
+#define	EBADR		53	/* Invalid request descriptor */
+#define	EXFULL		54	/* Exchange full */
+#define	ENOANO		55	/* No anode */
+#define	EBADRQC		56	/* Invalid request code */
+#define	EBADSLT		57	/* Invalid slot */
+
 #include "thread.h"
 
 #define set_errno(x) (*thread_tls_slot(1) = x)

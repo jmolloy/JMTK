@@ -45,23 +45,17 @@ typedef struct filesystem {
   dev_t dev;
 } filesystem_t;
 
-/* A mount point. This has a device that has been mounted, a location,
-   and a filesystem to handle requests. */
-typedef struct mountpoint {
-  dev_t         dev;
-  struct inode *node;
-  filesystem_t  fs;
-} mountpoint_t;
+struct mountpoint;
 
 /* The type a VFS node can be. Normal, character/block device, pipe (FIFO) or
    socket. */
 typedef enum inode_type {
-  it_file, it_dir, it_chardev, it_blockdev, it_fifo, it_socket
+  it_file, it_dir, it_chardev, it_blockdev, it_fifo, it_socket, it_symlink
 } inode_type_t;
 
 /* A VFS node, commonly known as an "inode". */
 typedef struct inode {
-  mountpoint_t *mountpoint;
+  struct mountpoint *mountpoint;
   inode_type_t  type;
   struct inode *parent;
 
@@ -91,6 +85,15 @@ typedef struct dirent {
   const char *name;
   inode_t *ino;
 } dirent_t;
+
+/* A mount point. This has a device that has been mounted, a location,
+   and a filesystem to handle requests. */
+typedef struct mountpoint {
+  dev_t         dev;
+  struct inode *node;
+  filesystem_t  fs;
+  inode_t       orig_inode_data;
+} mountpoint_t;
 
 /* Registers a filesystem with name "ident", and a probe function that
    will attempt to find a filesystem of this kind on the given device.
@@ -125,6 +128,9 @@ typedef bool (*access_fn_t)(int mode);
    the mode of the directory, and should return true if the user is allowed
    to search the directory. */
 inode_t *vfs_open(const char *path, access_fn_t access);
+/* Identical to vfs_open, except that if path refers to a symbolic link,
+   return the inode for the link rather than its pointee. */
+inode_t *vfs_lopen(const char *path, access_fn_t access);
 /* Performs a read of sz bytes into buf at offset. */
 int64_t vfs_read(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
 /* Performs a write of sz bytes from buf at offset. */

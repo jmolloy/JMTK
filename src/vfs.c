@@ -12,6 +12,8 @@
 # define dbg(args...)
 #endif
 
+#define MAX_SYMLINKS_TO_FOLLOW 10
+
 static vector_t filesystems, mountpoints;
 static inode_t root;
 
@@ -69,6 +71,8 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
       if (fsi->probe(dev, &mp->fs) == 0) {
         mp->dev = dev;
         mp->node = node;
+        /* Back up the inode data to be restored on umount. */
+        memcpy(&mp->orig_inode_data, node, sizeof(inode_t));
 
         node->mountpoint = mp;
         vector_add(&mountpoints, &mp);
@@ -89,6 +93,28 @@ int vfs_mount(dev_t dev, inode_t *node, const char *fs) {
   }
   dbg("mount() failed\n");
   kfree(mp);
+  return 1;
+}
+
+int vfs_umount(dev_t dev, inode_t *node) {
+ dbg("umount: umount dev %x node %x\n", dev, node);
+
+  /* Is the device or inode already mounted? */
+  for (unsigned i = 0; i < vector_length(&mountpoints); ++i) {
+    mountpoint_t *mp = *(mountpoint_t**)vector_get(&mountpoints, i);
+    if (mp->dev == dev || mp->node == node) {
+      dbg("umount: unmounting device %x from node %x\n",
+          mp->dev, mp->node);
+      /* FIXME: Check if the FS is busy. Keep a refcount in mountpoint_t? */
+
+      /* Restore the inode as it was before it was mounted. */
+      memcpy(mp->node, &mp->orig_inode_data, sizeof(inode_t));
+      return 0;
+    }
+  }
+
+  dbg("umount: target was not a mountpoint!\n");
+  set_errno(EINVAL);
   return 1;
 }
 
@@ -119,20 +145,28 @@ vector_t vfs_readdir(inode_t *node) {
 }
 
 /* Attempt to traverse from 'parent' to its child in 'path'. */
-static inode_t *traverse(inode_t *parent, const char *path, access_fn_t access) {
+static inode_t *traverse_node(inode_t *parent,
+                              const char *path, access_fn_t access) {
+  dbg("_traverse: parent %x path '%s'\n", parent, path);
   if (parent->type != it_dir) {
+    dbg("_traverse: parent was not a directory!\n");
     set_errno(ENOENT);
     return NULL;
   }
 
+  /* Check for zero-length string - just return the parent. */
+  if (path[0] == '\0')
+    return parent;
+
   /* Check the directory has search access. If the LSB is set (i.e. a+x),
      don't bother calling the access function. */
-  if ((parent->mode & 1) == 0 || access(parent->mode) == false) {
+  if (! ((parent->mode & 1) == 1 || access(parent->mode)) ) {
+    dbg("_traverse: search access denied!\n");
     set_errno(EACCES);
     return NULL;
   }
 
-  /* Generate the directory cache if needs be. */
+  /* Generate the directory cache if needed. */
   if (!parent->u.dir_cache) {
     vector_t v = parent->mountpoint->fs.readdir(&parent->mountpoint->fs, parent);
     parent->u.dir_cache = directory_cache_new(v);
@@ -141,6 +175,7 @@ static inode_t *traverse(inode_t *parent, const char *path, access_fn_t access) 
 
   inode_t *child = directory_cache_get(parent->u.dir_cache, path);
   if (!child) {
+    dbg("_traverse: no such file or directory!\n");
     set_errno(ENOENT);
     return NULL;
   }
@@ -148,22 +183,81 @@ static inode_t *traverse(inode_t *parent, const char *path, access_fn_t access) 
   return child;
 }
 
-inode_t *vfs_open(const char *path, access_fn_t access) {
+static inode_t *traverse_path(inode_t *inode,
+                              const char *path, access_fn_t access) {
   char buf[512];
   unsigned nbuf = 0;
-  inode_t *inode = &root;
 
-  while (*path) {
-    assert(*path == '/');
-    ++path;
+  while (*path && inode) {
+    if (*path == '/')
+      ++path;
+
+    /* Handle symlinks */
+    unsigned nloop = 0;
+    while (inode->type == it_symlink) {
+      if (++nloop >= MAX_SYMLINKS_TO_FOLLOW) {
+        set_errno(ELOOP);
+        return NULL;
+      }
+
+      nbuf = vfs_read(inode, 0, buf, 511);
+      assert(nbuf > 0 && "Symlink read failed!");
+      buf[nbuf] = '\0';
+
+      inode = traverse_path( (buf[0] == '/') ? &root : inode->parent,
+                             buf, access );
+      if (!inode) return NULL;
+    }
 
     nbuf = 0;
     while (*path && *path != '/')
       buf[nbuf++] = *path++;
     buf[nbuf] = '\0';
 
-    inode = traverse(inode, buf, access);
+    inode = traverse_node(inode, buf, access);
   }
+  return inode;
+}
+
+inode_t *vfs_lopen(const char *path, access_fn_t access) {
+  inode_t *inode = &root;
+
+  dbg("lopen: '%s'\n", path);
+
+  inode = traverse_path(inode, path, access);
+
+  if (inode)
+    ++inode->handles;
+  return inode;
+}
+
+inode_t *vfs_open(const char *path, access_fn_t access) {
+  inode_t *inode = &root;
+  char buf[512];
+  int nbuf;
+
+  dbg("open: '%s'\n", path);
+
+  inode = traverse_path(inode, path, access);
+
+  /* Handle symlinks */
+  unsigned nloop = 0;
+  while (inode && inode->type == it_symlink) {
+    if (++nloop >= MAX_SYMLINKS_TO_FOLLOW) {
+      set_errno(ELOOP);
+      return NULL;
+    }
+
+    nbuf = vfs_read(inode, 0, buf, 511);
+    assert(nbuf > 0 && "Symlink read failed!");
+    buf[nbuf] = '\0';
+
+    inode = traverse_path( (buf[0] == '/') ? &root : inode->parent,
+                           buf, access );
+  }
+
+  if (inode)
+    ++inode->handles;
   return inode;
 }
 
