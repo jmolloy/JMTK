@@ -2,7 +2,6 @@
 #include "vfs.h"
 #include "adt/vector.h"
 
-
 typedef struct vfat_header {
   uint8_t  header[3];           /* Should be 6B 3C 90 (JMP 3C; NOP). Irrelevant. */
   uint8_t  identifier[8];

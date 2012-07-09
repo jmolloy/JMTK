@@ -50,7 +50,7 @@ class SourceFile:
             docstr.append(line)
 
         src = ''
-        if docstr[-1].find('}') != -1:
+        if docstr[-1].find('}') != -1 and docstr[-1].find('@}') == -1:
             src = self._embed_src(docstr[-1])
             docstr[-1] = re.sub(r'{.*}', '' ,docstr[-1])
         elif docstr[-1].find('{') != -1:
@@ -79,6 +79,9 @@ class SourceFile:
         file = m.group(1)
         search_from = m.group(2)
         search_to = m.group(3)
+
+        if not search_to:
+            search_to = 'I AM A STRING THAT WILL NOT BE FOUND ANYWHERE'
 
         ls = open(file, 'r').readlines()
 

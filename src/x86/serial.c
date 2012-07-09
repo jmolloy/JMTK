@@ -4,6 +4,19 @@
 #include "types.h"
 #include "x86/io.h"
 
+/**
+   ============
+    Serial I/O
+   ============
+
+   While generally with desktop OSes most of the initial boot IO is done via the monitor and keyboard, the serial line can be extremely useful for headless boots, or more importantly getting textual data in and out of emulators (qemu's ``-serial`` option, for example).
+
+   A serial device is standard on x86 machines, and is accessed via ``INB`` and ``OUTB`` instructions - its registers are located in the I/O space, not the memory address space. There are normally two serial controllers, and each controller can control two serial lines.
+
+   The primary controller has its registers at 0x3f8 (for the first device) and 0x3e8 (for the second device). Similarly the second controller has registers at 0x2f8 and 0x2e8.
+
+   Now, in this chapter I'm not going to go into all the gory details of the serial controller. It's mainly legacy and besides, that's what datasheets are for. With that said, here are a bunch of definitions! { */
+
 #define SERIAL_BASE_COM1 0x3f8
 #define SERIAL_BASE_COM2 0x2f8
 #define SERIAL_BASE_COM3 0x3e8
@@ -31,6 +44,18 @@
 #define SERIAL_LSTAT_RECV_BIT 0x01
 #define SERIAL_LSTAT_SEND_BIT 0x20
 
+/**
+   You should get used to this. Most device drivers start with a shedload of #defines. Except the obfuscated ones, but they're unreadable anyway by design. We'll come back to some of the constants, but the important ones are:
+
+     * ``SERIAL_RXTX`` .. ``SERIAL_SCRATCH``: These are offsets from the base register (for example 0x3f8) where to find specific registers.
+     * ``SERIAL_RXTX``: This is the read/transmit buffer. Reading from this reads from the read buffer (referred to as 'rx') and writing writes to the transmit buffer ('tx').
+     * ``SERIAL_LSTAT``: Line status register. This has two interesting bits: ``SERIAL_LSTAT_RECV_BIT`` and ``SERIAL_LSTAT_SEND_BIT``, which tell us if the device has data received (RECV_BIT) or is ready to transmit (SEND_BIT).
+
+   Our serial driver isn't going to be stupid and block reading one byte at a time. If you have interrupts enabled, it should store characters received to a buffer so it can be read back in bulk at a later point.
+
+   I've written an ADT (abstract data type) for this, a `ring buffer <http://en.wikipedia.org/Ring_buffer>`_ in ``src/include/adt/ringbuf.h``. Here's the header - implementing this is left as an exercise to the reader :) {src/include/adt/ringbuf.h,"",""} */
+
+/** Let's get down to defining our serial driver. Each serial connection has a state, consisting of a buffer of received characters and the base register address. { */
 #define SERIAL_BUFSZ 32
 
 typedef struct serial_state {
@@ -38,21 +63,7 @@ typedef struct serial_state {
   char_ringbuf_t buf;
 } serial_state_t;
 
-void write_hex_byte(uint8_t x) {
-  uint8_t n = x>>4;
-  char c = (n >= 10) ? (n-10)+'A' : n+'0';
-  write_console( &c, 1 );
-  n = x&0xF;
-  c = (n >= 10) ? (n-10)+'A' : n+'0';
-  write_console( &c, 1 );
-}
-
-void write_hex_int(uint32_t x) {
-  write_hex_byte( (x>>24) & 0xFF );
-  write_hex_byte( (x>>16) & 0xFF );
-  write_hex_byte( (x>>8) & 0xFF );
-  write_hex_byte( x & 0xFF );
-}
+/** Let's define some convenience functions for reading and writing registers. ``inb`` and ``outb`` are defined in ``src/include/x86/hal.h`` and provide access to the ``inb`` and ``outb`` assembly instructions that we can otherwise not use from plain C. { */
 
 static uint8_t read_register(int base, int reg) {
   return inb(base+reg);
@@ -60,6 +71,8 @@ static uint8_t read_register(int base, int reg) {
 static void write_register(int base, int reg, uint8_t value) {
   outb(base+reg, value);
 }
+
+/** It's important to know if a line is actually connected or not. There is no fool proof way to do this (see the hack for qemu) but here is a decent go: { */
 
 static uint8_t is_connected(int base) {
   /* Read the mstat register and look for clear to send and data set
@@ -79,6 +92,8 @@ static uint8_t is_connected(int base) {
   /* Otherwise we aren't connected. */
   return 0;
 }
+
+/** Knowing if there's data available is simple - read the LSTAT register and check if the RECV bit is set. If data is available, getting it is a matter of reading the RXTX register, and to send data you just wait (spin) until the SEND bit in LSTAT is set, then write to RXTX. { */
 
 static uint8_t is_data_ready(int base) {
   return (read_register(base, SERIAL_LSTAT) & SERIAL_LSTAT_RECV_BIT) != 0;
@@ -100,6 +115,8 @@ static uint8_t get_data_block(int base) {
   return get_data_nonblock(base);
 }
 
+/** Now we can implement the base functions that we will register with the kernel console manager. read() simply reads from the state ringbuffer if data is available, else it will attempt to read at least one character from the line without blocking. { */
+
 static int read(console_t *obj, char *buf, int len) {
   if (len == 0) return 0;
 
@@ -116,6 +133,8 @@ static int read(console_t *obj, char *buf, int len) {
   return char_ringbuf_read(&state->buf, buf, len);
 }
 
+/** write() is even simpler - it merely sends each character down the line, synchronously. { */
+
 static int write(console_t *obj, const char *buf, int len) {
   serial_state_t *state = (serial_state_t*)obj->data;
 
@@ -123,6 +142,10 @@ static int write(console_t *obj, const char *buf, int len) {
     send_data(state->base, buf[i]);
   return len;
 }
+
+/** open() is more complex. We need to set the device into a known state - the state we're aiming for is 115200 8N1, the most commonly used protocol. Note that serial is so primitive that there is no handshake to determine baud rate or protocol - you've got to hope you have both sides set up the same way...
+
+    The sequence to set up the device involves a lot of constants and isn't interesting, so I'll skip explaining it. Check the datasheet or Google if you're seriously interested. { */
 
 static int open(console_t *obj) {
   int base = (int)obj->data;
@@ -146,6 +169,8 @@ static int open(console_t *obj) {
   return 0;
 }
 
+/** Now we have an (optional) IRQ handler. If we haven't set up interrupts yet (it's in a later chapter but affects this one), this will do nothing. But if we have, it will slurp data from the RXTX register and write it to the ring buffer. { */
+
 static int serial_int_handler(struct regs *regs, void *p) {
   serial_state_t *state = (serial_state_t*)p;
   
@@ -154,6 +179,8 @@ static int serial_int_handler(struct regs *regs, void *p) {
 
   return 0;
 }
+
+/** Now we get to the final registration code - here we create four serial states, four console instances and initialise them, registering them with the console manager. { */
 
 static serial_state_t states[4];
 static console_t consoles[4];
@@ -189,7 +216,6 @@ static int register_serial() {
   return 0;
 }
 
-
 static prereq_t prereqs[] = { {"console",NULL}, {NULL,NULL} };
 static module_t x run_on_startup = {
   .name = "x86/serial",
@@ -198,3 +224,5 @@ static module_t x run_on_startup = {
   .init = &register_serial,
   .fini = NULL
 };
+
+/** With this small amount of code, we should have a functioning serial device. Now, on to more complex things. */

@@ -117,6 +117,7 @@ int unregister_filesystem(const char *ident);
    
    Returns zero on success, -errno on failure. */
 int vfs_mount(dev_t dev, inode_t *node, const char *fs);
+
 /* Unmounts. If the device is given (isn't 0), the mountpoint
    associated with it is unmounted. If not, the inode is expected to be
    valid and is unmounted. */
@@ -131,15 +132,20 @@ typedef bool (*access_fn_t)(int mode);
    the mode of the directory, and should return true if the user is allowed
    to search the directory. */
 inode_t *vfs_open(const char *path, access_fn_t access);
+
 /* Identical to vfs_open, except that if path refers to a symbolic link,
    return the inode for the link rather than its pointee. */
 inode_t *vfs_lopen(const char *path, access_fn_t access);
+
 /* Performs a read of sz bytes into buf at offset. */
 int64_t vfs_read(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
+
 /* Performs a write of sz bytes from buf at offset. */
 int64_t vfs_write(inode_t *inode, uint64_t offset, void *buf, uint64_t sz);
+
 /* Decrements the open count of inode. */
 void vfs_close(inode_t *inode);
+
 /* Returns the inodes contained in this directory. */
 vector_t vfs_readdir(inode_t *inode);
 
