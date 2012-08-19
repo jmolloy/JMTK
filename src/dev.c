@@ -62,4 +62,5 @@ int register_block_device_listener(void (*callback)(dev_t)) {
   for (unsigned i = 0; i < num_block_devs; ++i)
     callback(block_devs[i]->id);
   callbacks[num_callbacks++] = callback;
+  return 0;
 }

@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
     for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
       init_module(m);
     /* Then run the main function, unless we're in test harness mode. */
-    kmain();
+    kmain(argc, argv);
   }
 
   for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)

@@ -119,6 +119,9 @@ int vfs_umount(dev_t dev, inode_t *node) {
           mp->dev, mp->node);
       /* FIXME: Check if the FS is busy. Keep a refcount in mountpoint_t? */
 
+      if (mp->fs.destroy)
+        mp->fs.destroy(&mp->fs);
+
       /* Restore the inode as it was before it was mounted. */
       memcpy(mp->node, &mp->orig_inode_data, sizeof(inode_t));
       mutex_release(&mountpoint_lock);
@@ -332,6 +335,48 @@ void vfs_close(inode_t *node) {
   rwlock_write_release(&node->rwlock);
 }
 
+int vfs_mknod(inode_t *parent,
+              const char *name,
+              inode_type_t type,
+              int mode, int uid, int gid) {
+  dbg("mknod('%s', type=%d, mode=%d, uid=%d, gid=%d)\n",
+      name, type, mode, uid, gid);
+
+  assert(parent && parent->type == it_dir);
+
+  inode_t *ino = kmalloc(sizeof(inode_t));
+  ino->mountpoint = parent->mountpoint;
+  ino->type = type;
+  ino->parent = parent;
+  ino->mode = mode;
+  ino->nlink = 1;
+  ino->uid = uid;
+  ino->gid = gid;
+  ino->size = 0;
+  ino->handles = 0;
+  ino->u.dir_cache = 0;
+  rwlock_init(&ino->rwlock);
+
+  int ret = parent->mountpoint->fs.mknod(&parent->mountpoint->fs,
+                                         parent, ino, name); 
+  if (ret != 0)
+    return ret;
+
+  rwlock_write_acquire(&parent->rwlock);
+  if (parent->u.dir_cache) {
+    dirent_t *dent = kmalloc(sizeof(dirent_t));
+    char *name_cpy = kmalloc(strlen(name) + 1);
+    strcpy(name_cpy, name);
+    dent->name = name_cpy;
+    dent->ino = ino;
+
+    directory_cache_add(parent->u.dir_cache, dent);
+  }
+  rwlock_write_release(&parent->rwlock);
+
+  return 0;
+}
+
 static int vfs_init() {
   filesystems = vector_new(sizeof(fs_info_t), 4);
   mountpoints = vector_new(sizeof(mountpoint_t*), 4);
@@ -357,11 +402,23 @@ static int vfs_init() {
   return 0;
 }
 
+static int vfs_fini() {
+  /* Call all destroy functions. */
+  for (unsigned i = 0; i < vector_length(&mountpoints); ++i) {
+    mountpoint_t *mp = * (mountpoint_t**)vector_get(&mountpoints, i);
+    
+    if (mp->fs.destroy)
+      mp->fs.destroy(&mp->fs);
+  }
+
+  return 0;
+}
+
 static prereq_t req[] = { {"kmalloc",NULL}, {NULL,NULL} };
 static module_t x run_on_startup = {
   .name = "vfs",
   .required = req,
   .load_after = NULL,
   .init = &vfs_init,
-  .fini = NULL
+  .fini = &vfs_fini
 };

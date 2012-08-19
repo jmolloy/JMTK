@@ -57,7 +57,7 @@ typedef struct spinlock {
 void panic(const char *message) __attribute__((noreturn));
 void assert_fail(const char *cond, const char *file, int line)
   __attribute__((noreturn));
-void kmain();
+void kmain(int argc, char **argv);
 
 /**#3
 

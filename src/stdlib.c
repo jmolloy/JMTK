@@ -78,3 +78,79 @@ long unsigned int strtoul(const char *nptr, char **endptr, int base) {
   if (endptr) *endptr = (char*)nptr;
   return accum;
 }
+
+#define EPOCH 1970
+
+static const uint64_t days_in_month[13] = {0 /*UNUSED*/,
+  31 /*JAN*/, 28 /*FEB*/, 31 /*MAR*/, 30 /*APR*/, 31 /*MAY*/, 30 /*JUN*/,
+  31 /*JUL*/, 31 /*AUG*/, 30 /*SEP*/, 31 /*NOV*/, 31 /*DEC*/
+};
+
+#define LEAPYEAR(y) ((y % 4 == 0) && (y % 100 != 0 || y % 400 == 0))
+
+uint64_t to_unix_timestamp(unsigned day_of_month, unsigned month_of_year,
+                           unsigned year,
+                           unsigned seconds, unsigned minutes, unsigned hours) {
+
+  uint64_t days = 0;
+
+  /* Iteratively count up from the epoch year to the given year as
+     each year may be a leap. */
+  for (unsigned y = EPOCH; y < year; ++y)
+    days += LEAPYEAR(y) ? 366 : 365;
+
+  /* Same with months, because February could be 28 or 29. */
+  for (unsigned m = 1; m < month_of_year; ++m)
+    days += days_in_month[m] + ((LEAPYEAR(year) && m == 2) ? 1 : 0);
+
+  days += day_of_month-1;
+
+  return days * 86400 + hours * 3600 + minutes * 60 + seconds;
+}
+
+void from_unix_timestamp(uint64_t ts,
+                         unsigned *day_of_month, unsigned *month_of_year,
+                         unsigned *year,
+                         unsigned *seconds, unsigned *minutes, unsigned *hours) {
+
+  uint64_t ndays = ts / 86400;
+  uint64_t time = ts % 86400;
+
+  *hours = time / 3600;
+  *minutes = (time % 3600) / 60;
+  *seconds = time % 60;
+
+  *year = EPOCH;
+  while (ndays >= (LEAPYEAR(*year) ? 366 : 365)) {
+    ndays -= (LEAPYEAR(*year) ? 366 : 365);
+    ++*year;
+  }
+  
+  unsigned month = 1;
+  while (ndays >= days_in_month[month]) {
+    ndays -= days_in_month[month];
+    ++month;
+  }
+  *month_of_year = month;
+
+  *day_of_month = ndays + 1;
+}
+
+void utf16_to_utf8(uint8_t *outbuf, const uint16_t *inbuf) {
+  /* FIXME: Implement proper conversion. */
+  unsigned i;
+  for (i = 0; inbuf[i] != 0; ++i) {
+    outbuf[i] = inbuf[i] & 0xFF;
+  }
+  outbuf[i] = 0;
+}
+
+void utf8_to_utf16(uint16_t *outbuf, const uint8_t *inbuf) {
+  /* FIXME: Implement proper conversion. */
+  unsigned i;
+  for (i = 0; inbuf[i] != 0; ++i) {
+    if (inbuf[i] >= 128) continue;
+    outbuf[i] = inbuf[i];
+  }
+  outbuf[i] = 0;
+}

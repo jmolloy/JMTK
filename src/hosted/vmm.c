@@ -95,13 +95,8 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   if (p >= MMAP_PHYS_BASE && p < MMAP_PHYS_END)
     memcpy((uint8_t*)v, (uint8_t*)p, 0x1000);
 
-  /* Now unmap and map again with the correct permissions! */
-  if (munmap((void*)v, 0x1000) == -1)
-    panic("munmap() failed!");
-
-  if (mmap((void*)v, 0x1000, prot, MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED, -1, 0) !=
-      (void*)v)
-    panic("mmap() failed!");
+  if (mprotect((void*)v, 0x1000, prot) != 0)
+    panic("mprotect() failed!");
 
   spinlock_release(&a->lock);
   return 0;
@@ -124,6 +119,10 @@ static int unmap_one_page(uintptr_t v) {
 
   if (*entry == 0)
     panic("Tried to unmap a page that wasn't mapped!");
+
+  uint32_t p = *entry & 0xFFFFF000;
+  if (p >= MMAP_PHYS_BASE && p < MMAP_PHYS_END)
+    memcpy((uint8_t*)(uintptr_t)p, (uint8_t*)v, 0x1000);
 
   *entry = 0;
 

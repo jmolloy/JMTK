@@ -26,17 +26,21 @@ typedef struct filesystem {
   /* Returns a vector of inode_t's that are the children of directory 'dir'. */
   vector_t (*readdir)(struct filesystem *fs, struct inode *dir);
   /* Create a new node as a child of the directory 'node_data'. Requires
-     'node_data' to be a directory. The fields 'name', 'type', 'mode',
+     'dir_inode' to be a directory. The fields 'type', 'mode',
      'uid' and 'gid' are taken from 'inode', and node specific data is
      written to it, along with 'ctime', 'mtime' and 'atime' which are
      all set to the current timestamp, and 'nlink' which is set to 1.
-     'size' is set to 0. */
+     'size' is set to 0. The name of the node is given in 'name'. */
   int (*mknod)(struct filesystem *fs,
-               struct inode *dir_inode, struct inode *dest_inode);
+               struct inode *dir_inode, struct inode *dest_inode,
+               const char *name);
 
   /* Populates 'inode' with information for the root directory.
      Returns 0 on success, nonzero on failure. */
   int (*get_root)(struct filesystem *fs, struct inode *inode);
+
+  /* Run when the filesystem is unmounted / torn down. */
+  void (*destroy) (struct filesystem *fs);
 
   /* Filesystem-specific data. */
   void *data;
@@ -115,7 +119,7 @@ int unregister_filesystem(const char *ident);
 /* Mounts a filesystem on the directory 'node'. If 'fs' is NULL, all known
    filesystems are probed. If not, only the filesystem specified is probed.
    
-   Returns zero on success, -errno on failure. */
+   Returns zero on success, nonzero on failure. */
 int vfs_mount(dev_t dev, inode_t *node, const char *fs);
 
 /* Unmounts. If the device is given (isn't 0), the mountpoint
@@ -151,5 +155,10 @@ vector_t vfs_readdir(inode_t *inode);
 
 /* Returns the root inode. */
 inode_t *vfs_get_root();
+
+int vfs_mknod(inode_t *parent,
+              const char *name,
+              inode_type_t type,
+              int mode, int uid, int gid);
 
 #endif /* VFS_H */

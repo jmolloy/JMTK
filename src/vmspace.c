@@ -38,7 +38,9 @@ uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
 
   if (alloc_phys && addr != ~0ULL) {
     size_t npages = sz >> get_page_shift();
-    int ok = map(addr, alloc_pages(PAGE_REQ_NONE, npages), npages, alloc_phys);
+    uintptr_t phys_pages = alloc_pages(PAGE_REQ_NONE, npages);
+    assert(phys_pages != ~0ULL && "Out of memory!");
+    int ok = map(addr, phys_pages, npages, alloc_phys);
     assert(ok == 0 && "vmspace_alloc: map failed!");
   }
 

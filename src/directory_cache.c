@@ -11,6 +11,10 @@ directory_cache_t *directory_cache_new(vector_t entries) {
   return cache;
 }
 
+void directory_cache_add(directory_cache_t *cache, dirent_t *entry) {
+  vector_add(&cache->write_buf, entry);
+}
+
 inode_t *directory_cache_get(directory_cache_t *cache, const char *path) {
   assert(cache);
   for (unsigned i = 0; i < vector_length(&cache->write_buf); ++i) {

@@ -38,7 +38,7 @@
 
 "Simple tarball filesystem" -> "virtual file system"
 
-"FAT filessytem" -> "virtual file system"
+"FAT filesystem" -> "virtual file system"
 
 "EXT2 filesystem" -> "virtual file system"
 
@@ -61,3 +61,4 @@
 "console": [src/console.c src/hosted/console.c]
 "screen printing": [src/x86/screen.c]
 "Partitions": [src/partition.c]
+"FAT filesystem": [src/fs_vfat.c]

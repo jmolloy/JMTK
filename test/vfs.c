@@ -144,7 +144,8 @@ filesystem_t dummyfs = {
   .write = &dwrite,
   .readdir = &dreaddir,
   .mknod = NULL,
-  .get_root = &dget_root
+  .get_root = &dget_root,
+  .destroy = NULL
 };
 
 int dprobe(dev_t dev, filesystem_t *fs) {

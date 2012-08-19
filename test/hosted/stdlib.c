@@ -7,11 +7,9 @@ exit `$1 | ./test/FileCheck $0`
 #include <stdio.h>
 
 static int test() {
-  char buf[64];
   char *str;
   char *endptr;
   long int li;
-  long unsigned int lu;
 
   // CHECK: '1234' -> (1234, '0')
   str = "1234";

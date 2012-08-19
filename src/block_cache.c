@@ -3,6 +3,14 @@
 #include "block_cache.h"
 #include "kmalloc.h"
 #include "stdlib.h"
+#include "stdio.h"
+#include "vmspace.h"
+
+#ifdef DEBUG_block_cache
+# define dbg(args...) kprintf("block_cache: " args)
+#else
+# define dbg(args...)
+#endif
 
 typedef struct page {
   disk_cache_t *cache;
@@ -40,6 +48,9 @@ static void touch(disk_cache_group_t *group, page_t *pg) {
   if (pg == group->lru_page)
     group->lru_page = pg->prev;
 
+  if (group->mru_page)
+    group->mru_page->prev = pg;
+
   pg->prev = NULL;
   pg->next = group->mru_page;
   group->mru_page = pg;
@@ -58,6 +69,7 @@ static page_t *evict(disk_cache_group_t *group, page_t *pg) {
   if (pg == group->mru_page)
     group->mru_page = pg->next;
   
+  /* FIXME: writeback to disk! */
   free_page(pg->phys_addr);
 
   hashtable_set64(&pg->cache->pages, pg->offset >> get_page_shift(), 0);
@@ -93,7 +105,6 @@ bool disk_cache_group_evict(disk_cache_group_t *group, uint64_t bytes) {
 
   page_t *pg = group->lru_page;
   while (npages > 0 && pg) {
-    kprintf("evict: found page with use_count = %d\n", pg->use_count);
     if (pg->use_count == 0) {
       pg = evict(group, pg);
       --npages;
@@ -116,11 +127,41 @@ disk_cache_t *disk_cache_new(disk_cache_group_t *group,
 }
 
 void disk_cache_destroy(disk_cache_t *cache) {
+  mutex_acquire(&cache->parent->lock);
+  
+  uintptr_t v = vmspace_alloc(&kernel_vmspace, get_page_size(), 0);
+
+  page_t *pg = cache->parent->mru_page;
+  while (pg) {
+    dbg("pg = %x (next = %x)\n", pg, pg->next);
+    if (pg->cache == cache) {
+      dbg("write %x\n", pg);
+      map(v, pg->phys_addr, 1, PAGE_WRITE);
+      cache->dev->write(cache->dev, pg->offset,
+                        (void*)v, get_page_size());
+      unmap(v, 1);
+
+      if (pg->next)
+        pg->next->prev = pg->prev;
+      if (pg->prev)
+        pg->prev->next = pg->next;
+      page_t *npg = pg->next;
+      kfree(pg);
+      pg = npg;
+    } else {
+      pg = pg->next;
+    }
+  }
+  dbg("destroy end");
+  mutex_release(&cache->parent->lock);
+
   hashtable_destroy(&cache->pages);
   kfree(cache);
+
 }
 
 bool disk_cache_get(disk_cache_t *cache, uint64_t addr, void *map_at) {
+  dbg("get(%#x)\n", (uint32_t)addr);
   addr >>= get_page_shift();
 
   mutex_acquire(&cache->parent->lock);
@@ -151,7 +192,7 @@ bool disk_cache_get(disk_cache_t *cache, uint64_t addr, void *map_at) {
     /* ... and maybe as the least recently used page? */
     if (cache->parent->lru_page == 0)
       cache->parent->lru_page = pg;
-
+    dbg("mapping addr %x to %x\n", pg->phys_addr, map_at);
     mutex_release(&cache->parent->lock);
     cache->dev->read(cache->dev, addr << get_page_shift(),
                      map_at, get_page_size());
@@ -160,13 +201,14 @@ bool disk_cache_get(disk_cache_t *cache, uint64_t addr, void *map_at) {
     ++pg->use_count;
     touch(cache->parent, pg);
     mutex_release(&cache->parent->lock);
-
+    dbg("mapping addr %x to %x\n", pg->phys_addr, map_at);
     map((uintptr_t)map_at, pg->phys_addr, 1, PAGE_WRITE);
     return true;
   }
 }
 
 void disk_cache_release(disk_cache_t *cache, uint64_t addr) {
+  dbg("release(%#x)\n", (uint32_t)addr);
   addr >>= get_page_shift();
 
   mutex_acquire(&cache->parent->lock);

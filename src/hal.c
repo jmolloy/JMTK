@@ -14,8 +14,8 @@ void assert_fail(const char *cond, const char *file, int line) {
   for(;;);
 }
 
-void kmain() weak;
-void kmain() {
+void kmain(int argc, char **argv) weak;
+void kmain(int argc, char **argv) {
   trap();
 }
 
