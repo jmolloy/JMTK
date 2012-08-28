@@ -3,6 +3,17 @@
 #include "types.h"
 #include "x86/io.h"
 
+/** Screen printing
+    ===============
+
+    The screen is probably one of the output mediums you'll want to get operating first. I'm not going to bother with an unnecessary introduction about what it is or how it is useful - I assume you know that already!
+
+    When the X86 boots, the adapter is put in a known state - it is in *text mode*. This differs from the usual graphical mode, because instead of operating on pixels you operate on characters.
+
+    The screen displays at a resolution of 80 x 25 - 80 characters wide and 25 high. The font size is 8px wide, 16px high. */
+
+/** Each character is represented by a 16-bit number, with the low 8 bits being the ASCII character code, the next nibble (4 bits) being the foreground colour and the high nibble the background colour. { */
+
 #define C_BLACK           0
 #define C_BLUE            1
 #define C_GREEN           2
@@ -22,6 +33,10 @@
 
 #define MAKE_CHAR(c, fore, back) (c | (back<<12) | (fore<<8))
 
+/** The video framebuffer is also stored at a known location - 0xB8000 physical.
+
+    Because we have mapped low memory up high, we access this as 0xC00B8000. { */
+
 static uint16_t *video_memory = (uint16_t*)0xC00B8000;
 static int cursor_x = 0, cursor_y = 0;
 static int c_back = C_BLACK;
@@ -29,6 +44,17 @@ static int c_fore = C_LIGHTGRAY;
 static int c_bold = 0;
 
 static int in_escape = 0;
+
+/** To make our screen driver that bit cooler, we should handle colour escapes. These are terminal escape sequences used to set the foreground or background colour, and take the form ``\033 [ <number> ; <number>... m``;
+
+       * ``\033`` is the escape character (equivalent to ``\e``) and defines the start of an escape sequence.
+       * ``[`` is meaningless.
+       * Following these is a sequence of numbers separated by semicolons. These represent actions to take:
+          * ``0`` forces the colours and bold state to be reset to the default.
+          * ``1`` sets bold mode to be on. Characters written after this should appear bold. This often does not change the font, but changes the colour palette to a brighter version instead.
+          * ``3[0-9]`` sets the foreground colour to ``n - 30``.
+          * ``4[0-9]`` sets the background colour to ``n - 40``.
+       * ``m`` terminates the escape sequence, and instructs us that the sequence was a command to change colours. There are other letters for other commands such as "move cursor left". ``handle_colour_escape()`` should act on a colour number such as ``1`` or ``32`` and change the fore/back colour appropriately. { */
 
 static char escape_buf[4];
 static int escape_buf_idx = 0;
@@ -84,6 +110,10 @@ static void flush_escape_buf() {
   escape_buf_idx = 0;
 }
 
+/** Now we get to actually parse the escape sequences. The function ``handle_escape()`` should be called when an escape character is seen and for every character succeeding until it returns ``0`` (meaning the escape sequence has finished).
+
+    The function will put numerals it sees into a buffer until it is sure the number is finished (when it sees a ';' or 'm' character), at which point it will call ``flush_escape_buf()`` to convert that to a proper integer and store it in ``escape_nums``. { */
+
 static int handle_escape(char c) {
   switch (c) {
   case '[':
@@ -112,6 +142,8 @@ static int handle_escape(char c) {
   }
 }
 
+/** Time for a little bit of magic: ``update_cursor()`` will send the right commands to the VGA chip to update the cursor position on-screen. { */
+
 static void update_cursor() {
   uint16_t loc = cursor_y * 80 + cursor_x;
 
@@ -120,6 +152,8 @@ static void update_cursor() {
   outb(0x3D4, 15);
   outb(0x3D5, loc & 0xFF);
 }
+
+/** The function ``scroll()`` will scroll the screen by one line if the cursor is off the bottom of it, by memcpying (which should actually be ``memmove``, not ``memcpy``...) the video memory up one line and resetting the bottom line to all spaces. { */
 
 static void scroll() {
   if (cursor_y >= 25) {
@@ -130,6 +164,8 @@ static void scroll() {
     cursor_y = 24;
   }
 }
+
+/** We get to more logic now; here we put a character to the screen. I hope you should be able to follow through its logic without too much explanation. { */
 
 static void putc(char c) {
   if (in_escape) {
@@ -184,6 +220,10 @@ static void putc(char c) {
   scroll();
   update_cursor();
 }
+
+/** And finally we come to clearing the screen (just copying the space character through the entirety of the framebuffer) and the console write function, which just calls ``putc`` in a loop.
+
+    Done. { */
 
 static void cls() {
   memsetw(video_memory, MAKE_CHAR(' ', c_fore, c_back), 80 * 25);
