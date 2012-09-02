@@ -178,8 +178,12 @@ static int write(console_t *obj, const char *buf, int len) {
     you're seriously interested. { */
 
 static int open(console_t *obj) {
-  int base = (int)obj->data;
+  int base = ((serial_state_t*)obj->data)->base;
 
+  read_register(base, SERIAL_INTEN);
+  read_register(base, SERIAL_INTEN);
+  read_register(base, SERIAL_INTEN);
+  read_register(base, SERIAL_INTEN);
   /* Disable all interrupts during init */
   write_register(base, SERIAL_INTEN, 0x00);
   /* Enable DLAB, to set the baud rate divisor. */
