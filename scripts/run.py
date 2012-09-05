@@ -243,8 +243,11 @@ class Runner:
                         self.symbols[sym['st_value']] = sym.name
 
         if self.arch == 'X86':
-            self.model = Qemu('qemu-system-i386', self.qemu_opts)
-#            self.model = Bochs('bochs', [])
+            if os.environ.get('MODEL', '').lower() == 'bochs':
+                self.model = Bochs('bochs', [])
+            else:
+                self.model = Qemu('qemu-system-i386', self.qemu_opts)
+
         else:
             raise RuntimeError("Unknown architecture: %s" % self.arch)
 
@@ -287,7 +290,7 @@ if __name__ == "__main__":
                  help='Output an execution trace instead of the serial output')
     p.add_option('--symbols', '--syms', action='store_true', dest='syms',
                  default=False, help='Translate raw addresses in trace output to symbol names if possible')
-    p.add_option('--timeout', dest='timeout', default=5000, type='int',
+    p.add_option('--timeout', dest='timeout', default=8000, type='int',
                  help='Timeout before killing the model in milliseconds')
     p.add_option('--preformatted-image', dest='image',
                  default=os.path.join('src','floppy.img.zip'),
