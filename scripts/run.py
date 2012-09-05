@@ -172,7 +172,7 @@ class Qemu:
 
         try:
             # Kill qemu.
-            child.send_signal(signal.SIGTERM)
+            child.send_signal(signal.SIGKILL)
 
             # Ensure all data is read from the child before reaping it.
             while True:
