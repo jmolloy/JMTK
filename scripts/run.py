@@ -119,7 +119,7 @@ class Qemu:
         if timeout:
             def _alarm():
                 try:
-                    child.send_signal(signal.SIGTERM);
+                    child.send_signal(signal.SIGKILL);
                 except:
                     pass
                 self.stop = True
