@@ -188,7 +188,7 @@ class Qemu:
         os.close(master)
         os.close(slave)
 
-        if code != 0 and not self.stop:
+        if code != 0 and code != -9 and not self.stop:
             print out
             print open(errfn).read()
             raise RuntimeError("Qemu exited with code %s!" % code)
