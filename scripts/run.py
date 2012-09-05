@@ -287,7 +287,7 @@ if __name__ == "__main__":
                  help='Output an execution trace instead of the serial output')
     p.add_option('--symbols', '--syms', action='store_true', dest='syms',
                  default=False, help='Translate raw addresses in trace output to symbol names if possible')
-    p.add_option('--timeout', dest='timeout', default=3000, type='int',
+    p.add_option('--timeout', dest='timeout', default=5000, type='int',
                  help='Timeout before killing the model in milliseconds')
     p.add_option('--preformatted-image', dest='image',
                  default=os.path.join('src','floppy.img.zip'),
