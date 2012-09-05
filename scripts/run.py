@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import os, sys, signal, subprocess, tempfile, threading, select, termios
+import os, sys, signal, subprocess, tempfile, threading, select, termios, re
 
 from image import Image
 from elftools.elf.elffile import ELFFile
@@ -51,8 +51,10 @@ class Bochs:
 
         o = open('/tmp/x','w')
         
-        args = ['floppya: 1_44=%s,status=inserted' % floppy_image,
+        args = ['-q',
+                'floppya: 1_44=%s,status=inserted' % floppy_image,
                 'boot: floppy',
+                'display_library: nogui',
                 'com1: enabled=1, mode=term, dev=%s' % os.ttyname(islave)]
         child = subprocess.Popen([self.exe_name] + args, stderr=o, stdout=o)
 
@@ -69,7 +71,7 @@ class Bochs:
                 out += os.read(imaster, 128)
 
         try:
-            # Kill qemu.
+            # Kill bochs.
             child.send_signal(signal.SIGTERM)
 
             # Ensure all data is read from the child before reaping it.
@@ -88,11 +90,7 @@ class Bochs:
         os.close(islave)
         t.cancel()
 
-        out = ''.join([chr(ord(x) + 96) for x in out])
-
-        print "LENGTH: %d" % len(out)
         return out.splitlines()
-
 
 class Qemu:
     def __init__(self, exe_name='qemu', args=None):
@@ -105,7 +103,13 @@ class Qemu:
         if fd in r:
             s = os.read(fd, 4096)
             # Look for interrupts disabled and halted.
-            return s.find('HLT=1') != -1 and s.find('II=0') != -1
+            m = re.search(r'EFL=([0-9a-fA-F]+)', s)
+            if m:
+                eflags = int(m.group(1), 16)
+                if eflags & 0x200 == 0 and s.find('HLT=1') != -1:
+                    return True
+            return False
+
         else:
             return True
 
