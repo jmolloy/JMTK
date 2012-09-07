@@ -196,7 +196,7 @@ class Qemu:
 
         # Kill qemu.
 
-        child.send_signal(signal.SIGKILL)
+        child.send_signal(signal.SIGINT)
         
         t.cancel()
 
@@ -232,7 +232,7 @@ class Qemu:
             ret = out.splitlines()
 
         os.unlink(errfn)
-        t.cancel()
+
         return ret
 
 class Runner:
