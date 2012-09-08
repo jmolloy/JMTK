@@ -731,7 +731,7 @@ static void populate_8_11_entry(vfat_dir_t *ent, const char *name) {
   /* Pad with spaces. */
   memset(ent->name, (uint8_t)' ', 11);
   
-  for (int i = 0; i < strlen(name); ++i) {
+  for (unsigned i = 0; i < strlen(name); ++i) {
     /* Skip over non-ASCII chars. */
     if (name[i] < 0) continue;
 

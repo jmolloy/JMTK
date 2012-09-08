@@ -7,7 +7,7 @@
 
 #include "types.h"
 
-int strlen(const char *s);
+unsigned strlen(const char *s);
 
 void memcpy(void *dest, const void *src, uint32_t len);
 void memmove(void *dest, const void *src, uint32_t len);

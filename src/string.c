@@ -98,7 +98,7 @@ char *strcat(char *dest, const char *src)
   return _dest;
 }
 
-int strlen(const char *src)
+unsigned strlen(const char *src)
 {
   int i = 0;
   while (*src++)
