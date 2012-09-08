@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "hal.h"
 #include "string.h"
 #include "stdio.h"
@@ -110,6 +111,7 @@ const char *lookup_kernel_symbol(uintptr_t addr, int *offs) {
   if (!symtab && init_syms() == -1)
     return NULL;
   
+  assert(symtab);
   for (unsigned i = 0; i < num_syms; ++i) {
     if (addr >= symtab[i].value && addr < symtab[i].value+symtab[i].size) {
       const char *name = &strtab[symtab[i].name];

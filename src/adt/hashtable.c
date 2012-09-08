@@ -25,7 +25,7 @@ hashtable_t hashtable_new(unsigned nbuckets) {
 }
 
 void *hashtable_get(hashtable_t *ht, void *key) {
-  return (void*)(uintptr_t)hashtable_get64(ht, (uint64_t)key);
+  return (void*)(uintptr_t)hashtable_get64(ht, (uint64_t)(uintptr_t)key);
 }
 
 uint64_t hashtable_get64(hashtable_t *ht, uint64_t key) {
@@ -39,7 +39,7 @@ uint64_t hashtable_get64(hashtable_t *ht, uint64_t key) {
 }
 
 void hashtable_set(hashtable_t *ht, void *key, void *data) {
-  hashtable_set64(ht, (uint64_t)key, (uint64_t)data);
+  hashtable_set64(ht, (uint64_t)(uintptr_t)key, (uint64_t)(uintptr_t)data);
 }
 
 void hashtable_set64(hashtable_t *ht, uint64_t key, uint64_t data) {
