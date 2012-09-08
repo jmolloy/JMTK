@@ -58,6 +58,9 @@ static unsigned char *read_cluster(vfat_filesystem_t *fs, uint32_t cluster, int 
   default: area_str = "<INVALID>";
   }
   dbg("read_cluster(%d, %s)\n", cluster, area_str);
+  /* Silence unused variable warnings in release mode. */
+  (void)area_str;
+  
   /* If it's difficult or you can't be bothered to implement some edge-case,
      assume it can't happen ;) */
   assert(fs->cluster_size <= get_page_size() && "More than one page per cluster not implemented yet!");
@@ -474,7 +477,8 @@ static vector_t read_directory(vfat_filesystem_t *fs, vfat_file_t *node) {
       ino = kmalloc(sizeof(inode_t));
 
       ino->type = (dir->attributes == ATTR_DIRECTORY) ? it_dir : it_file;
-      ino->mode = 0777;
+      /* Copy the default permissions given by Linux. */
+      ino->mode = (dir->attributes == ATTR_DIRECTORY) ? 040755 : 0100755;
       ino->nlink = 1;
       ino->uid = ino->gid = ino->handles = 0;
       ino->u.dir_cache = 0;
@@ -727,7 +731,7 @@ static void populate_8_11_entry(vfat_dir_t *ent, const char *name) {
   /* Pad with spaces. */
   memset(ent->name, (uint8_t)' ', 11);
   
-  for (unsigned i = 0; i < strlen(name); ++i) {
+  for (int i = 0; i < strlen(name); ++i) {
     /* Skip over non-ASCII chars. */
     if (name[i] < 0) continue;
 
