@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os, sys, signal, subprocess, tempfile, threading, select, termios, re
+from contextlib import contextmanager
 
 from image import Image
 from elftools.elf.elffile import ELFFile
@@ -96,22 +97,37 @@ class Qemu:
     def __init__(self, exe_name='qemu', args=None):
         self.exe_name = exe_name
         self.args = args
+        self.lock = threading.Lock()
+        self.n = 0
+
+    class ExeStoppedError(Exception):
+        pass
 
     def _check_finished(self, fd):
-        os.write(fd, "info registers\n");
-        r,w,x = select.select([fd],[],[],0.05)
-        if fd in r:
-            s = os.read(fd, 4096)
-            # Look for interrupts disabled and halted.
-            m = re.search(r'EFL=([0-9a-fA-F]+)', s)
-            if m:
-                eflags = int(m.group(1), 16)
-                if eflags & 0x200 == 0 and s.find('HLT=1') != -1:
-                    return True
-            return False
+        try:
+                os.write(fd, "info registers\n");
+                r,w,x = select.select([fd],[],[],0.05)
+                if fd in r:
+                    s = os.read(fd, 4096)
+                    # Look for interrupts disabled and halted.
+                    m = re.search(r'EFL=([0-9a-fA-F]+)', s)
+                    if m:
+                        eflags = int(m.group(1), 16)
+                        if eflags & 0x200 == 0 and s.find('HLT=1') != -1:
+                            return True
+                    return False
 
-        else:
+                else:
+                    return True
+        except:
+            raise
             return True
+
+    def _stopped(self):
+        self.lock.acquire()
+        x = self.stop
+        self.lock.release()
+        return x
 
     def run(self, floppy_image, trace, timeout):
         self.stop = False
@@ -119,10 +135,12 @@ class Qemu:
         if timeout:
             def _alarm():
                 try:
-                    child.send_signal(signal.SIGKILL);
+                    self.lock.acquire()
+                    self.stop = True
+                    self.lock.release()
                 except:
-                    pass
-                self.stop = True
+                    raise
+
             t = threading.Timer(float(timeout) / 1000.0, _alarm)
             t.start()
 
@@ -155,34 +173,40 @@ class Qemu:
             os.write(master, "logfile %s\n" % tracefn)
         os.write(master, "c\n")
 
+        poll = select.poll()
+        poll.register(sys.stdin, select.POLLIN | select.POLLHUP)
+        poll.register(imaster, select.POLLIN | select.POLLHUP)
+
         out = ""
-        while not self.stop:
-            r,w,x = select.select([0,imaster],[],[],0.05)
+        while not self._stopped():
+            for fd, event in poll.poll(500):
+                # stdin ready for reading?
+                if fd == sys.stdin.fileno():
+                    if event & select.POLLHUP:
+                        poll.unregister(sys.stdin)
+                    x = sys.stdin.read(128)
+                    os.write(imaster, x)
 
-            # stdin ready for reading?
-            if 0 in r:
-                os.write(imaster, os.read(0, 128))
+                # pty ready for reading?
+                if fd == imaster and event & select.POLLIN:
+                    out += os.read(imaster, 128)
 
-            # pty ready for reading?
+            if self._check_finished(master):
+                break
+
+        # Kill qemu.
+
+        child.send_signal(signal.SIGINT)
+        
+        t.cancel()
+
+        # Ensure all data is read from the child before reaping it.
+        while True:
+            r,w,x = select.select([imaster],[],[],0.05)
             if imaster in r:
-                out += os.read(imaster, 128)
-
-            if not self.stop and self._check_finished(master):
-                break
-
-        try:
-            # Kill qemu.
-            child.send_signal(signal.SIGKILL)
-
-            # Ensure all data is read from the child before reaping it.
-            while True:
-                r,w,x = select.select([imaster],[],[],0.05)
-                if imaster in r:
-                    out += os.read(imaster, 1024)
-                    continue
-                break
-        except:
-            pass
+                out += os.read(imaster, 1024)
+                continue
+            break
 
         code = child.wait()
         os.close(master)
@@ -208,7 +232,7 @@ class Qemu:
             ret = out.splitlines()
 
         os.unlink(errfn)
-        t.cancel()
+
         return ret
 
 class Runner:
