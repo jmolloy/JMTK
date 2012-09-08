@@ -33,11 +33,6 @@ static uint64_t ide_length(block_device_t *bdev) {
 }
 
 static void send_chip_select(uint16_t base, uint16_t cs) {
-  static uint16_t last_cs = 2;
-
-  /* if (last_cs == cs) */
-  /*   return; */
-
   dbg("send_chip_select(%x, %d)\n", base, cs);
 
   /* Send device select command. */
@@ -49,7 +44,6 @@ static void send_chip_select(uint16_t base, uint16_t cs) {
   inb(base+ATA_REG_STATUS);
   inb(base+ATA_REG_STATUS);
   inb(base+ATA_REG_STATUS);
-  last_cs = cs;
 }
 
 static void send_lba_command(ide_dev_t *dev, uint64_t addr, uint8_t sectors,
