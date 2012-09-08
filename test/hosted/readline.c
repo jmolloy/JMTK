@@ -1,5 +1,5 @@
 #if 0
-# We can't trust emulators to correctly deal with the characters in this test; qemu in particular has difficulty with them. So we only run on hosted.
+# // We can't trust emulators to correctly deal with the characters in this test; qemu in particular has difficulty with them. So we only run on hosted.
 exit `grep '^// IN:' $0 | xargs echo -e | sed -e 's, \?// IN: ,,g' | $1 $2 | ./test/FileCheck $0`
 #endif
 
