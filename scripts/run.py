@@ -296,7 +296,7 @@ if __name__ == "__main__":
                  default=os.path.join('src','floppy.img.zip'),
                  help='Path to the preformatted floppy disk image to splat the kernel onto')
     p.add_option('--keep-temps', action='store_true', dest='keep_temps')
-    p.add_option('--hda', dest='hda')
+
     opts, args = p.parse_args()
 
     if not args:
@@ -309,8 +309,8 @@ if __name__ == "__main__":
         argv = None
 
     qemu_opts = []
-    if opts.hda:
-        qemu_opts += ['-hda', opts.hda]
+    if 'HDD_IMAGE' in os.environ:
+        qemu_opts += ['-hda', os.environ['HDD_IMAGE']]
 
     r = Runner(args[0], trace=opts.trace, syms=opts.syms, qemu_opts=qemu_opts,
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv,

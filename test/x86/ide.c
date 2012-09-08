@@ -1,5 +1,5 @@
 #if 0
-exit `$1 $2 --hda test/inputs/ide-test.img | ./test/FileCheck $0`
+exit `HDD_IMAGE=test/inputs/ide-test.img $1 $2 | ./test/FileCheck $0`
 #endif
 
 #include "assert.h"
