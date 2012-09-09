@@ -62,3 +62,4 @@
 "screen printing": [src/x86/screen.c]
 "Partitions": [src/partition.c]
 "FAT filesystem": [src/fs_vfat.c]
+"bringup stage 2": [src/x86/gdt.c]

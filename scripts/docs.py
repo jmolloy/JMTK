@@ -161,9 +161,19 @@ class SourceFragment:
         src = self.src if self.src else ''
         return "%s... (%s...)" % (ds[:16], src[:16])
 
+
     def _strip_prefix(self, ds):
+        def _is_whitespace(l):
+            return re.match(r'\s*$', l)
+
+        if ds.startswith('/**'):
+            ds = '   ' + ds[3:]
         lines = ds.split('\n')
-        l = len(re.match(r'[;/*\s]*', lines[0]).group(0))
+
+        ls = [len(re.match(r'[;/*\s]*', l).group(0))
+              for l in lines
+              if not _is_whitespace(l)]
+        l = min(ls)
 
         lines = [line[l:] for line in lines]
         return '\n'.join(lines)
@@ -175,7 +185,7 @@ class SourceFragment:
         ds = self._strip_prefix(self.docstring)
         try:
             x = publish_parts(ds, writer_name='html', source_path=self.file.name)
-            return x['body']
+            return x['html_body']
         except Exception as e:
             pass
 

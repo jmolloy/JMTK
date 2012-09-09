@@ -5,17 +5,16 @@
 #include "x86/io.h"
 
 /**
-   ============
-    Serial I/O
-   ============
+   Serial I/O
+   ==========
 
    While generally with desktop OSes most of the initial boot IO is done via the monitor and keyboard, the serial line can be extremely useful for headless boots, or more importantly getting textual data in and out of emulators (qemu's ``-serial`` option, for example).
 
    A serial device is standard on x86 machines, and is accessed via ``INB`` and ``OUTB`` instructions - its registers are located in the I/O space, not the memory address space. There are normally two serial controllers, and each controller can control two serial lines.
 
-   The primary controller has its registers at 0x3f8 (for the first device) and 0x3e8 (for the second device). Similarly the second controller has registers at 0x2f8 and 0x2e8.
+   The primary controller has its registers at 0x3f8 (for the first device) and 0x3e8 (for the second device). Similarly the second controller has registers at 0x2f8 and 0x2e8. */
 
-   Now, in this chapter I'm not going to go into all the gory details of the serial controller. It's mainly legacy and besides, that's what datasheets are for. With that said, here are a bunch of definitions! { */
+/** Now, in this chapter I'm not going to go into all the gory details of the serial controller. It's mainly legacy and besides, that's what datasheets are for. With that said, here are a bunch of definitions! { */
 
 #define SERIAL_BASE_COM1 0x3f8
 #define SERIAL_BASE_COM2 0x2f8
