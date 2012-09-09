@@ -1,5 +1,5 @@
 #if 0
-exit `$1 $2 --trace --symbols | ./test/FileCheck $0`
+exit `$1 $2 --trace --symbols --timeout 15000 | ./test/FileCheck $0`
 #endif
 
 #include "hal.h"
