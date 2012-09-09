@@ -1,5 +1,9 @@
 #if 0
-exit `HDD_IMAGE=test/inputs/ide-test.img $1 $2 | ./test/FileCheck $0`
+IMGNAME=/tmp/$$-input.img
+cp test/inputs/ide-test.img $IMGNAME
+OUT=`HDD_IMAGE=$IMGNAME $1 $2 | ./test/FileCheck $0`
+rm $IMGNAME
+exit $OUT
 #endif
 
 #include "assert.h"
@@ -69,6 +73,24 @@ int f() {
   hexdump((void*)buf, 0x10, 4*512 + 0);
   // CHECK: 000009f0: f9 e3 c7 7a 36 51 96 f6 5e 4f 97 96 b1 ba 23 b2
   hexdump((void*)buf + 512 - 0x10, 0x10, 4*512 + 512-0x10);
+
+  /* Now try writing! */
+  unsigned char *cbuf = (unsigned char*)buf;
+  for (unsigned i = 0; i < 0x1000; ++i)
+    cbuf[i] = i;
+
+  assert(hd->write);
+  hd->write(hd, 0, cbuf, 0x1000);
+
+  /* And read in again... */
+  memset(cbuf, 0xcc, 0x1000);
+
+  hd->read(hd, 0, cbuf, 0x1000);
+
+  // CHECK: 00000000: 00 01 02 03 04 05 06 07 08 09
+  hexdump(cbuf, 10, 0);
+  // CHECK: 00000430: 30 31 32 33 34 35 36 37 38 39
+  hexdump(cbuf + 0x430, 10, 0x430);
 
   return 0;
 }

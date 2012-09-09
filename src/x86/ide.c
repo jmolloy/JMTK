@@ -126,7 +126,8 @@ static void dma_start_read(ide_dev_t *dev, uintptr_t buf,
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
   dev->sema = sema;
-
+  /* FIXME: Race condition here; flags set while op is in progress - interrupt could happen
+     before here! */
   dev->flags &= ~IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
   dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
@@ -137,14 +138,19 @@ static void dma_start_write(ide_dev_t *dev, uintptr_t buf,
                             semaphore_t *sema) {
   dbg("dma_start_write(%x, %d, %x)\n", buf, size, (uint32_t)address);
 
+  send_chip_select(dev->base, dev->chip_select);
+
+  send_lba_command(dev, address, size/512, ATA_CMD_WRITE_DMA, ATA_CMD_WRITE_DMA_EXT);
+
   dma_setup(dev, buf, size, 1);
+
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
   dev->sema = sema;
+
   dev->flags |= IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
   dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
-  send_lba_command(dev, address, size/512, ATA_CMD_WRITE_DMA, ATA_CMD_WRITE_DMA_EXT);
 }
 
 static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t len) {
@@ -166,6 +172,34 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
   dev->sema = &sema;
 
   dma_start_read(dev, bufp, len, offset, &sema);
+
+  semaphore_wait(&sema);
+  unsigned error = dev->flags & IDE_FLAG_ERROR;
+
+  semaphore_signal(dev->lock);
+
+  return error ? -1 : (int)len;
+}
+
+static int ide_write(block_device_t *bdev, uint64_t offset, void *buf, uint64_t len) {
+  dbg("ide_write(%x, %x, %x)\n", (uint32_t)offset, buf, (uint32_t)len);
+
+  uintptr_t bufp = (uintptr_t)buf;
+
+  //  assert((offset & 0xFFF)0 && "Write offset must be a multiple of 4096!");
+  assert((len & 0xFFF) == 0 && "Write length must be a multiple of 4096!");
+  assert((bufp & 0xFFF) == 0 && "Buffer must be a multiple of 4096!");
+
+  ide_dev_t *dev = (ide_dev_t*)bdev->data;
+
+  semaphore_t sema;
+  semaphore_init(&sema);
+
+  semaphore_wait(dev->lock);
+
+  dev->sema = &sema;
+
+  dma_start_write(dev, bufp, len, offset, &sema);
 
   semaphore_wait(&sema);
   unsigned error = dev->flags & IDE_FLAG_ERROR;
@@ -334,7 +368,7 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
 
   block_device_t *bdev = kmalloc(sizeof(block_device_t));
   bdev->read = &ide_read;
-  bdev->write = NULL;
+  bdev->write = &ide_write;
   bdev->flush = NULL;
   bdev->length = &ide_length;
   bdev->describe = &ide_describe;
