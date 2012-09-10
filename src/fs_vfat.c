@@ -418,7 +418,7 @@ static vector_t read_directory(vfat_filesystem_t *fs, vfat_file_t *node) {
   do {
     sz_read = read(fs, node, offset, buf, 4096);
 
-    for (unsigned idx = 0; idx < 4096; idx += sizeof(vfat_dir_t)) {
+    for (unsigned idx = 0; idx < sz_read; idx += sizeof(vfat_dir_t)) {
       vfat_dir_t *dir = (vfat_dir_t*) &buf[idx];
 
       if ((unsigned char)dir->name[0] == 0xE5)
