@@ -5,49 +5,6 @@
 #include "assert.h"
 #include "kmalloc.h"
 
-#if defined(HOSTED)
-static const char *image = NULL;
-static FILE *stream;
-
-int mock_hdd_read(block_device_t *obj, uint64_t offset, void *buf, uint64_t len) {
-  fseek(stream, offset, SEEK_SET);
-  return fread(buf, 1, len, stream);
-}
-
-int mock_hdd_write(block_device_t *obj, uint64_t offset, void *buf, uint64_t len) {
-  fseek(stream, offset, SEEK_SET);
-  return fwrite(buf, 1, len, stream);
-}
-
-void mock_hdd_flush(block_device_t *obj) {
-  fflush(stream);
-}
-
-uint64_t mock_hdd_length(block_device_t *obj) {
-  fseek(stream, 0, SEEK_END);
-  return ftell(stream);
-}
-
-void mock_hdd_describe(block_device_t *obj, char *buf, unsigned bufsz) {
-  strncpy(buf, "mock-hdd", bufsz);
-}
-
-static block_device_t mock_dev = {
-  .read = &mock_hdd_read,
-  .write = &mock_hdd_write,
-  .flush = &mock_hdd_flush,
-  .length = &mock_hdd_length,
-  .describe = &mock_hdd_describe
-};
-
-void mock_hdd_init(dev_t dev) {
-  stream = fopen(image, "r+");
-  assert(stream);
-
-  register_block_device(dev, &mock_dev);
-}
-
-#endif
 
 bool dummy_access(int mode) {
   return true;
@@ -70,10 +27,10 @@ void op_cat(const char **params, int nparams) {
   while (sz) {
     unsigned thesz = (sz > SZ) ? SZ : sz;
 
-    unsigned char tmp = buf[offs+thesz+1];
-    buf[offs+thesz+1] = 0;
+    unsigned char tmp = buf[offs+thesz];
+    buf[offs+thesz] = 0;
     kprintf("%s", &buf[offs]);
-    buf[offs+thesz+1] = tmp;
+    buf[offs+thesz] = tmp;
 
     offs += thesz;
     sz -= thesz;
@@ -175,19 +132,12 @@ void op_mkdir(const char **params, int nparams) {
 }
 
 void kmain(int argc, char **argv) {
-  assert(argc > 3 && "Usage: fstest <image> <fstype> <op> <params>");
-#if defined(HOSTED)
-  image = argv[1];
-#endif
-  const char *fstype = argv[2];
-  const char *op = argv[3];
-  const char **params = (const char**) &argv[4];
-  int nparams = argc - 3;
+  assert(argc > 2 && "Usage: fstest <fstype> <op> <params>");
 
-  /* Register our dummy HDD device on /dev/hda */
-#if defined(HOSTED)
-  mock_hdd_init(makedev(DEV_MAJ_HDA, 0));
-#endif
+  const char *fstype = argv[1];
+  const char *op = argv[2];
+  const char **params = (const char**) &argv[3];
+  int nparams = argc - 2;
 
   /* Mount /dev/hda on / */
   int st = vfs_mount(makedev(DEV_MAJ_HDA, 0), vfs_get_root(), fstype);

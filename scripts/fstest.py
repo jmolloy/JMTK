@@ -2,9 +2,9 @@
 
 import os, sys, subprocess, re, random, string, datetime
 
-def _exec(args, stdout=None, stderr=None):
+def _exec(args, env=None, stdout=None, stderr=None):
     try:
-        return subprocess.check_output(args)
+        return subprocess.check_output(args, env=env)
     except OSError as e:
         raise OSError(str(e) + " while running " + args[0])
 
@@ -76,7 +76,7 @@ class FstestMutator:
         raise "NotImplemented!"
 
     def read(self, fname):
-        lines = _exec([self.exe, self.image, self.fstype, "cat", fname]).splitlines()
+        lines = _exec([self.exe, self.fstype, "cat", fname], {'HDD_IMAGE': self.image} ).splitlines()
 
         # Grep for start marker.
         state = 'SPOOL'
@@ -112,7 +112,7 @@ class FstestMutator:
         return objs
 
     def listdir(self, fname):
-        lines = _exec([self.exe, self.image, self.fstype, "ls", fname]).splitlines()
+        lines = _exec([self.exe, self.fstype, "ls", fname], {'HDD_IMAGE': self.image}).splitlines()
 
         lines = filter(lambda x: x.startswith('[['), lines)
         files = self._parsefiles(lines)
@@ -125,7 +125,7 @@ class FstestMutator:
     def stat(self, fname):
         name = fname[fname.rfind('/')+1 :]
         fname = fname[: fname.rfind('/')]
-        lines = _exec([self.exe, self.image, self.fstype, "ls", fname]).splitlines()
+        lines = _exec([self.exe, self.fstype, "ls", fname], {'HDD_IMAGE': self.image}).splitlines()
         lines = filter(lambda x: x.startswith('[['), lines)
         files = self._parsefiles(lines)
 
@@ -148,12 +148,14 @@ class FstestMutator:
         return x
 
 class CrossCheckError(Exception):
-    def __init__(self, subject, got=None, expected=None):
+    def __init__(self, subject, got=None, expected=None, sequence=False):
+        _sorted = sorted if sequence == False else lambda x: x
+
         if isinstance(subject, list):
             if isinstance(got[0], dict) and isinstance(got[1], dict):
                 self.txt = self._format(subject, got)
             else:
-                self.txt = "%s got '%s', but %s got '%s'" % (str(subject[0]), sorted(got[0]), subject[1], sorted(got[1]))
+                self.txt = "%s got '%s', but %s got '%s'" % (str(subject[0]), _sorted(got[0]), subject[1], _sorted(got[1]))
         elif expected is not None:
             self.txt = "%s got '%s', expected '%s'" % (str(subject), got, expected)
         else:
@@ -197,7 +199,7 @@ class CrossChecker:
     def read(self, fname, expected=None):
         ls = [m.read(fname) for m in self.ms]
         if ls[0] != ls[1]:
-            raise CrossCheckError(self.ms, got=ls, expected=expected)
+            raise CrossCheckError(self.ms, got=ls, expected=expected, sequence=True)
         return ls[0]
     
     def listdir(self, fname):
@@ -273,7 +275,7 @@ class Model:
             n = n.children[part]
         return n
 
-    def make_file(self, basedir, contentlen=10):
+    def make_file(self, basedir, contentlen=1064):
         s = self._randstr()
         c = self._randstr(len=contentlen)
         if self.m:
