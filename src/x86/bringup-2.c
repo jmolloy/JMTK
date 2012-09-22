@@ -21,6 +21,7 @@
 #include "string.h"
 #include "types.h"
 #include "x86/multiboot.h"
+
 /* Give the early allocator 2KB to play with. */
 #define EARLYALLOC_SZ 2048
 
@@ -119,3 +120,4 @@ void bringup(multiboot_t *_mboot) {
 
   (void)main(argc, argv);
 }
+

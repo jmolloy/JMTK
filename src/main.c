@@ -160,10 +160,7 @@
    and with a proper debugger and valgrind.
 
    Along with this we also have target tests, which are run via a python wrapper
-   around qEmu. The test harness itself is
-   `"Lit" <http://llvm.org/cmds/lit.html>`_, which is part of the LLVM compiler
-   infrastructure and is used for their testing. It's extremely lightweight,
-   robust and is an exceedingly good tool.
+   around qEmu.
 
    In the tutorial documentation I will not explicitly mention the use of tests,
    but tests will have been written for every feature and chapter. Similarly I
@@ -313,6 +310,12 @@ static void log_status(int status, const char *name, const char *text);
    mode and must only run the hard prerequisites of this module. */
 module_t *test_module __attribute__((weak)) = (module_t*)NULL;
 
+/**
+   You may notice that this calls a function not yet defined.
+   ``kmain`` is declared in ``hal.h``, and is intended to be overridden by a
+   loaded module. Its default behaviour is to call ``debugger_trap``, which
+   if a kernel debugger is installed will launch the debugger, else will
+   loop forever. { **/
 int main(int argc, char **argv) {
   /* Start by running the startup functions. */
   for (module_t *m = &__start_modules, *e = &__stop_modules; m < e; ++m)
@@ -362,6 +365,7 @@ static void resolve_module(module_t *m) {
 static void init_module(module_t *m) {
   if (m->state >= MODULE_INIT_RUN)
     return;
+  m->state = MODULE_INIT_RUN;
 
   if (m->required)
     for (prereq_t *p = m->required; p != NULL && p->name != NULL; ++p) {
@@ -381,12 +385,12 @@ static void init_module(module_t *m) {
     int ok = m->init();
     log_status(ok, m->name, "Started");
   }
-  m->state = MODULE_INIT_RUN;
 }
 
 static void fini_module(module_t *m) {
   if (m->state != MODULE_INIT_RUN)
     return;
+  m->state = MODULE_FINI_RUN;
 
   if (m->required)
     for (prereq_t *p = m->required; p != NULL && p->name != NULL; ++p) {
@@ -406,11 +410,10 @@ static void fini_module(module_t *m) {
     int ok = m->fini();
     log_status(ok, m->name, "Stopped");
   }
-  m->state = MODULE_FINI_RUN;
 }
 
 
-/** ... although I will explain where ``strcmp`` came from.
+/** ... although I will explain where ``strcmp`` comes from.
 
     In a kernel, you don't have access to the C standard library. Which means
     you have no strcmp/memcpy/memset. In ``stdlib.c``, I have implemented a few
@@ -427,13 +430,6 @@ static module_t *find_module(const char *name) {
   }
   return NULL;
 }
-
-/**
-   You may notice that this calls a function not yet defined.
-   ``kmain`` is declared in ``hal.h``, and is intended to be overridden by a
-   loaded module. Its default behaviour is to call ``debugger_trap``, which
-   if a kernel debugger is installed will launch the debugger, else will
-   loop forever. **/
 
 /** Building on the concept of using HAL functions before they are implemented,
     the next few functions use the function ``write_console``, whose purpose

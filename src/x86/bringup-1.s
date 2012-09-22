@@ -30,7 +30,7 @@
 ;;; For obvious reasons this is called a "stage 1" bootloader. It needs to, in 510
 ;;; bytes of instruction space, work out how to load its companion "stage 2"
 ;;; bootloader, which is more featureful and can provide an interface etc - this is
-;;; what you percieve as GRUB's interface when you see it on linux bootup.
+;;; what you perceive as GRUB's interface when you see it on linux bootup.
 ;;; 
 ;;; The stage 1 and stage 2 bootloaders can make use of an API the BIOS provides to
 ;;; load and store sectors to media, write to the screen and other stuff. However if
@@ -80,7 +80,13 @@
 bits 32
 
 ;;; Then, we can define the *multiboot header*. The following are the NASM
-;;; equivalent of C #defines. {
+;;; equivalent of C #defines.
+;;; 
+;;; The checksum field is to ensure the magic and flags got read correctly, and
+;;; is defined as the number required to add to the magic number and flags in
+;;; order to make the result zero. Another important role checksum field serves
+;;; is to guarantee that this is actually a multiboot header that the bootloader 
+;;; has found and not some random bytes just looking the same way. {
 
         ;; Flag to request memory map information from the bootloader.
 MBOOT_MEM_INFO      equ 1<<1
@@ -89,12 +95,6 @@ MBOOT_HEADER_MAGIC  equ 0x1BADB002
 MBOOT_FLAGS         equ MBOOT_MEM_INFO
 MBOOT_CHECKSUM      equ -(MBOOT_HEADER_MAGIC+MBOOT_FLAGS)
 
-;;; The checksum field is to ensure the magic and flags got read correctly, and
-;;; is defined as the number required to add to the magic number and flags in
-;;; order to make the result zero. Another important role checksum field serves
-;;; is to guarantee that this is actually a multiboot header that the bootloader 
-;;; has found and not some random bytes just looking the same way.
-;;;
 ;;; Now let's define the header. {
         
 section .init
@@ -150,7 +150,7 @@ mboot:  dd      MBOOT_HEADER_MAGIC
 ;;; until the chapter on paging for a full explanation. So for the moment, please
 ;;; think of it as *magic* and it'll make sense later :)
 ;;; 
-;;; But anyway, most of our code will be linked to run in the higher half, but we
+;;; Anyway, most of our code will be linked to run in the higher half, but we
 ;;; need some code to run in the lower half as the bootloader will leave us with
 ;;; paging *disabled*. That is what the ``.init`` section is for, and will be
 ;;; defined later in the linker script.
@@ -162,23 +162,27 @@ mboot:  dd      MBOOT_HEADER_MAGIC
         ;; At this point EBX is a pointer to the multiboot struct.
 global _start:function _start.end-_start
 _start: mov     eax, pd         ; MAGIC START!
-        mov     dword [eax], pt + 3
-        mov     dword [eax+0xC00], pt + 3
+        mov     dword [eax], pt + 3 ; addrs 0x0..0x400000 = pt | WRITE | PRESENT
+        mov     dword [eax+0xC00], pt + 3 ; addrs 0xC0000000..0xC0400000 = same
 
+        ;; Loop through all 1024 pages in page table 'pt', setting them to be
+        ;; identity mapped with full permissions.
         mov     edx, pt
-        mov     ecx, 0
-.loop:  mov     eax, ecx
+        mov     ecx, 0          ; Loop induction variable: start at 0
+        
+.loop:  mov     eax, ecx        ; tmp = (%ecx << 12) | WRITE | PRESENT
         shl     eax, 12
         or      eax, 3
-        mov     [edx+ecx*4], eax
+        mov     [edx+ecx*4], eax ; pt[ecx * sizeof(entry)] = tmp
+        
         inc     ecx
-        cmp     ecx, 1024
+        cmp     ecx, 1024       ; End at %ecx == 1024
         jnz     .loop
 
-        mov     eax, pd+3
-        mov     cr3, eax
+        mov     eax, pd+3       ; Load page directory | WRITE | PRESENT
+        mov     cr3, eax        ; Store into cr3.
         mov     eax, cr0
-        or      eax, 0x80000000 ; This is where paging gets enabled.
+        or      eax, 0x80000000 ; Set PG bit in cr0 to enable paging.
         mov     cr0, eax
 
         jmp     higherhalf
@@ -194,14 +198,24 @@ pt:     resb    0x1000          ; MAGIC END!
 ;;; by the way) to any physical address and get the virtual address.
 ;;; 
 ;;; It then jumped to a function called "higherhalf", which we are about to define.
-;;; 
+
 ;;; Now, when I explained about multiboot, you may not have noticed that setting up
 ;;; a valid stack (value in the ESP register) was not part of the contract between
 ;;; bootloader and kernel.
 ;;; 
 ;;; Therefore we need to set one up now before we can perform any ``CALL``
 ;;; instructions. Remember also that the multiboot info struct was passed in the
-;;; ``EBX`` register by the bootloader. {
+;;; ``EBX`` register by the bootloader (and we deliberately didn't clobber it in
+;;; the above code.
+
+;;; Here we created a stack, zeroed the ``EBP`` register (remember that ``x xor x``
+;;; is always zero), pushed the multiboot info struct onto the stack as the first
+;;; parameter to the function ``bringup``, which we're about to define and which
+;;; will be the first time we can run code written in C.
+;;; 
+;;; Once that function returns, we perform a ``cli/hlt`` in order to stop the
+;;; processor entirely. This should ideally never happen, but it's better than
+;;; running off into undefined memory. {
 
 extern bringup
 
@@ -214,22 +228,13 @@ higherhalf:
         xor     ebp, ebp        ; Zero the frame pointer for backtraces.
         push    ebx             ; Pass multiboot struct as a parameter
         call    bringup         ; Call kernel bringup function.
-        cli                     ; Kernel has finished, so disable interrupts
-        hlt                     ; And halt the processor.
+        cli                     ; Kernel has finished, so disable interrupts ...
+        hlt                     ; ... And halt the processor.
 .end:
-        
+
 section .bss
 align 8192
 global stack_base
 stack_base:
         resb    0x2000
 stack:
-
-;;; Here we created a stack, zeroed the ``EBP`` register (remember that ``x xor x``
-;;; is always zero), pushed the multiboot info struct onto the stack as the first
-;;; parameter to the function ``bringup``, which we're about to define and which
-;;; will be the first time we can run code written in C.
-;;; 
-;;; Once that function returns, we perform a ``cli/hlt`` in order to stop the
-;;; processor entirely. This should ideally never happen, but it's better than
-;;; running off into undefined memory.
