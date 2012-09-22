@@ -4,9 +4,10 @@
 /** @file mmap.h Memory map definition
  
     This file is a stepping stone to platform specific memory map information. The
-    implementation headers in {PLATFORM}/mmap.h must define at least one macro:
+    implementation headers in {PLATFORM}/mmap.h must define at least two macros:
 
-    #define MMAP_KERNEL_START <start address of kernel virtual memory> */
+    #define MMAP_KERNEL_START <start address of kernel virtual memory>
+    #define MMAP_COW_REFCNTS  <area of virtual memory at least 64MB large> */
 
 #if defined(X64)
 #include "x64/mmap.h"

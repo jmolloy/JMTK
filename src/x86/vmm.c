@@ -38,7 +38,7 @@ static int to_x86_flags(int flags) {
 int clone_address_space(address_space_t *dest, int make_cow) {
   spinlock_acquire(&global_vmm_lock);
 
-  uint32_t p = alloc_page(PAGE_REQ_UNDER4GB);
+  uint32_t p = alloc_page(PAGE_REQ_NONE);
   
   spinlock_init(&dest->lock);
   dest->directory = (uint32_t*)p;
@@ -101,12 +101,13 @@ static int map_one_page(uintptr_t v, uint64_t p, unsigned flags) {
   spinlock_acquire(&current->lock);
 
   /* Quick sanity check - a page with CoW must not be writable. */
-  if (flags & PAGE_COW)
+  if (flags & PAGE_COW) {
+    cow_refcnt_inc(p);
     flags &= ~PAGE_WRITE;
+  }
 
   uint32_t *page_dir_entry = (uint32_t*) (MMAP_PAGE_DIR + PAGE_DIR_IDX(v)*4);
   if ((*page_dir_entry & X86_PRESENT) == 0) {
-    //  kprintf("Done3?\n");
     uint64_t p = alloc_page(PAGE_REQ_UNDER4GB);
     
     if (p == ~0ULL)
@@ -145,6 +146,10 @@ static int unmap_one_page(uintptr_t v) {
   uint32_t *page_table_entry = (uint32_t*) (MMAP_PAGE_TABLES + PAGE_TABLE_IDX(v)*4);
   if ((*page_table_entry & X86_PRESENT) == 0)
     panic("Tried to unmap a page that isn't mapped!");
+
+  uint32_t p = *page_table_entry & 0xFFFFF000;
+  if (*page_table_entry & X86_COW)
+    cow_refcnt_dec(p);
 
   *page_table_entry = 0;
 
@@ -223,6 +228,9 @@ static int page_fault(x86_regs_t *regs, void *ptr) {
       panic("map() failed during copy-on-write!");
 
     memcpy((uint8_t*)v, buffer, 0x1000);
+
+    /* Mark the old page as having one less reference. */
+    cow_refcnt_dec(p);
 
     return 0;
   }

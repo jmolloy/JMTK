@@ -17,7 +17,7 @@ static int free_memory() {
   if ((mboot.flags & MBOOT_MMAP) == 0)
     panic("Bootloader did not provide memory map info!");
 
-  range_t ranges[128];
+  range_t ranges[32], ranges_cpy[32];
 
   uint32_t i = mboot.mmap_addr;
   unsigned n = 0;
@@ -49,8 +49,14 @@ static int free_memory() {
     kprintf("r: %x ext %x\n", (uint32_t)ranges[i].start, (uint32_t)ranges[i].extent);
   }
 
+  /* Copy the ranges to a backup, as init_physical_memory mutates them and 
+     init_cow_refcnts needs to run after init_physical_memory */
+  for (i = 0; i < n; ++i)
+    ranges_cpy[i] = ranges[i];
+
   init_virtual_memory(ranges, n);
   init_physical_memory(ranges, n, extent);
+  init_cow_refcnts(ranges_cpy, n);
 
   return 0;
 }

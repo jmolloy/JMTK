@@ -209,6 +209,24 @@ int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent) {
   return -1;
 }
 
+int init_cow_refcnts(range_t *ranges, unsigned nranges) weak;
+int init_cow_refcnts(range_t *ranges, unsigned nranges) {
+  return -1;
+}
+
+void cow_refcnt_inc(uint64_t p) weak;
+void cow_refcnt_inc(uint64_t p) {
+}
+
+void cow_refcnt_dec(uint64_t p) weak;
+void cow_refcnt_dec(uint64_t p) {
+}
+
+unsigned cow_refcnt(uint64_t p) weak;
+unsigned cow_refcnt(uint64_t p) {
+  return ~0U;
+}
+
 int register_char_device(dev_t id, char_device_t *dev) weak;
 int register_char_device(dev_t id, char_device_t *dev) {
   return -1;

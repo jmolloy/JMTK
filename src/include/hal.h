@@ -421,11 +421,7 @@ typedef struct range {
   uint64_t extent;
 } range_t;
 
-/* Initialise the virtual memory manager. 'pages' is an array of
-   NUM_INITIAL_PAGES physical pages, which the VMM can use to
-   bootstrap itself into a state where it can map more pages in the
-   area of memory used by the physical memory manager
-   (MMAP_PMM_STACK2..MMAP_PMM_STACKEND).
+/* Initialise the virtual memory manager.
    
    Returns 0 on success or -1 on failure. */
 int init_virtual_memory(range_t *ranges, unsigned nranges);
@@ -437,7 +433,17 @@ int init_virtual_memory(range_t *ranges, unsigned nranges);
    the PMM. */
 int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent);
 
-#define NUM_INITIAL_PAGES 8
+/* Initialise the copy-on-write page reference counts. */
+int init_cow_refcnts(range_t *ranges, unsigned nranges);
+
+/* Increment the reference count of a copy-on-write page. */
+void cow_refcnt_inc(uint64_t p);
+
+/* Decrement the reference count of a copy-on-write page. */
+void cow_refcnt_dec(uint64_t p);
+
+/* Return the reference count of a copy-on-write page. */
+unsigned cow_refcnt(uint64_t p);
 
 /*******************************************************************************
  * Devices
