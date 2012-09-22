@@ -52,7 +52,8 @@
        register (for example 0x3f8) where to find specific registers.
      * ``SERIAL_RXTX``: This is the read/transmit buffer. Reading from this
        reads from the read buffer (referred to as 'rx') and writing writes to
-       the transmit buffer ('tx').  ``SERIAL_LSTAT``: Line status register. This
+       the transmit buffer ('tx').
+     * ``SERIAL_LSTAT``: Line status register. This
        has two interesting bits: ``SERIAL_LSTAT_RECV_BIT`` and
        ``SERIAL_LSTAT_SEND_BIT``, which tell us if the device has data received
        (RECV_BIT) or is ready to transmit (SEND_BIT).
