@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys,os,re
+import sys,os,re,tempfile,subprocess
 from docutils.core import publish_parts
 from docutils.utils import SystemMessage
 from pygments import highlight
@@ -14,11 +14,11 @@ from pygments.token import Keyword, Name, Comment, String, Error, \
 class DocStyle(Style):
     default_style = ""
     styles = {
-        Comment:                'italic #0b61a4',
-        Comment.Preproc:        'noitalic #FFAD40',
-        Keyword:                'bold #007241',
-        Name.Builtin:           '#61d7a4',
-        String:                 '#36d792'
+        Comment:                'italic #bbb',
+        Comment.Preproc:        'noitalic #a63a00',
+        Keyword:                'bold #0d56a6',
+        Name.Builtin:           '#a63a00',
+        String:                 '#ff9a00'
         }
 
 class SourceFile:
@@ -189,6 +189,11 @@ class SourceFragment:
         except Exception as e:
             pass
 
+    def raw_docstring(self):
+        if not self.docstring:
+            return ''
+        return self._strip_prefix(self.docstring)
+
     def html_src(self):
         if not self.src:
             return ''
@@ -202,7 +207,7 @@ class SourceFragment:
 
 class DocumentChapter:
 
-    def __init__(self, template, files, node):
+    def __init__(self, template, files, node, bdir):
         source_files = [SourceFile(f) for f in files]
         source_fragments = []
         for sf in source_files:
@@ -215,24 +220,53 @@ class DocumentChapter:
 
         preds = list(self._get_preds())
         succs = list(self._get_succs())
+ 
+        self.rest = self._make_rest(source_fragments)
+        body = self._render_rest(self.rest)
+        if template:
+            t = Template(open(template).read())
 
-        nav = []
-        for p in preds:
-            s = '<span class="prev %s">%s<span class="line"></span></span>\n' % (
-                'prev2' if p != preds[-1] else '', p.value)
-            nav.append(s)
+        graph_name = str(node).replace(' ', '-') + '.svg'
 
-        nav.append('<span class="this">%s</span>\n' % node.value)
+        self._render_pred_succ_graph(preds, succs, os.path.join(bdir, graph_name))
 
-        for p in succs:
-            s = '<span class="next %s">%s<span class="line"></span></span>\n' % (
-                'next2' if p != succs[0] else '', p.value)
-            nav.append(s)
-            
-        t = Template(open(template).read())
-        self.html = t.safe_substitute(body = self._make_table(source_fragments),
-                                      nav = ''.join(nav),
-                                      highlight_style = HtmlFormatter(style=DocStyle).get_style_defs('.highlight'))
+        self.html = t.safe_substitute(body = body,
+                                      nav = '',
+                                      highlight_style = HtmlFormatter(style=DocStyle).get_style_defs('.highlight'),
+                                      code_width = '600px',
+                                      text_width = '600px',
+                                      graph = graph_name)
+
+
+    def _make_rest(self, fragments):
+        def indentlines(ls, n):
+            return [' '*n + l for l in ls]
+        def html(x):
+            return ['', '.. raw:: html', ''] + indentlines(x.splitlines(), 4) + ['    ']
+
+        out = []
+        lastfile = ''
+        for frag in fragments:
+            if frag.src:
+                f = ""
+                if lastfile != frag.file.name:
+                    lastfile = frag.file.name
+                    f = '<div class="filename">%s</div>' % frag.file.name
+                out += html('<div class="source">' + f + frag.html_src() + '</div>')
+
+            if frag.docstring:
+                out += frag.raw_docstring().splitlines()
+
+            out += html('<div class="anchor"></div>')
+
+        return '\n'.join(out)
+
+    def _render_rest(self, rest):
+        try:
+            x = publish_parts(rest, writer_name='html')
+            return x['html_body']
+        except Exception as e:
+            return 'FNAR! %s' % e
 
     def __str__(self):
         return self.html
@@ -278,47 +312,30 @@ class DocumentChapter:
             if i in ords:
                 out.extend(ords[i])
 
-        # Now run another pass to set the "first"/"last" attributes on
-        # source fragments.
-        for i in range(0, len(out)):
-            out[i].src_first = False
-            out[i].src_last = False
-
-            if not out[i].src:
-                continue
-            if i == 0 or not out[i-1].src:
-                out[i].src_first = True
-            if (i == len(out)-1) or not out[i+1].src:
-                out[i].src_last = True
-
         return out
 
-    def _make_table(self, fragments):
-        out = '<table class="body-table">\n'
+    def _render_pred_succ_graph(self, preds, succs, outf):
+        def url(node):
+            return "./" + node.value.replace(' ', '-').lower() + '.html'
 
-        for frag in fragments:
-            ds = frag.html_docstring()
-            src = frag.html_src()
+        dot = ['digraph G {', 'node [shape=box fontsize=12 fontname="Droid Sans" peripheries=0 ]', 'rankdir=LR; nodesep=0.0; pad="0,0";']
+        dot += ['"%s" -> "%s"' % (p, self.node) for p in preds]
+        dot += ['"%s" -> "%s"' % (self.node, s) for s in succs]
 
-            src_first = "src-first" if frag.src_first else ""
-            src_last  = "src-last"  if frag.src_last else ""
-            if src:
-                out += '''
-        <tr>
-          <td valign="top" class="doc-with-src">%s</td>
-          <td><div class="src %s %s">%s</div></td>
-        </tr>
-        ''' % (ds, src_first, src_last, src)
-            else:
-                out += '''
-        <tr>
-          <td valign="top" colspan="2" class="doc-without-src">%s</td>
-        </tr>
-        ''' % ds
+        dot += ['"%s" [href="%s" target="_parent"]' % (p, url(p)) for p in preds]
+        dot += ['"%s" [href="%s" target="_parent"]' % (s, url(s)) for s in succs]
 
+        dot += ['}', '']
 
-        out += '</table>\n'
-        return out;
+        dot = '\n'.join(dot)
+
+        tf = tempfile.NamedTemporaryFile(delete=False)
+        tf.write(dot)
+        tf.close()
+
+        subprocess.check_call(['dot', '-s34', '-Tsvg', '-o', outf, tf.name])
+
+        os.unlink(tf.name)
 
 if __name__ == '__main__':
     from optparse import OptionParser
@@ -331,13 +348,17 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
+    if not options.out_dir:
+        options.out_dir = '.'
+
     if not options.graph:
-        chapter = DocumentChapter(options.template, args, None)
+        chapter = DocumentChapter(options.template, args, None, options.out_dir)
         print str(chapter)
         sys.exit(0)
 
     try:
-        os.makedirs(options.out_dir)
+        os.makedirs(options.out_dir + '/html')
+        os.makedirs(options.out_dir + '/rst')
     except:
         pass
 
@@ -346,8 +367,12 @@ if __name__ == '__main__':
     for node in g.nodes.values():
         print "Generating documentation for '%s' from %s..." % (node.value, node.files)
 
-        chapter = DocumentChapter(options.template, node.files, node)
+        chapter = DocumentChapter(options.template, node.files, node, options.out_dir)
 
-        outfilename = "%s/%s.html" % (options.out_dir,
+        outfilename = "%s/html/%s.html" % (options.out_dir,
                                       node.value.lower().replace(' ', '-'))
         open(outfilename, 'w').write(str(chapter))
+
+        outfilename = "%s/rst/%s.rst" % (options.out_dir,
+                                         node.value.lower().replace(' ', '-'))
+        open(outfilename, 'w').write(chapter.rest)

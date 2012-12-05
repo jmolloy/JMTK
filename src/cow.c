@@ -10,8 +10,6 @@ static void init_page(uint64_t p) {
     (uintptr_t)(&cow_refcnt_array[p >> get_page_shift()]) & ~get_page_mask();
 
   if (!is_mapped(backing_page)) {
-    kprintf("Mapping page %x\n", backing_page);
-    
     uint64_t page = alloc_page(PAGE_REQ_NONE);
     assert(page != ~0ULL && "alloc_page failed!");
     int ret = map(backing_page, page, 1, PAGE_WRITE);
@@ -22,7 +20,6 @@ static void init_page(uint64_t p) {
 }
 
 int init_cow_refcnts(range_t *ranges, unsigned nranges) {
-  kprintf("init_cow_refcnts %d!\n", nranges);
   for (unsigned i = 0; i < nranges; ++i) {
     for (uint64_t j = 0; j < ranges[i].extent; j += get_page_size()) {
       init_page(ranges[i].start + j);

@@ -8,15 +8,12 @@
 #define MMAP_KERNEL_VMSPACE_START \
                           0xD0000000
 #define MMAP_KERNEL_VMSPACE_END \
-                          0xFEFF0000
+                          0xFE800000
 
-#define MMAP_KERNEL_TMP1  0xFEFFE000
-#define MMAP_KERNEL_TMP2  0xFEFFF000
-#define MMAP_PMM_BITMAP   0xFF000000
-#define MMAP_PMM_BITMAP_END 0xFFB00000
+#define MMAP_PMM_BITMAP   0xFE800000
+#define MMAP_PMM_BITMAP_END 0xFF800000
 
-#define MMAP_PAGE_DIR     0xFFBFF000
-#define MMAP_PAGE_TABLES  0xFFC00000
+#define MMAP_KERNEL_END   0xFF800000
 
 #define IS_KERNEL_ADDR(x) ((void*)(x) >= (void*)MMAP_KERNEL_START)
 

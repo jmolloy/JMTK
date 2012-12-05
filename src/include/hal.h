@@ -369,6 +369,11 @@ unsigned get_page_size();
 /* Rounds an address up so that it is page-aligned. */
 uintptr_t round_to_page_size(uintptr_t x);
 
+/* Allocate a physical page of the size returned by get_page_size().
+   This should only be used between calling init_physical_memory_early() and
+   init_physical_memory(). */
+uint64_t early_alloc_page();
+
 /* Allocate a physical page of the size returned by get_page_size(), returning
    the address of the page in the physical address space. Returns ~0ULL on
    failure.
@@ -424,14 +429,19 @@ typedef struct range {
 /* Initialise the virtual memory manager.
    
    Returns 0 on success or -1 on failure. */
-int init_virtual_memory(range_t *ranges, unsigned nranges);
+int init_virtual_memory();
 
-/* Initialise the physical memory manager, passing in a set of ranges and
-   the maximum extent of physical memory (highest address + 1).
+/* Initialise the physical memory manager (stage 1), passing in a set
+   of ranges and the maximum extent of physical memory
+   (highest address + 1).
 
-   The set of ranges will be mutated to remove enough memory to initialise
-   the PMM. */
-int init_physical_memory(range_t *ranges, unsigned nranges, uint64_t extent);
+   The set of ranges will be copied, not mutated. */
+int init_physical_memory_early(range_t *ranges, unsigned nranges,
+                               uint64_t extent);
+
+/* Initialise the physical memory manager (stage 2). This should be 
+   done after the virtual memory manager is set up. */
+int init_physical_memory();
 
 /* Initialise the copy-on-write page reference counts. */
 int init_cow_refcnts(range_t *ranges, unsigned nranges);
@@ -444,6 +454,13 @@ void cow_refcnt_dec(uint64_t p);
 
 /* Return the reference count of a copy-on-write page. */
 unsigned cow_refcnt(uint64_t p);
+
+/* Handle a page fault potentially caused by a copy-on-write access.
+
+   'addr' is the address of the fault. 'error_code' is implementation 
+   defined. Returns true if the fault was copy-on-write related and was
+   handled, false if it still needs handling. */
+bool cow_handle_page_fault(uintptr_t addr, uintptr_t error_code);
 
 /*******************************************************************************
  * Devices

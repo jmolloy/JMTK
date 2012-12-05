@@ -1,190 +1,145 @@
 <html>
 <head>
-<link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css'>
+<!--<link href='http://fonts.googleapis.com/css?family=Droid+Sans:400,700|Droid+Sans+Mono' rel='stylesheet' type='text/css'>-->
+
 <style>
-/* http://colorschemedesigner.com/#3x61Tw0w0w0w0 */
-.primary-1 { background-color: #0B61A4 }
-.primary-2 { background-color: #25567B }
-.primary-3 { background-color: #033E6B }
-.primary-4 { background-color: #3F92D2 }
-.primary-5 { background-color: #66A3D2 }
+/* http://colorschemedesigner.com/#0N61Tw0w0w0w0 */
 
-.secondary-a-1 { background-color: #1B1BB3 }
-.secondary-a-2 { background-color: #313186 }
-.secondary-a-3 { background-color: #090974 }
-.secondary-a-4 { background-color: #4F4FD9 }
-.secondary-a-5 { background-color: #7373D9 }
+.primary-1 { background-color: #FF9A00 }
+.primary-2 { background-color: #BF8730 }
+.primary-3 { background-color: #A66400 }
+.primary-4 { background-color: #FFB440 }
+.primary-5 { background-color: #FFC873 }
 
-.secondary-b-1 { background-color: #00AF64 }
-.secondary-b-2 { background-color: #218359 }
-.secondary-b-3 { background-color: #007241 }
-.secondary-b-4 { background-color: #36D792 }
-.secondary-b-5 { background-color: #61D7A4 }
+.secondary-a-1 { background-color: #FFC600 }
+.secondary-a-2 { background-color: #BF9F30 }
+.secondary-a-3 { background-color: #A68100 }
+.secondary-a-4 { background-color: #FFD440 }
+.secondary-a-5 { background-color: #FFE073 }
 
-.complement-1 { background-color: #FF9200 }
-.complement-2 { background-color: #BF8230 }
-.complement-3 { background-color: #A65F00 }
-.complement-4 { background-color: #FFAD40 }
-.complement-5 { background-color: #FFC373 }
+.secondary-b-1 { background-color: #FF5900 }
+.secondary-b-2 { background-color: #BF6230 }
+.secondary-b-3 { background-color: #A63A00 }
+.secondary-b-4 { background-color: #FF8240 }
+.secondary-b-5 { background-color: #FFA473 }
 
+.complement-1 { background-color: #0D56A6 }
+.complement-2 { background-color: #274F7D }
+.complement-3 { background-color: #04356C }
+.complement-4 { background-color: #4186D3 }
+.complement-5 { background-color: #689AD3 }
+
+.floated {
+float:right;
+}
 body {
-  padding-top: 25px;
-  padding-bottom: 20px;
-  padding-left: 15px;
-  padding-right: 15px;
-  background-color: #222;
-}
-
-#banner {
-  background-color: #0B61A4;
-
-  padding: 20px;
-  border-top-left-radius: 25px;
-  border-top-right-radius: 25px;
-  margin-bottom: -25px;
-  
-  z-index: 2;
-}
-
-#nav {
-  background-color: #033E6B;
-  color: white;
-
-  position: relative;
-
-  font-family: "Droid Sans", sans-serif;
-  padding: 10px;
-
-  border-radius: 25px;
-  z-index: 3;
-}
-
-#body {
-  background-color: #FFF;
-
-  font-family: times,serif;
-  line-height: 1.25em;
-
-  position: relative;
-
-  padding: 10px;
-  padding-top: 30px;
-  padding-bottom: 30px;
-  padding-right: 0px;
-
-  border-bottom-left-radius: 25px;
-  border-bottom-right-radius: 25px;
-
-  border: 2px solid #0B61A4;
-
-  margin-top: -25px;
-  z-index: 1;
-}
-
-#banner-text-1 {
-  font-family: "Droid Sans", sans-serif;
-  font-size: 48pt;
-  font-weight: bold;
-
-  color: #fff;
-  text-shadow: #25567B -1px -1px;
-}
-
-#banner-text-2 {
-  font-family: "Droid Sans", sans-serif;
-  font-size: 32pt;
-
-  /*color: #FF9200;
-  text-shadow: #A65F00 -1px -1px;*/
-  color: #00AF65;
-  text-shadow: #61d7a4 1px 1px;
-
-  position: relative;
-  top: -10px;
-  margin-left: 45px;
-}
-
-h1 {
-  font-family: "Droid Sans", sans-serif;
-  color: #00AF65;
-  text-shadow: #007241 1px 1px;
-  border-bottom: 1px solid #0B61A4;
-}
-
-h2 {
-  font-family: "Droid Sans", sans-serif;
-  color: #00AF65;
-  text-shadow: #007241 1px 1px;
-}
-
-.doc-without-src p, .doc-without-src blockquote {
-  width: 800px;
-}
-
-.src pre {
-  font-family: "Droid Sans Mono", monospace;
-  font-size: 9pt;
-  background-color: #222;
-  color: #eee;
-}
-
-.src {
-  margin-left: 10px;
-  padding: 10px;
-  padding-right: 10px;
-  background-color: #222;
-  border-left: 2px solid #0B61A4;
-  margin-right: -2px;
-}
-
-.src-first {
-  border-top-left-radius: 25px;
-  border-top: 2px solid #0B61A4;
-}
-
-.src-last {
-  border-bottom-left-radius: 25px;
-  border-bottom: 2px solid #0B61A4;
-}
-td {
   padding: 0px;
   margin: 0px;
 }
 
-table.body-table {
-  border-collapse: collapse;
+#banner {
+  background-color: #ffc873;
+  border-bottom: 1px solid #ff5900;
+  margin-bottom: 0px;
 }
 
-.prev, .this, .next {
+#nav {
+}
+
+#body-wrap, #body {
   position: relative;
-}
-.prev .line {
-  border: 2px solid #FF9200;
-  position: absolute;
-  top: 100%;
-  bottom:-5px;
-  left: 50%;
-  right: -15px;
-  border-top: 0px;
+  margin-top: 0px;
+  padding-top: 0px;
 }
 
-.prev2 .line {
-  border-right: 0px;
-  right: -40px;
+#body {
+  padding-left: 5px;
 }
 
-.next .line {
-  border: 2px solid #FF9200;
+#right-bg {
+  background-color: #eee;
+  width: $code_width;
   position: absolute;
-  top: -5px;
-  bottom:100%;
-  left: -15px;
-  right: 50%;
-  border-bottom: 0px;
+  right: 0px;
+  top: 0px;
+  height: 100%;
+
+  border-left: 1px solid #FF5900;
 }
-.next2 .line {
-  border-left: 0px;
-  left: -40px;
+
+p, h1, h2, h3, h4, dl, ul, ol, li, blockquote {
+  width: $text_width;
+}
+
+#banner-text-1 {
+  font-family: "Droid Sans", sans-serif;
+  font-size: 24pt;
+  font-weight: bold;
+
+  padding: 5px;
+  color: #ff5900;
+  text-shadow: #a63a00 1px 1px;
+}
+
+#banner-text-2 {
+  font-family: "Droid Sans", sans-serif;
+  border-left: 1px solid black;
+  padding-left: 10px;
+  font-size: 18pt;
+  font-weight: bold;
+  color: #ff9a00;
+  text-shadow: #a66400 1px 1px;
+}
+
+h1 {
+  font-family: "Droid Sans", sans-serif;
+  color: #ff9a00;
+  text-shadow: #a66400 1px 1px;
+  border-bottom: 1px solid #ff5900;
+}
+
+h2 {
+  font-family: "Droid Sans", sans-serif;
+  color: #ff9a00;
+  text-shadow: #a66400 1px 1px;
+  border-bottom: 1px solid #FFA473;
+}
+
+h1.title {
+  background-color: #ffc873;
+  border: 1px solid #ff5900;
+  text-align: center;
+}
+
+div.source pre {
+  font-family: "Droid Sans Mono", monospace;
+  font-size: 9pt;
+  background-color: #eee;
+  color: #333;
+  padding-left: 5px;
+}
+
+div.source div.filename {
+  font-family: "Droid Sans Mono", monospace;
+  padding-left: 10px;
+  background-color: #ffc873;
+  border-top: 1px solid #ff5900;  
+  border-bottom: 1px solid #ff5900;  
+
+  font-size: 10pt;
+
+  color: #ff9a00;
+  text-shadow: #a66400 1px 1px;
+}
+
+div.anchor {
+  clear: both;
+}
+
+div.source {
+  float: right;
+  clear: right;
+  width: $code_width;
 }
 
 </style>
@@ -198,21 +153,23 @@ $highlight_style
 
 <div id="banner">
 
-<div id="banner-text-1">jamesmolloy.co.uk</div>
-<div id="banner-text-2">JamesM's Kernel Development Tutorials</div>
+<div id="banner-text-1">jamesmolloy.co.uk
+<span id="banner-text-2">JamesM's Kernel Development Tutorials</span></div>
 
 </div>
-
+<!--
 <div id="nav">
 
 $nav
 
 </div>
-
+-->
+<div id="body-wrap">
+<span id="right-bg"></span>
 <div id="body">
-
+<object data="$graph" type="image/svg+xml"></object>
 $body
-
+</div>
 </div>
 
 </body>

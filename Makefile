@@ -8,7 +8,12 @@ EXAMPLES_TI := examples/debugger.c examples/readline.c examples/mount.c
 all:
 
 ifndef TARGET
-    $(error TARGET is not set. Please set to one of HOSTED, X86 or X64.)
+    # Not a fatal error if the make target is "clean" or "doc"
+    ifeq ($(MAKECMDGOALS),clean)
+    else ifeq ($(MAKECMDGOALS),doc)
+    else
+        $(error TARGET is not set. Please set to one of HOSTED, X86 or X64. $(MAKECMDGOALS)x)
+    endif
 endif
 
 TARGETL := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
@@ -25,11 +30,11 @@ DEBUG_DEFS := $(shell echo $(DEBUG) | sed -e 's/^\|,/ -DDEBUG_/g')
 
 CDEPS := $(patsubst %.c,$(BUILD)/%.c.d,$(CSOURCES))
 
-.PHONY: all clean dist check
+.PHONY: all clean dist check doc
 
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 LINK_FLAGS := -Xlinker -n
-DEFS := -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
+DEFS := -O0 -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
 
 LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
 

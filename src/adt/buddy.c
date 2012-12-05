@@ -1,11 +1,50 @@
+/**#2
+   Buddy allocation
+   ~~~~~~~~~~~~~~~~
+
+   This is a more versatile allocator that can be used for multiple purposes, not just physical allocation (which has a subset of the requirements of a general-purpose allocator).
+
+   The idea is that the address space is represented by a binary tree. Each node in the tree can be split into two "buddies" - buddies are siblings in the tree.
+
+   The root tree node covers all of the available space. Its children cover half each, and their children half of that and so on.
+
+   The tree is kept as compacted as possible at all times, so initially there is just the one root node. On an allocation request, the tree is divided enough so that the minimum node size that will cover the allocation request is reached.
+
+   On a free request, the node indicated is marked free, then iteratively up the tree back to the root its buddy is checked if it too is free. If so, both buddies are destroyed and their parent marked as free instead, collapsing the tree back up again.
+
+   **Time complexity**
+     Allocation in the buddy world requires potentially *log:sub:`2`(n)* tree node traversals, the same with freeing. The leading constant however is very fast.
+
+     **Allocation**: *log(n)*
+     **Free**: *log(n)*
+
+   **Space complexity**
+     The buddy allocator requires several bitmaps to operate - these are dependent upon the address space size it operates over, so it is similar in requirement to the bitmap allocator mentioned previously - *O(n)*.
+
+   Implementation
+   --------------
+
+   Our physical memory manager will be based upon a buddy allocator. Although the stack allocator has better theoretical allocate and free performance (and memory usage), it only allows allocation/freeing of one page at a time, and does not have any way to request multiple adjacent pages, which we may want to do for a DMA buffer or to use larger-sized pages (such as 1MB or 2MB pages).
+
+*/
+
 #include "assert.h"
 #include "hal.h"
 #include "math.h"
 #include "adt/buddy.h"
 
-#define BUDDY(x) (x ^ 1)
+/**
+   Firstly, let's define some helper macros that manipulate tree node indices.
+
+   To find the buddy of a node 'x', it is the adjacent node. So that's simply ``x xor 1``.
+
+   Given a node in one depth level (order) of the tree, you can find its first child by multiplying it by two, and its parent by dividing by two. { */
+
+#define BUDDY(x)     (x ^ 1)
 #define INC_ORDER(x) (x << 1)
 #define DEC_ORDER(x) (x >> 1)
+
+
 
 size_t buddy_calc_overhead(range_t r) {
   size_t accum = 0;
@@ -21,7 +60,7 @@ int buddy_init(buddy_t *bd, uint8_t *overhead_storage,
 
   for (unsigned i = 0; i < NUM_BUDDY_BUCKETS; ++i) {
     unsigned idx = bd->size >> (MIN_BUDDY_SZ_LOG2 + i);
-    xbitmap_init(&bd->orders[i], overhead_storage, idx);
+    bitmap_init(&bd->orders[i], overhead_storage, idx);
     overhead_storage += idx / 8 + 1;
   }
 
@@ -45,7 +84,7 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
   while (log_sz <= MAX_BUDDY_SZ_LOG2) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
     
-    idx = xbitmap_first_set(&bd->orders[order_idx]);
+    idx = bitmap_first_set(&bd->orders[order_idx]);
 
     if (idx != -1)
       break;
@@ -62,17 +101,17 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
 
     /* We're splitting a block, so deallocate it first... */
-    xbitmap_clear(&bd->orders[order_idx], idx);
+    bitmap_clear(&bd->orders[order_idx], idx);
 
     /* Then set both its children as free in the next order. */
     idx = INC_ORDER(idx);
-    xbitmap_set(&bd->orders[order_idx-1], idx);
-    xbitmap_set(&bd->orders[order_idx-1], idx+1);
+    bitmap_set(&bd->orders[order_idx-1], idx);
+    bitmap_set(&bd->orders[order_idx-1], idx+1);
   }
 
   /* Mark the block as not free. */
   int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
-  xbitmap_clear(&bd->orders[order_idx], idx);
+  bitmap_clear(&bd->orders[order_idx], idx);
 
   uint64_t addr = bd->start + ((uint64_t)idx << log_sz);
   return addr;  
@@ -122,14 +161,14 @@ void buddy_free(buddy_t *bd, uint64_t addr, unsigned sz) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
 
     /* Mark this node free. */
-    xbitmap_set(&bd->orders[order_idx], idx);
+    bitmap_set(&bd->orders[order_idx], idx);
 
     /* Can we coalesce up another level? */
     if (log_sz == MAX_BUDDY_SZ_LOG2)
       break;
 
     /* Is this node's buddy also free? */
-    if (xbitmap_isset(&bd->orders[order_idx], BUDDY(idx)) == 0)
+    if (bitmap_isset(&bd->orders[order_idx], BUDDY(idx)) == 0)
       /* no :( */
       break;
 
@@ -138,8 +177,8 @@ void buddy_free(buddy_t *bd, uint64_t addr, unsigned sz) {
     /* FIXME: ^^ */
 
     /* Mark them both non free. */
-    xbitmap_clear(&bd->orders[order_idx], idx);
-    xbitmap_clear(&bd->orders[order_idx], BUDDY(idx));
+    bitmap_clear(&bd->orders[order_idx], idx);
+    bitmap_clear(&bd->orders[order_idx], BUDDY(idx));
 
     /* Move up an order. */
     idx = DEC_ORDER(idx);

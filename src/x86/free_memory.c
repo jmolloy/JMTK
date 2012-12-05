@@ -54,9 +54,10 @@ static int free_memory() {
   for (i = 0; i < n; ++i)
     ranges_cpy[i] = ranges[i];
 
+  init_physical_memory_early(ranges, n, extent);
   init_virtual_memory(ranges, n);
-  init_physical_memory(ranges, n, extent);
-  init_cow_refcnts(ranges_cpy, n);
+  init_physical_memory();
+  init_cow_refcnts(ranges, n);
 
   return 0;
 }

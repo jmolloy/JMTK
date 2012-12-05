@@ -2,7 +2,7 @@
 #define BUDDY_H
 
 #include "stdint.h"
-#include "adt/xbitmap.h"
+#include "adt/bitmap.h"
 
 /* log2 of the maximum buddy node size. */
 #define MAX_BUDDY_SZ_LOG2 28 /* 2^28 = 256MB */
@@ -13,7 +13,7 @@
 
 typedef struct buddy {
   uint64_t start, size;
-  xbitmap_t orders[NUM_BUDDY_BUCKETS];
+  bitmap_t orders[NUM_BUDDY_BUCKETS];
 } buddy_t;
 
 size_t buddy_calc_overhead(range_t r);

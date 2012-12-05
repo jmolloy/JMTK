@@ -1,4 +1,4 @@
-#include "adt/xbitmap.h"
+#include "adt/bitmap.h"
 #include "hal.h"
 #include "string.h"
 #include "stdio.h"
@@ -16,30 +16,30 @@ static int lsb_set(uint8_t byte) {
   return i;
 }
 
-void xbitmap_init(xbitmap_t *xb, uint8_t *storage, int64_t max_extent) {
+void bitmap_init(bitmap_t *xb, uint8_t *storage, int64_t max_extent) {
   xb->max_extent = max_extent;
   xb->data = storage;
 
   memset(xb->data, 0, max_extent / 8 + 1);
 }
 
-void xbitmap_set(xbitmap_t *xb, unsigned idx) {
+void bitmap_set(bitmap_t *xb, unsigned idx) {
   xb->data[idx/8] |= (1 << (idx%8));
-  assert(xbitmap_isset(xb, idx));
+  assert(bitmap_isset(xb, idx));
 }
 
-void xbitmap_clear(xbitmap_t *xb, unsigned idx) {
+void bitmap_clear(bitmap_t *xb, unsigned idx) {
   xb->data[idx/8] &= ~(1 << (idx%8));
 }
 
-int xbitmap_isset(xbitmap_t *xb, unsigned idx) {
+int bitmap_isset(bitmap_t *xb, unsigned idx) {
   return (xb->data[idx/8] & (1 << (idx%8))) ? 1 : 0;
 }
-int xbitmap_isclear(xbitmap_t *xb, unsigned idx) {
-  return !xbitmap_isset(xb, idx);
+int bitmap_isclear(bitmap_t *xb, unsigned idx) {
+  return !bitmap_isset(xb, idx);
 }
 
-int64_t xbitmap_first_set(xbitmap_t *xb) {
+int64_t bitmap_first_set(bitmap_t *xb) {
   for (uint64_t i = 0; i < (xb->max_extent >> 3) + 1ULL; i ++) {
     if (xb->data[i] == 0) continue;
 
