@@ -30,7 +30,7 @@ DEBUG_DEFS := $(shell echo $(DEBUG) | sed -e 's/^\|,/ -DDEBUG_/g')
 
 CDEPS := $(patsubst %.c,$(BUILD)/%.c.d,$(CSOURCES))
 
-.PHONY: all clean dist check doc
+.PHONY: all clean dist check doc rst html
 
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 LINK_FLAGS := -Xlinker -n
@@ -89,5 +89,10 @@ test: $(TESTEXES)
 	done; \
 	echo; echo "Tests executed: $$count ($$fail failures)"
 
-doc: doc/template.html layout.graph $(CSOURCES) $(SSOURCES) src/x86/link.ld
-	python scripts/docs.py --template doc/template.html --graph layout.graph --output-dir build/doc
+rst: layout.graph $(CSOURCES) $(SSOURCES) src/x86/link.ld scripts/docs.py
+	python scripts/docs.py --template doc/template.html --graph layout.graph --output-dir build/doc/rst
+
+html: rst doc/conf.py
+	sphinx-build -c doc -b html build/doc/rst build/doc/html
+
+doc: html

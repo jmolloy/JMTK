@@ -1,0 +1,71 @@
+/* My preference is for the code to end up on the right of the explanatory
+   text. This can only really happen if the browser window is wide enough - 
+   600px for text and 600px for code, plus 230px for sidebar. */
+
+{% include "static/default.css_t" %}
+
+@media (min-width: 1200px) and (max-width: 1429px) {
+  .sphinxsidebar {
+    display: none;
+  }
+  div.bodywrapper {
+    margin-left: 0px;
+  }
+}
+
+@media (min-width: 1200px) {
+
+div.anchor {
+  clear: right;
+}
+
+div.source {
+  float: right;
+  clear: right;
+  width: 600px;
+  z-index: 4;
+}
+
+#right-bg {
+  background-color: #eeffcc;
+  width: 600px;
+  position: absolute;
+  right: 0px;
+  top: 0px;
+  height: 100%;
+
+  border-left: 1px solid #FF5900;
+  z-index: 10;
+}
+
+div.source div.filename {
+  font-family: monospace;
+  border: 1px solid #ac9;
+  border-left: none;
+  border-right: none;
+}
+
+pre {
+  border-top: none;
+  border-bottom: none;
+}
+
+div.body {
+  float: none;
+  position: relative;
+  padding-right: 0px;
+}
+div.bodywrapper {
+  position: relative;
+}
+
+div.section {
+  position: relative;
+  z-index: 20;
+}
+
+.body p, .body h1, .body h2, .body h3, .body h4, .body dl, .body ul, .body ol, .body li, .body blockquote, .body pre, .body div.highlight-python {
+ width: 600px;
+}
+
+}

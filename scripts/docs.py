@@ -337,6 +337,29 @@ class DocumentChapter:
 
         os.unlink(tf.name)
 
+def _make_index_rst(g):
+    vs = []
+    for node in g.nodes.values():
+        vs.append('  ' + node.value.lower().replace(' ', '-'))
+    return """
+JMTK docs
+=========
+
+Contents:
+
+.. toctree::
+   :maxdepth: 2
+
+%s
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+""" % ('\n'.join(vs),)
+
 if __name__ == '__main__':
     from optparse import OptionParser
     from graph import Graph
@@ -357,8 +380,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     try:
-        os.makedirs(options.out_dir + '/html')
-        os.makedirs(options.out_dir + '/rst')
+        os.makedirs(options.out_dir)
     except:
         pass
 
@@ -369,10 +391,12 @@ if __name__ == '__main__':
 
         chapter = DocumentChapter(options.template, node.files, node, options.out_dir)
 
-        outfilename = "%s/html/%s.html" % (options.out_dir,
-                                      node.value.lower().replace(' ', '-'))
-        open(outfilename, 'w').write(str(chapter))
+        # outfilename = "%s/html/%s.html" % (options.out_dir,
+        #                               node.value.lower().replace(' ', '-'))
+        # open(outfilename, 'w').write(str(chapter))
 
-        outfilename = "%s/rst/%s.rst" % (options.out_dir,
+        outfilename = "%s/%s.rst" % (options.out_dir,
                                          node.value.lower().replace(' ', '-'))
         open(outfilename, 'w').write(chapter.rest)
+
+    open("%s/index.rst" % options.out_dir, "w").write(_make_index_rst(g))
