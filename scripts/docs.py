@@ -1,26 +1,11 @@
 #!/usr/bin/env python
 
+# This script takes a "layout.graph" file and produces ReST documents for all
+# chapters found within, along with an index.rst.
+
 import sys,os,re,tempfile,subprocess
-from docutils.core import publish_parts
-from docutils.utils import SystemMessage
-from pygments import highlight
-from pygments.lexers import get_lexer_for_filename
-from pygments.formatters import HtmlFormatter
-from pygments.style import Style
-from string import Template
-from pygments.token import Keyword, Name, Comment, String, Error, \
-     Number, Operator, Generic
 
-class DocStyle(Style):
-    default_style = ""
-    styles = {
-        Comment:                'italic #bbb',
-        Comment.Preproc:        'noitalic #a63a00',
-        Keyword:                'bold #0d56a6',
-        Name.Builtin:           '#a63a00',
-        String:                 '#ff9a00'
-        }
-
+# A Source File is parsed into a sequence of fragments (of class SourceFragment).
 class SourceFile:
     def __init__(self, name):
         self.name = name
@@ -138,6 +123,7 @@ class SourceFile:
         self.frags = frags
         return frags
 
+# A source fragment is a chunk of (optional) documentation and (optional) code.
 class SourceFragment:
     def __init__(self, file, docstring, src, linenum):
         self.file = file
@@ -178,36 +164,16 @@ class SourceFragment:
         lines = [line[l:] for line in lines]
         return '\n'.join(lines)
 
-    def html_docstring(self):
-        if not self.docstring:
-            return ''
-
-        ds = self._strip_prefix(self.docstring)
-        try:
-            x = publish_parts(ds, writer_name='html', source_path=self.file.name)
-            return x['html_body']
-        except Exception as e:
-            pass
-
     def raw_docstring(self):
         if not self.docstring:
             return ''
         return self._strip_prefix(self.docstring)
 
-    def html_src(self):
-        if not self.src:
-            return ''
-
-        try:
-            return highlight(self.src,
-                             get_lexer_for_filename(self.file.name.replace('.s','.asm')),
-                             HtmlFormatter())
-        except:
-            return '<pre>'+self.src+'</pre>'
-
+# A chapter comes from one or more source files, and will organise the fragments
+# from each into a sensible order.
 class DocumentChapter:
 
-    def __init__(self, template, files, node, bdir):
+    def __init__(self, files, node, bdir):
         source_files = [SourceFile(f) for f in files]
         source_fragments = []
         for sf in source_files:
@@ -222,21 +188,9 @@ class DocumentChapter:
         succs = list(self._get_succs())
  
         self.rest = self._make_rest(source_fragments)
-        body = self._render_rest(self.rest)
-        if template:
-            t = Template(open(template).read())
 
         graph_name = str(node).replace(' ', '-') + '.svg'
-
         self._render_pred_succ_graph(preds, succs, os.path.join(bdir, graph_name))
-
-        self.html = t.safe_substitute(body = body,
-                                      nav = '',
-                                      highlight_style = HtmlFormatter(style=DocStyle).get_style_defs('.highlight'),
-                                      code_width = '600px',
-                                      text_width = '600px',
-                                      graph = graph_name)
-
 
     def _make_rest(self, fragments):
         def indentlines(ls, n):
@@ -248,11 +202,13 @@ class DocumentChapter:
         lastfile = ''
         for frag in fragments:
             if frag.src:
-                f = ""
+                attrs = []
                 if lastfile != frag.file.name:
+                    attrs = [":first_of_file:"]
                     lastfile = frag.file.name
-                    f = '<div class="filename">%s</div>' % frag.file.name
-                out += html('<div class="source">' + f + frag.html_src() + '</div>')
+
+                out += ['.. coderef:: %s' % frag.file.name] + indentlines(attrs, 4) + [''] + \
+                    indentlines(frag.src.splitlines(), 4) + ['']
 
             if frag.docstring:
                 out += frag.raw_docstring().splitlines()
@@ -261,15 +217,8 @@ class DocumentChapter:
 
         return '\n'.join(out)
 
-    def _render_rest(self, rest):
-        try:
-            x = publish_parts(rest, writer_name='html')
-            return x['html_body']
-        except Exception as e:
-            return 'FNAR! %s' % e
-
     def __str__(self):
-        return self.html
+        return self.rest
 
     def _get_preds(self):
         if not self.node:
@@ -340,7 +289,7 @@ class DocumentChapter:
 def _make_index_rst(g):
     vs = []
     for node in g.nodes.values():
-        vs.append('  ' + node.value.lower().replace(' ', '-'))
+        vs.append('   ' + node.value.lower().replace(' ', '-'))
     return """
 JMTK docs
 =========
@@ -349,7 +298,7 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
-
+   
 %s
 
 Indices and tables
@@ -387,16 +336,12 @@ if __name__ == '__main__':
     g = Graph(options.graph)
 
     for node in g.nodes.values():
-        print "Generating documentation for '%s' from %s..." % (node.value, node.files)
+        print "DOC %s (from %s)" % (node.value, ', '.join(node.files))
 
-        chapter = DocumentChapter(options.template, node.files, node, options.out_dir)
-
-        # outfilename = "%s/html/%s.html" % (options.out_dir,
-        #                               node.value.lower().replace(' ', '-'))
-        # open(outfilename, 'w').write(str(chapter))
+        chapter = DocumentChapter(node.files, node, options.out_dir)
 
         outfilename = "%s/%s.rst" % (options.out_dir,
-                                         node.value.lower().replace(' ', '-'))
-        open(outfilename, 'w').write(chapter.rest)
+                                     node.value.lower().replace(' ', '-'))
+        open(outfilename, 'w').write(str(chapter))
 
     open("%s/index.rst" % options.out_dir, "w").write(_make_index_rst(g))

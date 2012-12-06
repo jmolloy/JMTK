@@ -136,7 +136,7 @@ static const char *trap_strs[NUM_TRAP_STRS] = {
 
    For every exception or interrupt, you create an *interrupt descriptor*. This is very similar to the segment descriptors in the GDT chapter, and similarly they live in a table called the *Interrupt Descriptor Table* (IDT) and that is loaded into the processor by a special instruction - ``lidt``.
 
-   .. image:: ../../doc/idt-descriptor.svg
+   .. image:: ../../../doc/idt-descriptor.svg
        :width: 500px
        :height: 200px
 

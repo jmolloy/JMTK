@@ -8,7 +8,7 @@ I introduced virtual memory earlier than I wanted to (in Machine Bringup #1). It
 
 So let's recap. Addresses in your program - kernel or userspace - are *virtual*. These are translated by the CPU into a *physical* address, which is what is broadcast onto the memory bus during a memory transaction.
 
-.. image:: ../../doc/vmm-v-p.svg
+.. image:: ../../../doc/vmm-v-p.svg
     :class: floated
 
 The mapping between virtual and physical addresses is done by a functional component of the CPU called the *memory management unit* (MMU). Most CPUs (ARM, MIPS, Power, X86 etc) have some memory management unit - they can map virtual to physical addresses. However the mechanism by which they do this is architecture dependent.
@@ -180,7 +180,7 @@ There's a standard pattern that a lot of hobby kernels use called the *recursive
 
 What's the point of this?
 
-.. image:: ../../doc/vmm-recursive-pd-trick.svg
+.. image:: ../../../doc/vmm-recursive-pd-trick.svg
     :class: floated
 
 Well, as we know, the CPU performs a two-level lookup to get the V->P mapping for a page. By short-circuiting one or two levels of lookup, we can force the MMU to only perform a one or zero-level lookup, so we can access the page directory or page tables!

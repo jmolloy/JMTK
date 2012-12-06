@@ -47,7 +47,7 @@ The x86 has four privilege modes. It calls them *rings*, with ring 0 being the m
 
 Mostly, rings 1 and 2 are unused. It is normal to either be in ring 0 or ring 3. Some hypervisors use rings 1 & 2 because they are conventionally unused by operating systems.
 
-.. image:: ../../doc/gdt-rings.svg
+.. ../../../doc/gdt-rings.svg
    :width: 550px
    :height: 300px
 */
@@ -87,7 +87,7 @@ The GDT is a table of "descriptors", which are 64-bit bitfields each describing 
 
 A descriptor takes a form like this:
 
-.. image:: ../../doc/gdt-descriptor.svg
+.. image:: ../../../doc/gdt-descriptor.svg
     :width: 500px
     :height: 200px
 

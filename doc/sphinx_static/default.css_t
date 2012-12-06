@@ -4,6 +4,16 @@
 
 {% include "static/default.css_t" %}
 
+/* We have three display modes.
+     a) Screens > 1430px: Can display the left sidebar, the right code window and the
+        main text.
+     b) Screens > 1200px: Can display the right code window, but are too small for the
+        left sidebar.
+     c) Screens < 1200px: Can't display the right code window. For these displays, we 
+        show the left sidebar but keep all the code in the main flow.
+*/
+
+/* Deal with b) first. */
 @media (min-width: 1200px) and (max-width: 1429px) {
   .sphinxsidebar {
     display: none;
@@ -13,19 +23,26 @@
   }
 }
 
+/* Now a) and b) */
 @media (min-width: 1200px) {
 
+/*******************************************************************************/
+/* Setup for the code window on the right. */
+
+/* This is a dummy element inserted whenever a code section ends. It ensures that
+   the text and code align properly vertically. */
 div.anchor {
   clear: right;
 }
 
+/* Code sits at the right of normal text and is 600px wide. */
 div.source {
   float: right;
   clear: right;
   width: 600px;
-  z-index: 4;
 }
 
+/* The code window background. */
 #right-bg {
   background-color: #eeffcc;
   width: 600px;
@@ -34,38 +51,63 @@ div.source {
   top: 0px;
   height: 100%;
 
-  border-left: 1px solid #FF5900;
-  z-index: 10;
+  border-left: 1px solid #ac9;
 }
 
+/* The text when the file changes in the source window. */
 div.source div.filename {
   font-family: monospace;
   border: 1px solid #ac9;
+  background-color:  #fff;
   border-left: none;
   border-right: none;
+
+  display: none;
+}
+div.source div.first_of_file {
+  display: block;
 }
 
+/*******************************************************************************/
+/* Overrides for the default theme to support the code window on the right. */
+
+/* Ensure pre's have no top or bottom border, which is the default. */
 pre {
   border-top: none;
   border-bottom: none;
 }
 
 div.body {
-  float: none;
-  position: relative;
+  float: none;                  /* Undo the float:left on by default. */
+  position: relative;           /* Ensure it is positioned so the code window can be absolute. */
   padding-right: 0px;
 }
 div.bodywrapper {
-  position: relative;
+  position: relative;           /* More positioning, for the code window's absoluteness. */
 }
 
 div.section {
-  position: relative;
-  z-index: 20;
+  position: relative;           /* More positioning, for the code window's absoluteness. */
 }
 
-.body p, .body h1, .body h2, .body h3, .body h4, .body dl, .body ul, .body ol, .body li, .body blockquote, .body pre, .body div.highlight-python {
- width: 600px;
+/*******************************************************************************/
+/* Code to ensure the main body text is correctly sized - that is, it leaves
+ * a margin of just over 600px for the code at the right. */
+
+div.section {
+ /* Leave an extra 1px gap so the code area border isn't overlapping. */
+ margin-right: 621px;
+}
+
+/* Cancel out the above rule for nested sections; it should only apply to the
+   top-level section. */
+div.section div.section {
+  margin-right: 0px;
+}
+
+/* Now move all source divs into the code area. */
+div.source {
+  margin-right: -621px;
 }
 
 }

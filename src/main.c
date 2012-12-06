@@ -73,7 +73,7 @@
    For example, the command "mv a.txt b.txt" in a shell expands into several
    kernel calls:
 
-   .. image:: doc/1.png
+   .. image:: ../../../doc/1.png
 
    The shell first calls ``fork()`` in order to create a new child
    process. This process calls ``execve()`` to load the executable and start
