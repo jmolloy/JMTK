@@ -1,0 +1,67 @@
+"skeleton" -> "console"
+
+"skeleton" -> "bringup stage 1"
+
+"bringup stage 1" -> "console"
+
+"console" -> "screen printing"
+"console" -> "keyboard"
+"console" -> "serial"
+
+"screen printing" -> "bringup stage 2"
+"keyboard" -> "bringup stage 2"
+"serial" -> "bringup stage 2"
+
+"bringup stage 2" -> "interrupt handling"
+"bringup stage 2" -> "physical memory management"
+
+"interrupt handling" -> "keyboard"
+"interrupt handling" -> "real time clock"
+"interrupt handling" -> "interval timer"
+"interrupt handling" -> "serial"
+
+"physical memory management" -> "virtual memory management"
+
+"virtual memory management" -> "kernel heap"
+
+"kernel heap" -> "virtual file system"
+
+"IDE driver" -> "Partitions"
+
+"Partitions" -> "Simple tarball filesystem"
+
+"Partitions" -> "FAT filesystem"
+
+"Partitions" -> "EXT2 filesystem"
+
+"cooperative threading" -> "IDE driver"
+
+"Simple tarball filesystem" -> "virtual file system"
+
+"FAT filesystem" -> "virtual file system"
+
+"EXT2 filesystem" -> "virtual file system"
+
+"kernel heap" -> "cooperative threading"
+
+"interval timer" -> "preemptive threading"
+"cooperative threading" -> "preemptive threading"
+
+"cooperative threading" -> "multiple address spaces"
+
+"kernel heap" -> "ELF loading"
+
+"multiple address spaces" -> "loading programs"
+"ELF loading" -> "loading programs"
+
+"skeleton": [Makefile src/hal.c src/main.c src/include/hal.h src/include/stdlib.h]
+"bringup stage 1": [src/x86/bringup-1.s src/x86/bringup-2.c src/include/x86/multiboot.h src/include/x86/io.h src/x86/link.ld]
+"keyboard": [src/x86/en_US.scantable src/x86/keyboard.c]
+"serial": [src/x86/serial.c src/adt/ringbuf.c src/include/adt/ringbuf.h]
+"console": [src/console.c src/hosted/console.c]
+"screen printing": [src/x86/screen.c]
+"Partitions": [src/partition.c]
+"FAT filesystem": [src/fs_vfat.c]
+"bringup stage 2": [src/x86/gdt.c]
+"interrupt handling": [src/x86/interrupts.c src/x86/interrupts.s]
+"virtual memory management": [src/x86/vmm.c src/x86/free_memory.c]
