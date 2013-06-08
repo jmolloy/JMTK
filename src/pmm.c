@@ -13,7 +13,7 @@
 
    So the input to the PMM is a set of pages that are free. Its API is simple - a user can request a free page, and can return a page as no longer used.
 
-   Actually it's slightly more complex than that; there are certain components that require only physical memory in certain locations. An example is 16-bit emulation (perhaps for a VBE driver) - this requires memory below the 1MB boundary. Many DMA engines only support memory below 4GB. So we have three categories of physical memory - below 1MB, 1MB..4GB and > 4GB.
+   Actually it's slightly more complex than that; there are certain components that require only physical memory in certain locations. An example is 16-bit i386 emulation (perhaps for a VBE driver) - this requires memory below the 1MB boundary. Many DMA engines only support memory below 4GB. So we have three categories of physical memory - below 1MB, 1MB..4GB and > 4GB.
 
    Common algorithms
    -----------------
@@ -50,6 +50,15 @@
    **Space complexity**
      The stack only takes up as much space as is required to store its contents, so altough it is **O(n)** the same as the bitmap, the *n* is smaller as it is related to the amount of available memory rather than the position of that memory in the address space.
 
+   **Drawbacks**
+     The stack based approach is clearly ideal in allocation, free and space complexity, so what are some negatives?
+
+     A stack suffers from fragmentation. The order in which pages are returned from the allocator is the inverse order in which they were freed. Generally this doesn't matter, but there are a couple of situations where it does:
+
+        * Old DMA (direct memory access) devices may require a contiguous region of physical memory to communicate with the processor. Newer DMA controllers have "scatter-gather" semantics that allow them to take a noncontiguous list of pages to write to, but old ones may not.
+        * Coalescing into larger pages. We've mentioned that the basic page size is 4KB, but many CPUs support larger page sizes which, if used, are more efficient (fewer TLB entries). If it is impossible to get contiguous memory spanning multiple pages from the physical allocator, it is impossible to use a larger page size.
+
+     It may end up using more space - to store the fact that page *n* is free, it requires 32 bits whereas the bitmap requires just one bit.
 
  */
 
@@ -69,15 +78,12 @@
 #define MIN(x, y) ( (x < y) ? x : y )
 #define MAX(x, y) ( (x > y) ? x : y )
 
-#define PMM_INIT_START 0
-#define PMM_INIT_EARLY 1
-#define PMM_INIT_FULL  2
+/**#3
+*/
 
-unsigned pmm_init_stage = PMM_INIT_START;
-
-range_t  early_ranges[64];
-unsigned early_nranges;
-uint64_t early_max_extent;
+extern range_t  early_ranges[64];
+extern unsigned early_nranges;
+extern uint64_t early_max_extent;
 
 static spinlock_t lock = SPINLOCK_RELEASED;
 static buddy_t allocators[3];
@@ -134,39 +140,6 @@ int free_pages(uint64_t pages, size_t num) {
   buddy_free(&allocators[req], pages, num * get_page_size());
 
   spinlock_release(&lock);
-  return 0;
-}
-
-uint64_t early_alloc_page() {
-  assert(pmm_init_stage == PMM_INIT_EARLY);
-  for (unsigned i = 0; i < early_nranges; ++i) {
-    if (early_ranges[i].extent <= 0x1000 || early_ranges[i].start >= 0x100000000ULL)
-      /* Discard any pages over 4GB physical or less than 4K in size. */
-      continue;
-    /* Ignore any range under 1MB */
-    if (early_ranges[i].start < 0x100000)
-      continue;
-    
-    uint32_t ret = (uint32_t)early_ranges[i].start;
-    early_ranges[i].start += 0x1000;
-    early_ranges[i].extent -= 0x1000;
-
-    dbg("early_alloc_page() -> %x\n", ret);
-    return ret;
-  }
-  panic("early_alloc_page couldn't find any pages to use!");
-}
-
-int init_physical_memory_early(range_t *ranges, unsigned nranges,
-                               uint64_t max_extent) {
-  assert(pmm_init_stage == PMM_INIT_START &&
-         "init_physical_memory_early() called twice!");
-  assert(nranges < 64 && "Too many ranges!");
-  memcpy(early_ranges, ranges, nranges * sizeof(range_t));
-  early_nranges = nranges;
-  early_max_extent = max_extent;
-
-  pmm_init_stage = PMM_INIT_EARLY;
   return 0;
 }
 

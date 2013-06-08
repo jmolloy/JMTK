@@ -3,6 +3,7 @@
 
 #define MMAP_KERNEL_START 0xC0000000
 
+#define MMAP_COW_REFCNTS  0xCC000000
 #define MMAP_KERNEL_VMSPACE_START \
                           0xD0000000
 #define MMAP_KERNEL_VMSPACE_END \

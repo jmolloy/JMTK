@@ -431,16 +431,31 @@ typedef struct range {
    Returns 0 on success or -1 on failure. */
 int init_virtual_memory();
 
+/* The possible stages of physical memory management initialisation. */
+#define PMM_INIT_START 0
+#define PMM_INIT_EARLY 1
+#define PMM_INIT_FULL  2
+
+/* Variable giving the current stage of physical memory management
+   initialisation. */
+extern unsigned pmm_init_stage;
+
 /* Initialise the physical memory manager (stage 1), passing in a set
    of ranges and the maximum extent of physical memory
    (highest address + 1).
 
-   The set of ranges will be copied, not mutated. */
+   The set of ranges will be copied, not mutated.
+
+   Before calling this function, pmm_init_stage must be PMM_INIT_START.
+   After calling this function, pmm_init_stage will be PMM_INIT_EARLY. */
 int init_physical_memory_early(range_t *ranges, unsigned nranges,
                                uint64_t extent);
 
 /* Initialise the physical memory manager (stage 2). This should be 
-   done after the virtual memory manager is set up. */
+   done after the virtual memory manager is set up.
+   
+   Before calling this function, pmm_init_stage must be PMM_INIT_EARLY.
+   After calling this function, pmm_init_stage will be PMM_INIT_FULL. */
 int init_physical_memory();
 
 /* Initialise the copy-on-write page reference counts. */

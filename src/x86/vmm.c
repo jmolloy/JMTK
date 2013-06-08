@@ -492,14 +492,15 @@ int clone_address_space(address_space_t *dest, int make_cow) {
   *PAGE_DIR_ENTRY(RPDT_BASE, base_addr) = p | X86_WRITE | X86_PRESENT;
   *PAGE_TABLE_ENTRY(RPDT_BASE, base_dir_addr) = p | X86_WRITE | X86_PRESENT;
   /* FIXME: invlpg */
-
+  /*
+  *PAGE_DIR_ENTRY(RPDT_BASE2, RPDT_BASE << 22) = p | X86_WRITE | X86_PRESENT;
+  */
   /* Iterate over all PDE's in the source directory except the last 
      two which are reserved for the page dir trick. */
   for (uint32_t i = 0; i < MMAP_KERNEL_END; i += PAGE_TABLE_SIZE) {
-    dbg("about to map %x, %x\n", i, (uint32_t)PAGE_DIR_ENTRY(RPDT_BASE2,i));
     /** By default every page directory entry in the new address space is the same as in the old address space. */
     *PAGE_DIR_ENTRY(RPDT_BASE2, i) = *PAGE_DIR_ENTRY(RPDT_BASE, i);
-    dbg("here1\n");
+
     int is_user = ! IS_KERNEL_ADDR( PAGE_TABLE_SIZE * i );
 
     /** However, if the directory entry is present and is user-mode, we need
@@ -508,7 +509,6 @@ int clone_address_space(address_space_t *dest, int make_cow) {
     /* Now we have to decide whether to copy/clone the current page table.
        We need to clone if it is present, and if it a user-mode page table. */
     if ((*PAGE_DIR_ENTRY(RPDT_BASE, i) & X86_PRESENT) && is_user) {
-      dbg("here2\n");
       /* Create a new page table. */
       uint32_t p2 = alloc_page(PAGE_REQ_UNDER4GB);
       *PAGE_DIR_ENTRY(RPDT_BASE2, i) = p2 | X86_WRITE | X86_USER | X86_PRESENT;
@@ -522,11 +522,12 @@ int clone_address_space(address_space_t *dest, int make_cow) {
         if (make_cow && is_user && (*s_pte & X86_WRITE)) {
           *d_pte = (*s_pte & ~X86_WRITE) | X86_COW;
           cow_refcnt_inc(*s_pte & 0xFFFFF000);
+        } else {
+          *d_pte = *s_pte;
         }
       }
     }
   }
-  dbg("about to finish\n");
 
   dbg("finished clone\n");
   spinlock_release(&global_vmm_lock);

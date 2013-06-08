@@ -3,6 +3,7 @@
 #define weak __attribute__((__weak__))
 
 static uint64_t timestamp;
+unsigned pmm_init_stage = PMM_INIT_START;
 
 void panic(const char *message) weak;
 void panic(const char *message) {
