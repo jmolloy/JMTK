@@ -36,6 +36,10 @@ WARNINGS := -Wall -Wextra -Wno-unused-parameter
 LINK_FLAGS := -Xlinker -n
 DEFS := -O0 -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
 
+ifdef COVERAGE
+  DEFS := $(DEFS) -fprofile-arcs -ftest-coverage
+endif
+
 LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
 
 all: $(BUILD)/kernel $(TESTEXES) $(EXAMPLEEXES)
@@ -93,6 +97,6 @@ rst: layout.graph $(CSOURCES) $(SSOURCES) src/x86/link.ld scripts/docs.py
 	python scripts/docs.py --template doc/template.html --graph layout.graph --output-dir build/doc/rst
 
 html: rst doc/conf.py
-	PYTHONPATH=doc/sphinx_extensions:$PYTHONPATH sphinx-build -c doc -b html build/doc/rst build/doc/html
+	PYTHONPATH=doc/sphinx_extensions:$$PYTHONPATH sphinx-build -c doc -b html build/doc/rst build/doc/html
 
 doc: html
