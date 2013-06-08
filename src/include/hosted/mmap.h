@@ -7,7 +7,7 @@
 #define MMAP_KERNEL_VMSPACE_START \
                           0xD0000000
 #define MMAP_KERNEL_VMSPACE_END \
-                          0xFEFF0000
+                          0xFE800000
 
 #define MMAP_PMM_BITMAP   0xFF000000
 

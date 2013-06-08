@@ -8,32 +8,33 @@ exit `$1 $2 | ./test/FileCheck $0`
 #include "x86/io.h"
 
 int f () {
-  // CHECK: kmalloc(0x10): 0xfefe000{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefe002{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefe004{{4|8}}
-  // CHECK: kmalloc(0x10): 0xfefe006{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfe7f000{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfe7f002{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfe7f004{{4|8}}
+  // CHECK: kmalloc(0x10): 0xfe7f006{{4|8}}
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
   kprintf("kmalloc(0x10): %p\n", kmalloc(0x10));
 
-  // CHECK: kmalloc(0x8): 0xfefe200{{4|8}}
-  // CHECK: kmalloc(0x8): 0xfefe201{{4|8}}
-  // CHECK: kmalloc(0x8): 0xfefe202{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfe7f200{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfe7f201{{4|8}}
+  // CHECK: kmalloc(0x8): 0xfe7f202{{4|8}}
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
 
-  kfree((void*)0xfefe2010 + sizeof(uintptr_t));
-  // CHECK: kmalloc(0x8): 0xfefe201{{4|8}}
+  kfree((void*)0xfe7f2010 + sizeof(uintptr_t));
+  // CHECK: kmalloc(0x8): 0xfe7f201{{4|8}}
   kprintf("kmalloc(0x8): %p\n", kmalloc(0x8));
 
-  // CHECK: kmalloc(0x400): 0xfefc000{{4|8}}
-  // CHECK: kmalloc(0x400): 0xfefc100{{4|8}}
+  // CHECK: kmalloc(0x400): 0xfe7e000{{4|8}}
+  // CHECK: kmalloc(0x400): 0xfe7e100{{4|8}}
   kprintf("kmalloc(0x400): %p\n", kmalloc(0x400));
   kprintf("kmalloc(0x400): %p\n", kmalloc(0x400));
 
-  kfree((void*)0xfefc0004);
+  // CHECK-NOT: Page fault
+  kfree((void*)(0xfe7e0000 + sizeof(void*)));
 
   return 0;
 }
