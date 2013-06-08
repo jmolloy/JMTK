@@ -13,8 +13,10 @@ static int free_memory() {
 
   range_t r = {MMAP_PHYS_BASE, MMAP_PHYS_END - MMAP_PHYS_BASE};
 
+  init_physical_memory_early(&r, 1, MMAP_PHYS_END);
   init_virtual_memory(&r, 1);
-  init_physical_memory(&r, 1, MMAP_PHYS_END);
+  init_physical_memory();
+  init_cow_refcnts(&r, 1);
 
   return 0;
 }
