@@ -27,6 +27,8 @@ static int isdigit_for_base(char c, int base) {
   }
 }
 
+#if !defined(HOSTED)
+
 long int strtol(const char *nptr, char **endptr, int base) {
   /* First, has it got a sign? */
   int negate = 0;
@@ -78,6 +80,8 @@ long unsigned int strtoul(const char *nptr, char **endptr, int base) {
   if (endptr) *endptr = (char*)nptr;
   return accum;
 }
+
+#endif /* !defined(HOSTED) */
 
 #define EPOCH 1970
 

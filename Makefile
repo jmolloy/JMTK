@@ -19,6 +19,12 @@ endif
 TARGETL := $(shell echo $(TARGET) | tr '[:upper:]' '[:lower:]')
 TARGETU := $(shell echo $(TARGET) | tr '[:lower:]' '[:upper:]')
 
+ifdef TARGET
+    # But if a target was defined, set the build directory to be specific to that
+    # target.
+    BUILD := build-$(TARGETL)
+endif
+
 -include target-$(TARGETL).mk
 
 COBJECTS := $(patsubst %.c,$(BUILD)/%.c.o,$(CSOURCES))
