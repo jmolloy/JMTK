@@ -52,7 +52,7 @@ all: $(BUILD)/kernel $(TESTEXES) $(EXAMPLEEXES)
 
 $(BUILD)/kernel: $(BUILD)/libk.a
 	@echo "\033[1mLINK\033[0m $(BUILD)/kernel"
-	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS) $(LINK_FLAGS)
+	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS)
 
 $(BUILD)/libk.a: $(COBJECTS) $(SOBJECTS)
 	@echo "\033[1mAR\033[0m   $(BUILD)/libk.a"
@@ -66,7 +66,7 @@ $(BUILD)/%.c.o: %.c Makefile | setup_builddir
 
 $(BUILD)/%: $(BUILD)/%.c.o $(BUILD)/libk.a Makefile | setup_builddir
 	@echo "\033[1mLINK\033[0m $@"
-	@$(CC) $< -o $@ $(LINK_LIBK) $(TARGET_LINKFLAGS) $(LINK_FLAGS)
+	@$(CC) $< -o $@ $(LINK_LIBK) $(TARGET_LINKFLAGS)
 
 $(BUILD)/filecheck: utils/filecheck.c Makefile | setup_builddir
 	$(CC) -g -std=c99 $(WARNINGS) -DHOSTED -DSTANDALONE -MMD -MP utils/filecheck.c -o $@ -I ./src/include
