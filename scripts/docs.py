@@ -296,6 +296,10 @@ JMTK docs
 
 Contents:
 
+.. tocgraph::
+   x
+
+
 .. toctree::
    :maxdepth: 2
    
