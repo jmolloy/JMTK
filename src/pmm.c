@@ -116,10 +116,11 @@ uint64_t alloc_pages(int req, size_t num) {
   spinlock_acquire(&lock);
   dbg("alloc_pages: got lock\n");
   uint64_t val = buddy_alloc(&allocators[req], num * get_page_size());
-
+  dbg("alloc_pages2: returning %x\n", val & 0xFFFFFFFF);
   if (val == ~0ULL && req == PAGE_REQ_NONE)
     val = buddy_alloc(&allocators[PAGE_REQ_UNDER4GB], num * get_page_size());
-
+  dbg("alloc_pages: returning %x\n", val & 0xFFFFFFFF);
+  
   spinlock_release(&lock);
   return val;
 }
@@ -160,9 +161,9 @@ int init_physical_memory() {
     early_max_extent - 0x100000000ULL : 0;
 
   size_t overheads[3];
-  overheads[0] = buddy_calc_overhead(rs[0]);
-  overheads[1] = buddy_calc_overhead(rs[1]);
-  overheads[2] = buddy_calc_overhead(rs[2]);
+  overheads[0] = buddy_calc_overhead(rs[PAGE_REQ_UNDER1MB]);
+  overheads[1] = buddy_calc_overhead(rs[PAGE_REQ_UNDER4GB]);
+  overheads[2] = buddy_calc_overhead(rs[PAGE_REQ_NONE]);
 
   size_t bitmap_sz = overheads[0] + overheads[1] + overheads[2];
   size_t bitmap_sz_pages = round_to_page_size(bitmap_sz) >> get_page_shift();
