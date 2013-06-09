@@ -1,6 +1,62 @@
 {% extends "!page.html" %}
 {% block body %}
     <span id="right-bg"></span>
-    {{ master_doc.__dir__ }}
     {{ super() }}
 {% endblock %}
+
+{% block sidebarrel %}
+
+  {% if prevs %}
+    <h4>Previous topics</h4>
+    <p class="topless"><ul>
+    {% for n in prevs %}
+    <li><a href="{{ n.link|e }}"
+       title="prev topic">{{ n.title }}</a></li>
+    {% endfor %}
+    </ul></p>
+  {% endif %}
+
+  {% if nexts %}
+    <h4>Next topics</h4>
+    <p class="topless"><ul>
+    {% for n in nexts %}
+    <li><a href="{{ n.link|e }}"
+       title="next topic">{{ n.title }}</a></li>
+    {% endfor %}
+    </ul></p>
+  {% endif %}
+
+{% endblock %}
+
+{% block relbar1 %}
+  <div class="related">
+    <h3>{{ _('Navigation') }}</h3>
+    <ul>
+      {% if nexts %}
+      {% for n in nexts %}
+      <li class="right" {% if loop.first %}style="margin-right: 10px;"{% endif %}>
+        <a href="{{ n.link|e }}">{{ n.title }}</a>
+        {%- if not loop.first %} |{%- endif %}
+      </li>
+      {% endfor %}
+      <li class="right"><i>Next:</i></li>
+      {% endif %}
+
+      {% if prevs %}
+      {% for n in prevs %}
+      <li class="right" {% if loop.first %}style="margin-right: 10px;"{% endif %}><a href="{{ n.link|e }}">{{ n.title }}</a>
+        {%- if not loop.first %} |{%- endif %}
+      </li>
+      {% endfor %}
+      <li class="right"><i>Previous:</i></li>
+      {% endif %}
+      
+      <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }}</a>{{ reldelim1 }}</li>
+      {%- for parent in parents %}
+        <li><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}</a>{{ reldelim1 }}</li>
+      {%- endfor %}
+    </ul>
+  </div>
+{% endblock %}
+
+{% set rellinks = [] %}

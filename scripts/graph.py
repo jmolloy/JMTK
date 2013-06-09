@@ -23,6 +23,12 @@ class Graph:
         if fromfile:
             self.deserialize(fromfile)
 
+    def next_nodes(self, node):
+        return [y for x,y in self.edges if x == node]
+
+    def prev_nodes(self, node):
+        return [x for x,y in self.edges if y == node]
+
     def deserialize(self, fn):
         with open(fn) as fd:
             for l in fd.readlines():
