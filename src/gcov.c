@@ -1,4 +1,4 @@
-#if COVERAGE
+#if COVERAGE && !defined(HOSTED)
 
 #include "hal.h"
 #include "assert.h"

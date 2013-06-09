@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# FIXME: Still doesn't read all data from qEmu, especially if there is a 
+# lot of data just before exiting!
+
 import os, sys, signal, subprocess, tempfile, threading, select, termios, re
 from contextlib import contextmanager
 
@@ -190,7 +193,7 @@ class Qemu:
 
                 # pty ready for reading?
                 if fd == imaster and event & select.POLLIN:
-                    out += os.read(imaster, 128)
+                    out += os.read(imaster, 1024*1024)
 
             if self._check_finished(master):
                 break
@@ -205,7 +208,7 @@ class Qemu:
         while True:
             r,w,x = select.select([imaster],[],[],0.05)
             if imaster in r:
-                out += os.read(imaster, 1024)
+                out += os.read(imaster, 1024*1024)
                 continue
             break
 

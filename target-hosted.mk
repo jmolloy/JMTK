@@ -6,7 +6,7 @@ TESTS    := $(shell find test/hosted -type f -name "*.c") $(TESTS_TI)
 EXAMPLES := $(EXAMPLES_TI)
 
 ifdef COVERAGE
-  LINK_FLAGS := $(LINK_FLAGS) -fprofile-arcs -ftest-coverage
+  TARGET_LINKFLAGS := $(TARGET_LINKFLAGS) -fprofile-arcs -ftest-coverage
 endif
 
 $(BUILD)/%.s.o: %.s Makefile | setup_builddir
