@@ -65,6 +65,7 @@ static int free_memory() {
 static prereq_t prereqs[] = { {"console",NULL}, {"x86/serial",NULL},
                               {"x86/screen", NULL}, {"x86/keyboard", NULL},
                               {"debugger", NULL}, {"debugger-cmds", NULL},
+                              {"gcov",NULL},
                               {NULL, NULL} };
 static module_t x run_on_startup = {
   .name = "x86/free_memory",

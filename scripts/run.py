@@ -4,6 +4,7 @@ import os, sys, signal, subprocess, tempfile, threading, select, termios, re
 from contextlib import contextmanager
 
 from image import Image
+from gcov_convert import gcov_convert
 from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 
@@ -91,7 +92,7 @@ class Bochs:
         os.close(islave)
         t.cancel()
 
-        return out.splitlines()
+        return out
 
 class Qemu:
     def __init__(self, exe_name='qemu', args=None):
@@ -226,10 +227,10 @@ class Qemu:
         os.close(islave)
 
         if trace:
-            ret = open(tracefn).readlines()
+            ret = open(tracefn).read()
             os.unlink(tracefn)
         else:
-            ret = out.splitlines()
+            ret = out
 
         os.unlink(errfn)
 
@@ -292,7 +293,7 @@ class Runner:
         if not self.syms:
             return x
         s = []
-        for l in x:
+        for l in x.splitlines():
             colon = l.find(':')
             if colon != -1:
                 try:
@@ -303,7 +304,7 @@ class Runner:
                     s.append(l.strip())
                 except:
                     pass
-        return s
+        return '\n'.join(s)
 
 
 
@@ -340,6 +341,12 @@ if __name__ == "__main__":
                timeout=opts.timeout, preformatted_image=opts.image, argv=argv,
                keep_temps=opts.keep_temps)
 
-    for l in r.run():
+    out = r.run()
+
+    # Pass the output through to gcov_convert, to remove any GCOV coverage
+    # reports.
+    out = gcov_convert(out.splitlines())
+
+    for l in out.splitlines():
         print l
 

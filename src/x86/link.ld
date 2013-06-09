@@ -74,6 +74,10 @@ SECTIONS
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
 
+    PROVIDE (__ctors_begin = .);
+    *(.ctors)
+    PROVIDE (__ctors_end = .);
+
     /* Hack to silence warning when using GNU Gold as the linker. */
     *(.note.gnu.gold-version)
     *(.note.gnu.build-id)

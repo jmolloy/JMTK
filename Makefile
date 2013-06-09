@@ -37,7 +37,7 @@ LINK_FLAGS := -Xlinker -n
 DEFS := -O0 -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
 
 ifdef COVERAGE
-  DEFS := $(DEFS) -fprofile-arcs -ftest-coverage
+  DEFS := $(DEFS) -fprofile-arcs -ftest-coverage -DCOVERAGE=1
 endif
 
 LINK_LIBK := -Wl,--whole-archive $(BUILD)/libk.a -Wl,--no-whole-archive
@@ -46,7 +46,7 @@ all: $(BUILD)/kernel $(TESTEXES) $(EXAMPLEEXES)
 
 $(BUILD)/kernel: $(BUILD)/libk.a
 	@echo "\033[1mLINK\033[0m $(BUILD)/kernel"
-	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS)
+	@$(CC) -o $(BUILD)/kernel $(LINK_LIBK) $(TARGET_LINKFLAGS) $(LINK_FLAGS)
 
 $(BUILD)/libk.a: $(COBJECTS) $(SOBJECTS)
 	@echo "\033[1mAR\033[0m   $(BUILD)/libk.a"
@@ -58,9 +58,9 @@ $(BUILD)/%.c.o: %.c Makefile | setup_builddir
 	@echo "\033[1mCC\033[0m   $<"
 	@$(CC) $(CFLAGS) $(DEFS) -MMD -MP -c $< -o $@ -I ./src/include -I ./src/third_party/include
 
-$(BUILD)/%: %.c $(BUILD)/libk.a Makefile | setup_builddir
+$(BUILD)/%: $(BUILD)/%.c.o $(BUILD)/libk.a Makefile | setup_builddir
 	@echo "\033[1mLINK\033[0m $@"
-	@$(CC) $(WARNINGS) $(DEFS) -MMD -MP $< -o $@ -I ./src/include $(LINK_LIBK) $(TARGET_LINKFLAGS)
+	@$(CC) $< -o $@ $(LINK_LIBK) $(TARGET_LINKFLAGS) $(LINK_FLAGS)
 
 $(BUILD)/filecheck: utils/filecheck.c Makefile | setup_builddir
 	$(CC) -g -std=c99 $(WARNINGS) -DHOSTED -DSTANDALONE -MMD -MP utils/filecheck.c -o $@ -I ./src/include

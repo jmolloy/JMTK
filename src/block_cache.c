@@ -21,6 +21,7 @@ typedef struct page {
   struct page *next, *prev;
 } page_t;
 
+/* FIXME: How does this compile? disk_cache_group_t is not defined! */
 struct disk_cache_group {
   vector_t caches;
   page_t *mru_page;

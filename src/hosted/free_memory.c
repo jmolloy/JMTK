@@ -21,7 +21,8 @@ static int free_memory() {
   return 0;
 }
 
-static prereq_t prereqs[] = { {"console", NULL}, {"hosted/console",NULL}, {NULL,NULL} };
+static prereq_t prereqs[] = { {"console", NULL}, {"hosted/console",NULL},
+                              {"gcov", NULL}, {NULL,NULL} };
 static module_t x run_on_startup = {
   .name = "hosted/free_memory",
   .required = NULL,

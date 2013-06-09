@@ -69,6 +69,13 @@ static int tokenize(char tok, char *in, char **out, int maxout) {
 
 /* Entry point from assembly. */
 void bringup(multiboot_t *_mboot) {
+  /* Call all global constructors. */
+  extern size_t __ctors_begin;
+  extern size_t __ctors_end;
+  for (size_t *i = &__ctors_begin; i < &__ctors_end; ++i) {
+    ((void (*)(void)) *i)();
+  }
+
   /* Copy the multiboot struct itself. */
   memcpy((uint8_t*)&mboot, (uint8_t*)_mboot, sizeof(multiboot_t));
 
