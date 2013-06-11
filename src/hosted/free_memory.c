@@ -1,9 +1,12 @@
 #include "hal.h"
 #include "mmap.h"
 
-#define __USE_MISC /* Workaround to get MAP_ANON defined */
+#define _BSD_SOURCE /* Workaround to get MAP_ANON defined */
+#define __USE_MISC  /* Workaround to get MAP_ANON defined */
 #include <sys/mman.h>
 #include <stdlib.h>
+#undef _BSD_SOURCE
+#undef __USE_MISC
 
 static int free_memory() {
   if (mmap( (void*)MMAP_PHYS_BASE, MMAP_PHYS_END-MMAP_PHYS_BASE,

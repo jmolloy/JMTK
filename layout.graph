@@ -26,6 +26,8 @@
 
 "kernel heap" -> "virtual file system"
 
+"PCI driver" -> "IDE driver"
+
 "IDE driver" -> "Partitions"
 
 "Partitions" -> "Simple tarball filesystem"
@@ -34,7 +36,7 @@
 
 "cooperative threading" -> "locking and semaphores"
 
-"locking and semaphores" -> "IDE driver"
+"locking and semaphores" -> "PCI driver"
 
 "Simple tarball filesystem" -> "virtual file system"
 

@@ -78,8 +78,7 @@ static void yield() {
   longjmp(t->jmpbuf, 1);
 }
 
-static void trampoline() __attribute__((noreturn,noinline));
-static void trampoline() {
+static __attribute__((noreturn,noinline)) void trampoline() {
   void (*fn)(void*) = (void (*)(void*)) *thread_tls_slot(1);
   void *p = (void*) *thread_tls_slot(2);
 

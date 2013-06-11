@@ -40,7 +40,7 @@ CDEPS := $(patsubst %.c,$(BUILD)/%.c.d,$(CSOURCES))
 
 WARNINGS := -Wall -Wextra -Wno-unused-parameter
 LINK_FLAGS := -Xlinker -n
-DEFS := -O0 -g -std=c99 -nostdlibinc -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
+DEFS := -O0 -g -std=c99 -ffreestanding -fno-builtin $(WARNINGS) $(TARGET_FLAGS) $(DEBUG_DEFS)
 
 ifdef COVERAGE
   DEFS := $(DEFS) -fprofile-arcs -ftest-coverage -DCOVERAGE=1
