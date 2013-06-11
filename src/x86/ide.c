@@ -57,6 +57,7 @@ static void send_lba_command(ide_dev_t *dev, uint64_t addr, uint8_t sectors,
   addr >>= 9;
   if (addr >= (1ULL<<28)) {
     assert((dev->flags & IDE_FLAG_LBA48) && "Device doesn't support LBA48!");
+    kprintf("Addr: %x\n", addr);
     assert(0 && "LBA48 not implemented!");
   } else {
     assert((dev->flags & IDE_FLAG_LBA28) && "Device doesn't support LBA28!");
@@ -164,6 +165,8 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
 
   ide_dev_t *dev = (ide_dev_t*)bdev->data;
 
+  assert((dev->flags & IDE_FLAG_ATAPI) == 0 && "ATAPI reads not supported yet!");
+
   semaphore_t sema;
   semaphore_init(&sema);
 
@@ -191,6 +194,8 @@ static int ide_write(block_device_t *bdev, uint64_t offset, void *buf, uint64_t 
   assert((bufp & 0xFFF) == 0 && "Buffer must be a multiple of 4096!");
 
   ide_dev_t *dev = (ide_dev_t*)bdev->data;
+
+  assert((dev->flags & IDE_FLAG_ATAPI) == 0 && "Can't write to an ATAPI device!");
 
   semaphore_t sema;
   semaphore_init(&sema);
@@ -338,6 +343,7 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
 
   if (inb(base+ATA_REG_STATUS) & ATA_SR_ERR) {
     kprintf("ide: Error after sending IDENTIFY packet!\n");
+    kfree(dev);
     return NULL;
   }
 
@@ -355,6 +361,12 @@ static block_device_t *probe_dev(uint16_t base, uint16_t control, uint16_t irq,
   } else if ((flags & IDE_FLAG_ATAPI) == 0) {
     assert(0 && "CHS sector addressing not supported!");
   } 
+
+  /* FIXME: As we cannot yet read from ATAPI devices, bail out here. */
+  if (flags & IDE_FLAG_ATAPI) {
+    kfree(dev);
+    return NULL;
+  }
 
   dev->flags = flags;
   dev->base = base;
