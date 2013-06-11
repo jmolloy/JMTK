@@ -29,15 +29,6 @@ class Graph:
     def prev_nodes(self, node):
         return [x for x,y in self.edges if y == node]
 
-    def get_as_dot(self):
-        dot = ['digraph G {',
-               'node [shape=box fontsize=12 fontname="Droid Sans", peripheries=0]']
-        for _from, to in self.edges:
-            dot.append('"%s" -> "%s"' % (_from, to))
-        dot.append('}')
-
-        return '\n'.join(dot)
-
     def deserialize(self, fn):
         with open(fn) as fd:
             for l in fd.readlines():

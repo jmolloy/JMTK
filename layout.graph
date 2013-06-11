@@ -65,3 +65,4 @@
 "bringup stage 2": [src/x86/gdt.c]
 "interrupt handling": [src/x86/interrupts.c src/x86/interrupts.s]
 "virtual memory management": [src/x86/vmm.c src/x86/free_memory.c]
+"physical memory management": [src/pmm.c src/adt/buddy.c]

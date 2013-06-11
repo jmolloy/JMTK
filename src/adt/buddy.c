@@ -118,7 +118,8 @@ uint64_t buddy_alloc(buddy_t *bd, unsigned sz) {
   /** Now, if we couldn't get a block of the size we wanted, we'll have to
       split it down to the right size. { */
 
-  /* We may have to split blocks to get back to a block of the minimum size. */
+  /* We may have to split blocks to get back to a block of
+     the minimum size. */
   for (; log_sz != orig_log_sz; --log_sz) {
     int order_idx = log_sz - MIN_BUDDY_SZ_LOG2;
 
@@ -203,7 +204,8 @@ void buddy_free_range(buddy_t *bd, range_t range) {
       is aligned to a multiple of the smallest block size. If not, we adjust
       it so that it is. { */
 
-  /* Ensure the range start address is at least aligned to MIN_BUDDY_SZ_LOG2. */
+  /* Ensure the range start address is at least aligned to
+     MIN_BUDDY_SZ_LOG2. */
   if (aligned_for(range.start, MIN_BUDDY_SZ_LOG2) == 0) {
     if (range.extent < min_sz)
       return;
@@ -217,7 +219,8 @@ void buddy_free_range(buddy_t *bd, range_t range) {
   /** Now, we iteratively work through the range trying to allocate the largest
       block we can. { */
 
-  while (range.extent >= min_sz && aligned_for(range.start, MIN_BUDDY_SZ_LOG2)) {
+  while (range.extent >= min_sz &&
+         aligned_for(range.start, MIN_BUDDY_SZ_LOG2)) {
     
     for (unsigned i = MAX_BUDDY_SZ_LOG2; i >= MIN_BUDDY_SZ_LOG2; --i) {
       uintptr_t sz = 1 << i;

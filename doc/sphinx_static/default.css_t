@@ -36,7 +36,7 @@ div.anchor {
 }
 
 /* Code sits at the right of normal text and is 600px wide. */
-div.source, .graphviz > img.tocgraph {
+div.source, .graphviz > .tocgraph {
   float: right;
   clear: right;
   width: 600px;
@@ -106,7 +106,7 @@ div.section div.section {
 }
 
 /* Now move all source divs into the code area. */
-div.source, .graphviz > img.tocgraph {
+div.source, .graphviz > .tocgraph {
   margin-right: -621px;
 }
 

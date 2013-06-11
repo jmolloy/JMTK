@@ -348,4 +348,4 @@ if __name__ == '__main__':
                                      node.value.lower().replace(' ', '-'))
         open(outfilename, 'w').write(str(chapter))
 
-    open("%s/index.rst" % options.out_dir, "w").write(_make_index_rst(g))
+#    open("%s/index.rst" % options.out_dir, "w").write(_make_index_rst(g))

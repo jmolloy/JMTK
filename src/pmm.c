@@ -166,7 +166,8 @@ int init_physical_memory() {
   overheads[2] = buddy_calc_overhead(rs[PAGE_REQ_NONE]);
 
   size_t bitmap_sz = overheads[0] + overheads[1] + overheads[2];
-  size_t bitmap_sz_pages = round_to_page_size(bitmap_sz) >> get_page_shift();
+  size_t bitmap_sz_pages =
+    round_to_page_size(bitmap_sz) >> get_page_shift();
 
   for (unsigned i = 0; i < bitmap_sz_pages; ++i)
     assert(map(MMAP_PMM_BITMAP + i * get_page_size(),
@@ -180,7 +181,8 @@ int init_physical_memory() {
                    (uint8_t*) (MMAP_PMM_BITMAP + overheads[0]),
                    rs[PAGE_REQ_UNDER4GB], 0);
   ok |= buddy_init(&allocators[PAGE_REQ_NONE],
-                   (uint8_t*) (MMAP_PMM_BITMAP + overheads[0] + overheads[1]),
+                   (uint8_t*) (MMAP_PMM_BITMAP + overheads[0] +
+                               overheads[1]),
                    rs[PAGE_REQ_NONE], 0);
   if (ok != 0) {
     dbg("buddy_init failed!\n");

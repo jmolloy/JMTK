@@ -1,0 +1,12 @@
+{% include "static/default.css_t" %}
+
+a {
+  /* Stolen from default.css - update if the theme changes!
+     Make sure 'a' links get a 'fill' parameter which is what 'color'
+     normally does. */
+  fill: #355f7c;
+}
+
+g {
+  fill: firebrick;
+}
