@@ -32,27 +32,26 @@
 
 "Partitions" -> "FAT filesystem"
 
-"Partitions" -> "EXT2 filesystem"
+"cooperative threading" -> "locking and semaphores"
 
-"cooperative threading" -> "IDE driver"
+"locking and semaphores" -> "IDE driver"
 
 "Simple tarball filesystem" -> "virtual file system"
 
 "FAT filesystem" -> "virtual file system"
 
-"EXT2 filesystem" -> "virtual file system"
-
 "kernel heap" -> "cooperative threading"
 
 "interval timer" -> "preemptive threading"
-"cooperative threading" -> "preemptive threading"
+"locking and semaphores" -> "preemptive threading"
 
-"cooperative threading" -> "multiple address spaces"
+"locking and semaphores" -> "multiple address spaces"
 
 "kernel heap" -> "ELF loading"
 
 "multiple address spaces" -> "loading programs"
 "ELF loading" -> "loading programs"
+"loading programs" -> "User mode"
 
 "skeleton": [Makefile src/hal.c src/main.c src/include/hal.h src/include/stdlib.h]
 "bringup stage 1": [src/x86/bringup-1.s src/x86/bringup-2.c src/include/x86/multiboot.h src/include/x86/io.h src/x86/link.ld]
