@@ -57,7 +57,6 @@ static void send_lba_command(ide_dev_t *dev, uint64_t addr, uint8_t sectors,
   addr >>= 9;
   if (addr >= (1ULL<<28)) {
     assert((dev->flags & IDE_FLAG_LBA48) && "Device doesn't support LBA48!");
-    kprintf("Addr: %x\n", addr);
     assert(0 && "LBA48 not implemented!");
   } else {
     assert((dev->flags & IDE_FLAG_LBA28) && "Device doesn't support LBA28!");
@@ -122,16 +121,13 @@ static void dma_start_read(ide_dev_t *dev, uintptr_t buf,
 
   send_lba_command(dev, address, size/512, ATA_CMD_READ_DMA, ATA_CMD_READ_DMA_EXT);
 
-  dma_setup(dev, buf, size, 0);
-
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
   dev->sema = sema;
-  /* FIXME: Race condition here; flags set while op is in progress - interrupt could happen
-     before here! */
   dev->flags &= ~IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
-  dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
+
+  dma_setup(dev, buf, size, 0);
 }
 
 static void dma_start_write(ide_dev_t *dev, uintptr_t buf,
@@ -143,15 +139,13 @@ static void dma_start_write(ide_dev_t *dev, uintptr_t buf,
 
   send_lba_command(dev, address, size/512, ATA_CMD_WRITE_DMA, ATA_CMD_WRITE_DMA_EXT);
 
-  dma_setup(dev, buf, size, 1);
-
   dev->next_addr = address+4096;
   dev->n = size/4096 - 1;
   dev->sema = sema;
-
   dev->flags |= IDE_FLAG_WRITE;
   dev->flags &= ~IDE_FLAG_ERROR;
-  dev->flags |= IDE_FLAG_OP_IN_PROGRESS;
+
+  dma_setup(dev, buf, size, 1);
 }
 
 static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t len) {
@@ -178,6 +172,8 @@ static int ide_read(block_device_t *bdev, uint64_t offset, void *buf, uint64_t l
 
   semaphore_wait(&sema);
   unsigned error = dev->flags & IDE_FLAG_ERROR;
+
+  kprintf("ERROR: %d, buf[0] = %x\n", error, *(unsigned int*)buf);
 
   semaphore_signal(dev->lock);
 
