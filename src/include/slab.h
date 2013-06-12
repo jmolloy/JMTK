@@ -35,7 +35,7 @@
 #define SLAB_SIZE 0x2000
 
 typedef struct slab_cache {
-  unsigned size;x               /* The size of objects this cache returns, in bytes. */
+  unsigned size;                /* The size of objects this cache returns, in bytes. */
   void *init;                   /* Optional initializer that can be applied to every
                                    returned object. */
   struct slab_footer *first;    /* First slab footer in a linked list - all
