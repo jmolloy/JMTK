@@ -23,9 +23,10 @@ class TocGraphDirective(TocTree):
     required_arguments = 1
     
     def run(self):
-        global graph
         env  = self.state.document.settings.env
 
+        graph = Graph(fromfile=self.arguments[0])
+    
         toctree_content = [_mangle_name(n)
                            for n in graph.nodes]
         self.content = toctree_content
@@ -33,23 +34,25 @@ class TocGraphDirective(TocTree):
 
         parent_run = TocTree.run(self)
 
-        return parent_run + [tocgraph('')]
+        g = tocgraph('')
+        env.graph = graph
+
+        return parent_run + [g]
 
 def visit_tocgraph_node(self, node):
-    global graph
     options = ['-Gbgcolor=transparent',
                '-Earrowhead=open']
 
     urls = {}
 
-    for n in graph.nodes:
+    for n in my_app.env.graph.nodes:
         title = my_app.env.titles.get(_mangle_name(n)).astext()
         if title != '<no title>':
             urls[n] = '../' + my_app.builder.get_target_uri(_mangle_name(n))
 
     css = '../_static/default_svg.css'
 
-    render_dot_html(self, node, get_as_dot(graph, urls, css), options,
+    render_dot_html(self, node, get_as_dot(my_app.env.graph, urls, css), options,
                     'tocgraph', 'tocgraph', alt='TOC graphs')
     raise nodes.SkipNode
 
@@ -102,15 +105,13 @@ def _get_link_object_for(docname, app):
     return {'title': title, 'link': link}
 
 def html_page_context(app, pagename, templatename, context, doctree):
-    global graph
-
-    nodes = {_mangle_name(k): v for k,v in graph.nodes.items()}
+    nodes = {_mangle_name(k): v for k,v in app.env.graph.nodes.items()}
 
     if pagename in nodes:
         nexts = [_get_link_object_for(_mangle_name(node.value), app)
-                 for node in graph.next_nodes(nodes[pagename])]
+                 for node in app.env.graph.next_nodes(nodes[pagename])]
         prevs = [_get_link_object_for(_mangle_name(node.value), app)
-                 for node in graph.prev_nodes(nodes[pagename])]
+                 for node in app.env.graph.prev_nodes(nodes[pagename])]
 
         context['nexts'] = nexts
         context['prevs'] = prevs
@@ -129,7 +130,3 @@ def setup(app):
 
     app.connect('html-page-context', html_page_context)
 
-    global graph, svg_name
-    graph = Graph(fromfile='/home/james/Code/new-tutorials/layout.graph')
-
-    

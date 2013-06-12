@@ -1,20 +1,20 @@
 import re
 
+class Node:
+    def __init__(self, value, graph):
+        self.value = value
+        self.files = []
+        self.graph = graph
+
+    def __str__(self):
+        return str(self.value)
+    def __repr__(self):
+        return str(self.value)
+
 class Graph:
     class GraphSyntaxError(Exception):
         def __init__(self, msg):
             Exception.__init__(self, msg)
-
-    class Node:
-        def __init__(self, value, graph):
-            self.value = value
-            self.files = []
-            self.graph = graph
-            
-        def __str__(self):
-            return str(self.value)
-        def __repr__(self):
-            return str(self.value)
 
     def __init__(self, fromfile=None):
         self.edges = set()
@@ -56,7 +56,7 @@ class Graph:
 
     def add_node(self, node):
         if node not in self.nodes:
-            self.nodes[node] = Graph.Node(node, self)
+            self.nodes[node] = Node(node, self)
         return self.nodes[node]
         
     def add_edge(self, node1, node2):
@@ -65,9 +65,9 @@ class Graph:
     def find_paths(self, root, goal):
         """Return a list of paths from root to goal."""
 
-        if not isinstance(root, Graph.Node):
+        if not isinstance(root, Node):
             root = self.nodes[root]
-        if not isinstance(goal, Graph.Node):
+        if not isinstance(goal, Node):
             goal = self.nodes[goal]
 
         if root == goal:

@@ -3,7 +3,7 @@
 # This script takes a "layout.graph" file and produces ReST documents for all
 # chapters found within, along with an index.rst.
 
-import sys,os,re,tempfile,subprocess
+import sys,os,re,tempfile,subprocess, shutil
 
 # A Source File is parsed into a sequence of fragments (of class SourceFragment).
 class SourceFile:
@@ -347,5 +347,7 @@ if __name__ == '__main__':
         outfilename = "%s/%s.rst" % (options.out_dir,
                                      node.value.lower().replace(' ', '-'))
         open(outfilename, 'w').write(str(chapter))
+
+    shutil.copy("doc/index.rst", "%s/index.rst" % options.out_dir)
 
 #    open("%s/index.rst" % options.out_dir, "w").write(_make_index_rst(g))
