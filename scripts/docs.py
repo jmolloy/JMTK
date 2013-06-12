@@ -169,6 +169,7 @@ class SourceFragment:
             return ''
         return self._strip_prefix(self.docstring)
 
+
 # A chapter comes from one or more source files, and will organise the fragments
 # from each into a sensible order.
 class DocumentChapter:
@@ -207,8 +208,11 @@ class DocumentChapter:
                     attrs = [":first_of_file:"]
                     lastfile = frag.file.name
 
-                out += ['.. coderef:: %s' % frag.file.name] + indentlines(attrs, 4) + [''] + \
-                    indentlines(frag.src.splitlines(), 4) + ['']
+                attrs.append(':anchor:')
+
+                out += ['.. coderef:: %s' % frag.file.name] + indentlines(attrs, 4)
+                out += ['']
+                out += indentlines(frag.src.splitlines(), 4) + ['']
 
             if frag.docstring:
                 out += frag.raw_docstring().splitlines()

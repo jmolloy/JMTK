@@ -62,7 +62,8 @@ def depart_tocgraph_node(self, node):
 def get_as_dot(graph, urls, css):
     dot = ['digraph G {',
            'node [shape=box fontsize=16 fontname="sans-serif" peripheries=0]',
-           'graph [size="6.25,30.0" stylesheet="%s"]' % css]
+           'graph [size="6.25,30.0" stylesheet="%s"]' % css,
+           'edge [weight="1"]']
     for _from, to in graph.edges:
         dot.append('"%s" -> "%s"' % (_from.value.title(), to.value.title()))
 
