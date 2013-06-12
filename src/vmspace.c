@@ -1,3 +1,9 @@
+/**#2
+   Let's begin writing this simple wrapper about the buddy allocator.
+
+   We start by initialising the buddy allocator inside a vmspace object. That involves
+   calculating the buddy bitmap overhead and reserving space for them at the end of
+   the vmspace range. We also need to allocate physical pages as backing memory. { */
 #include "assert.h"
 #include "hal.h"
 #include "vmspace.h"
@@ -25,11 +31,14 @@ int vmspace_init(vmspace_t *vms, uintptr_t addr, uintptr_t sz) {
 
   buddy_init(&vms->allocator, (uint8_t*)start, r, /*start_freed=*/0);
 
+  /* FIXME: Can just use '1' to the start_freed argument above? */
   buddy_free_range(&vms->allocator, r);
 
   return 0;
 }
 
+/** Next we have allocation and release of memory. This just involves calling
+    the buddy allocator and then allocating physical backing memory if requested. { */
 uintptr_t vmspace_alloc(vmspace_t *vms, unsigned sz, int alloc_phys) {
   /* FIXME: Assert sz is page aligned. */
   spinlock_acquire(&vms->lock);

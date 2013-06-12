@@ -68,3 +68,4 @@
 "interrupt handling": [src/x86/interrupts.c src/x86/interrupts.s]
 "virtual memory management": [src/x86/vmm.c src/x86/free_memory.c]
 "physical memory management": [src/pmm.c src/adt/buddy.c]
+"kernel heap": [src/include/vmspace.h src/vmspace.c src/include/slab.h src/slab.c src/include/kmalloc.h src/kmalloc.c]

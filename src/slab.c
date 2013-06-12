@@ -3,28 +3,44 @@
 #include "slab.h"
 #include "string.h"
 
+/**#4
+   The footer object is placed at the end of each slab, and is just a linked list to
+   the next available slab. The used/free bitmap is dynamically sized and will appear
+   just before the footer. { */
 typedef struct slab_footer {
   struct slab_footer *next;
 } slab_footer_t;
 
+/** There is a lot of pointer arithmetic involved in finding object locations and footers,
+    so make it a little easier.
+
+    We assume that our parent "large object" allocator returns slabs with natural alignment -
+    that is, an 8KB slab will be 8KB aligned. We can use that to know, from a pointer inside
+    a slab, exactly where it starts and ends. { */
 #define SLAB_ADDR_MASK ~(SLAB_SIZE-1)
-#define FOOTER_FOR_PTR(x) (void*)(((uintptr_t) x & SLAB_ADDR_MASK) + SLAB_SIZE - sizeof(slab_footer_t))
+#define FOOTER_FOR_PTR(x) (void*)(((uintptr_t) x & SLAB_ADDR_MASK) + \
+                                  SLAB_SIZE - sizeof(slab_footer_t))
 #define START_FOR_FOOTER(f) ((uintptr_t)f & SLAB_ADDR_MASK)
 
+/** We'll define these internal functions in a minute - they're mainly just bit-twiddling. { */
 /* Internal functions */
 /* Destroy a slab, given its footer. */
 static void destroy(slab_cache_t *c, slab_footer_t *f);
 /* Create a new slab, in the given cache. */
 static slab_footer_t *create(slab_cache_t *c);
-/* Mark a slab entry as used - obj is a pointer relative to the start of the slab. */
+/* Mark a slab entry as used - obj is a pointer relative to the
+   start of the slab. */
 static void mark_used(slab_cache_t *c, slab_footer_t *f, void *obj);
-/* Mark a slab entry as unused - obj is a pointer relative to the start of the slab. */
+/* Mark a slab entry as unused - obj is a pointer relative to the
+   start of the slab. */
 static void mark_unused(slab_cache_t *c, slab_footer_t *f, void *obj);
 /* Predicate: are all the entries in the given slab unused? */
 static int all_unused(slab_cache_t *c, slab_footer_t *f);
-/* Return the address of an empty object in the given slab, or NULL if all full. */
+/* Return the address of an empty object in the given slab, or NULL
+   if all full. */
 static void *find_empty_obj(slab_cache_t *c, slab_footer_t *f);
 
+/** First, cache creation. This is entirely uninteresting. { */
 int slab_cache_create(slab_cache_t *c, vmspace_t *vms, unsigned size, void *init) {
   c->size = size;
   c->init = init;
@@ -35,6 +51,8 @@ int slab_cache_create(slab_cache_t *c, vmspace_t *vms, unsigned size, void *init
   return 0;
 }
 
+/** Slab destruction is slightly more involved, but not much. Follow the
+    linked list of slabs, destroying them as we go. { */
 int slab_cache_destroy(slab_cache_t *c) {
   slab_footer_t *s = c->first;
   while (s) {
@@ -46,9 +64,11 @@ int slab_cache_destroy(slab_cache_t *c) {
   return 0;
 }
 
+/** Ah, allocation. This is slightly more fun. { */
 void *slab_cache_alloc(slab_cache_t *c) {
   spinlock_acquire(&c->lock);
 
+  /** To get a new object */
   void *obj;
   if (c->empty) {
 
@@ -162,14 +182,14 @@ static void mark_unused(slab_cache_t *c, slab_footer_t *f, void *obj) {
   *ptr &= ~(1 << bit);
 }
 
-static int all_unused(slab_cache_t *c, slab_footer_t *f) {
+static bool all_unused(slab_cache_t *c, slab_footer_t *f) {
   unsigned sz = bitmap_sz(c->size);
   uint8_t *p = (uint8_t*)f - sz;
 
   /* FIXME: Use something fast like memcmp? */
   for (unsigned i = 0; i < sz; ++i)
-    if (*p++ != 0) return 0;
-  return 1;
+    if (*p++ != 0) return false;
+  return true;
 }
 
 static int lsb_clear(uint8_t byte) {
