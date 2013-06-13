@@ -40,7 +40,6 @@ typedef struct slab_cache {
                                    returned object. */
   struct slab_footer *first;    /* First slab footer in a linked list - all
                                    of these slabs are full or partially full. */
-  void *empty;                  /* Pointer to an empty object. */
   vmspace_t *vms;               /* Parent "large object" allocator. */
 
   spinlock_t lock;
