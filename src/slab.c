@@ -48,11 +48,11 @@ typedef struct slab_footer {
     / object_size``), and that tells us how large our bitmap needs to be.
 
     But now that we have a bitmap of nonzero size, fewer objects will fit in the
-    remaining space. So we could spend effort to calculate the maximum possible
+    remaining space. We could spend effort to calculate the maximum possible
     number of objects, or we could take the easy way out and simply not bother.
     This means that potentially we are wasting some space, but we might also
     be gaining execution time (as iterating to find the best size is time
-    consuming! { */
+    consuming!) { */
 static unsigned num_objs_per_slab(unsigned obj_sz) {
   int n = SLAB_SIZE / obj_sz;
   int overhead = BITMAP_SIZE(obj_sz) + sizeof(slab_footer_t);
